@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : Byte Buffer commands</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : Byte Buffer commands</h1>
+<PRE>
+(byte-buffer-alloc <var>&lt;id&gt;</var> <var>&lt;size&gt;</var>)
+(byte-buffer-write <var>&lt;id&gt;</var> <var>&lt;object&gt;</var> [<var>&lt;repeats&gt;</var>])
+(byte-buffer-free <var>&lt;id&gt;</var>)
+</PRE>
+<P>
+byte buffers can be seen as some kind of replacement for the missing support of arrays in jatha. they can be used to write arbitrary data into harddisk files (see <A HREF="lispFile.html">the file i/o document</A>) and as a target object in realtime and offline synthesis (see <A HREF="lispRealtimeSourceRequest.html">realtime source-request</A> and <A HREF="lispBounceSourceRequest.html">bounce source-request</A>).
+</P>
+<P>
+byte buffers are addressed through an <A HREF="lispOBoundP.html">object binding</A>: a lisp symbol is passed to the allocation command and can then be used as a &quot;handle&quot; to that buffer when writing or freeing the buffer. the allocation command requires the specification of the size of the buffer in bytes.
+</P>
+<P>
+in <code>byte-buffer-write</code>, four types of primitives can be written to the buffer: a single integer is written as a signed 32bit integer, a single real is written as a 32bit IEEE 754 floating point number, a list of integers is written as a sequence of 8bit bytes! any other type is written as a byte sequence of its string representation (not terminated). the optional <code>repeats</code> argument which must be an integer is used to write the object repeatedly.
+</P>
+<P>
+at the moment it is not possible to seek in the byte buffer. when a new buffer is allocated, the write position is placed at the very beginning. it's not possible to clear or reset the buffer. this will be possible in a future version.
+</P>
+<P>Example:</P>
+<PRE>
+    (byte-buffer-alloc 'testmsg 148)
+    (byte-buffer-write 'testmsg "/b_setn\\0x00,iii")
+    (byte-buffer-write 'testmsg "f" 24)
+    (byte-buffer-write 'testmsg (list 0) 4)
+    (byte-buffer-write 'testmsg 1)  ; (int) buffer number
+    (byte-buffer-write 'testmsg 0)  ; (int) buffer offset
+    (byte-buffer-write 'testmsg 24) ; (int) number of frames
+    (byte-buffer-write 'testmsg 0.5 24) ; (floats) frames
+    (datagram-channel-open 'scosc "127.0.0.1" 57110)
+    (osc-bundle-send-and-wait 'scosc 0.0 (list
+        (list "/b_alloc" 1 24)
+        (list "/dumpOSC" 3)
+        (list "/sync" 1234)
+    ) "/synced" 1000)
+    (datagram-channel-write 'scosc 'testmsg)
+    (datagram-channel-close 'scosc)
+    (byte-buffer-free 'testmsg)
+</PRE>
+<P>
+the example allocates a buffer of 148 bytes and creates an OSC message for supercollider. a buffer in supercollider is created (with an ID of 1 and a size of 24 frames). since we wait for the OSC-dumping to be turned on, this message -- which sets the content of sc's buffer to the constant value of 0.5 -- will be printed to the terminal by scsynth. note the excape expression in the first write statement to include zero padding. also note that in <A HREF="lispDatagramChannel.html"><code>datagram-channel-write</code></A>, the whole buffer is sent, therefore when allocating this buffer, the size must be exactly the size of the message. this is going to change in a future version.
+</P>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Surface</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Surface</h1>
+<p>
+The surface is a 2D display showing the situation at one moment in time. It serves as an edit window for receivers and transmitter trajectories. Receivers are shown by a red crosshair labelled with their names. The crosshair corresponds to their central anchor point. A dashed red outline indicates the
+receiver's dimension. Depending on to the settings in the View menu, the receiver's sensitivities are plotted as a grayscale image, where overlapping receivers are added either linearily or according to an equal power rule.
+</p><p>
+Transmitters are likewise shown by a green crosshair labelled with their names.
+The crosshair corresponds to the current location of the transmitter and is
+animated when the timeline position changes, either by dragging in the <A HREF="TimelineAxis.html">timeline axis</A> or by pressing the <A HREF="TransportTools.html">transport's play button</A>. Depending on the
+settings of the View menu, the trajectories of all currently selected  transmitters between the beginning and ending of the current timeline selection are displayed as green dashed polylines.
+</p>
+<IMG SRC="Surface.png">
+<p>
+Receivers can be edited using the <A HREF="SurfaceToolPointer.html">pointer tool</A>.
+Transmitters can be edited using the <A HREF="SurfaceToolLine.html">line tool</A>,
+the <A HREF="SurfaceToolCurve.html">curve tool</A>, the <A HREF="SurfaceToolArc.html">arc tool</A>
+or the <A HREF="SurfaceToolPencil.html">pencil tool</A>.
+</P><P>
+All coordinates regarding the surface are normalized such that the top left corner corresponds to the X,Y coordinates (0,0), the top right corner is (1,0), the bottom right corner is (1,1) and the left bottom corner is (0,1). The display is automatically zoomed when the window is resized. Rulers are shown optionally depending on the setting of the menu item View-&gt;Surface shows-&gt;Rulers.
+</p>
+</body>
+</html>

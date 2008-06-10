@@ -1,0 +1,23 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Plug-Ins Prefs : SuperCollider OSC Socket (IP:port)</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Plug-Ins Prefs : SuperCollider OSC Socket (IP:port)</h1>
+<p>
+Meloncillo does not care about audio processing at all. The value specified here is available
+to LISP scripts via <code>(gethash "SUPERCOLLIDEROSC" (gethash "PREFERENCES" cillo))</code>. Scripts
+using realtime <A HREF="SuperCollider.html">SuperCollider</A> can use this value as a socket target address. The value can likewise
+be used for a Max/MSP client running the MeloncilloMaxBridge and using the same socket address.
+</p><p>
+The socket address is expressed in the form <code>IP:port</code>. When running Meloncillo and the synthesis
+application on the same machine, you can use the localhost IP address '127.0.0.1'. SuperCollider's
+standard OSC port is 57110.
+</p>
+<P>
+The IP address can be specified both as a number, e.g. <code>123.45.67.8</code>, or as a human readable name that is known by your network's name server, e.g. <code>schnucki.hfm-weimar.de</code>. Note that the plug-ins use UDP for communication at the moment. There is a <STRONG>safety issue</STRONG> about running scsynth via UDP in public networks such as a university computer. This issue will be addressed in a future version of Meloncillo.
+</P>
+</body>
+</html>

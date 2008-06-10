@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Writing LISP Plug-Ins : Functional Extensions</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Writing LISP Plug-Ins : Functional Extensions</h1>
+<P>
+a few addtional lisp functions are provided by meloncillo:
+</P>
+<UL>
+<LI><code><A HREF="lispCurrentTimeMillis.html">current-time-millis</A></code> : returns current system time in milliseconds.</LI>
+<LI><code><A HREF="lispByteBuffer.html">byte-buffer-alloc</A></code> : allocates a byte buffer.</LI>
+<LI><code><A HREF="lispByteBuffer.html">byte-buffer-write</A></code> : writes the data into a byte buffer.</LI>
+<LI><code><A HREF="lispByteBuffer.html">byte-buffer-free</A></code> : frees the memory occupied by a byte buffer.</LI>
+<LI><code><A HREF="lispDatagramChannel.html">datagram-channel-open</A></code> : opens a (UDP) datagram channel for OSC communication.</LI>
+<LI><code><A HREF="lispDatagramChannel.html">datagram-channel-write</A></code> : writes contents of a bytebuffer to a datagram channel</LI>
+<LI><code><A HREF="lispDatagramChannel.html">datagram-channel-close</A></code> : closes and frees a datagram channel.</LI>
+<LI><code><A HREF="lispFile.html">file-open</A></code> : opens a file for reading or writing.</LI>
+<LI><code><A HREF="lispFile.html">file-write</A></code> : writes the contents of a bytebuffer to a file.</LI>
+<LI><code><A HREF="lispFile.html">file-close</A></code> : closes a file.</LI>
+<LI><code><A HREF="lispAudioFile.html">audio-file-open</A></code> : opens an audio file for reading or writing.</LI>
+<LI><code><A HREF="lispFileDelete.html">file-delete</A></code> : deletes a file.</LI>
+<LI><code><A HREF="lispTempFileMake.html">temp-file-make</A></code> : creates a new empty temporary file.</LI>
+<LI><code><A HREF="lispFormat.html">format-apply</A></code> : formats a pattern string with variable substitution.</LI>
+<LI><code><A HREF="lispFormat.html">format-parse</A></code> : extracts variables out of a formatted string following a pattern.</LI>
+<LI><code><A HREF="lispLogPow.html">log</A></code> : calculates the logarithm of number</LI>
+<LI><code><A HREF="lispLogPow.html">pow</A></code> : raises a number to the power of another number</LI>
+<LI><code><A HREF="lispLogBoolean.html">logand</A></code> : calculates the bitwise AND of two numbers.</LI>
+<LI><code><A HREF="lispLogBoolean.html">logior</A></code> : calculates the bitwise OR of two numbers.</LI>
+<LI><code><A HREF="lispLogBoolean.html">logxor</A></code> : calculates the bitwise XOR of two numbers.</LI>
+<LI><code><A HREF="lispOBoundP.html">oboundp</A></code> : the predicate is <code>T</code> if a java object with a given identifier has been created.</LI>
+<LI><code><A HREF="lispOSC.html">osc-bundle-send</A></code> : sends OSC commands to a network socket or file.</LI>
+<LI><code><A HREF="lispOSC.html">osc-bundle-send-and-wait</A></code> : sends OSC commands to a network socket or file, and waits for a reply.</LI>
+<LI><code><A HREF="lispPath.html">path-concat</A></code> : concatenates a parent directory and a file to a new path name.</LI>
+<LI><code><A HREF="lispPath.html">path-split</A></code> : extracts a parent dir and a file from a path name.</LI>
+<LI><code><A HREF="lispPrintLn.html">println</A></code> : prints an object to the console and adds a newline character.</LI>
+<LI><code><A HREF="lispRegEx.html">regex-match</A></code> : matches a string against a regular expression and returns the group boundaries</LI>
+<LI><code><A HREF="lispSubstring.html">substring</A></code> : returns a portion of a given string.</LI>
+</UL>
+<P>
+further more, a constant <code>PI</code> is defined (3.1415926...).
+</P>
+<H3>plug-in only functions</H3>
+<P>
+the functions above can also be used in the <A HREF="JathaPrompt.html">jatha diddler</A>. in plug-in scripts, a few more functions are available:
+</P>
+<LI><code><A HREF="lispGadgetMake.html">gadget-make</A></code> : when used inside a special function block <code>create-gui</code>, this function defines a new graphical user interface element in the plug-in's frame.</LI>
+<LI><code><A HREF="lispSessionPropertyAdd.html">session-property-add</A></code> : when used inside a special function block <code>create-gui</code>, this function defines a new property of session objects (transmitters and receivers) which is displayed in the <A HREF="ObserverPalette.html">observer palette</A>.</LI>
+<LI><code><A HREF="lispExecute.html">execute</A></code> : synchronously executes another application or shell script.</LI>
+<LI><code><A HREF="lispProgressionSet.html">progression-set</A></code> : updates the main window's progress bar position.</LI>
+</UL>
+<P>
+a special symbol <A HREF="lispCilloSymbol.html"><code>cillo</code></A> (a hashtable) is passed to special functions defined by the plug-in source code. see the <A HREF="lispPlugInConcept.html">plug-in concept document</A>.
+</P>
+<H3>plug-in host specific functions</H3>
+<P>
+special functions exist to communicate stream data (sensitivities or trajectories) between meloncillo and a server application. there exact behaviour depends on the kind of plug-in host. for the <B>filter trajectories</B> plug-in:
+</P>
+<UL>
+<LI><code><A HREF="lispFilterSourceRequest.html">source-request</A></code> : asks meloncillo to provide trajectory input data.</LI>
+<LI><code><A HREF="lispFilterTargetRequest.html">target-request</A></code> : tells meloncillo about processed trajectories that should be re-inserted into the session.</LI>
+</UL>
+<P>
+for the <B>realtime</B> synthesis plug-in:
+</P>
+<UL>
+<LI><code><A HREF="lispRealtimeSourceRequest.html">source-request</A></code> : asks meloncillo to send sensitivity or trajectory input data to an OSC port.</LI>
+<LI><code><A HREF="lispRealtimeTargetRequest.html">target-request</A></code> : tells meloncillo about incoming synchronization messages.</LI>
+</UL>
+<P>
+for the <B>bounce-to-disk</B> plug-in:
+</P>
+<UL>
+<LI><code><A HREF="lispBounceSourceRequest.html">source-request</A></code> : asks meloncillo to write sensitivity or trajectory input data to an harddisk file.</LI>
+</UL>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : Datagram Channel commands</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : Datagram Channel commands</h1>
+<PRE>
+(datagram-channel-open <var>&lt;id&gt;</var> <var>&lt;host&gt;</var> [<var>&lt;port&gt;</var>])
+(datagram-channel-write <var>&lt;id&gt;</var> <var>&lt;object&gt;</var>)
+(datagram-channel-close <var>&lt;id&gt;</var>)
+</PRE>
+<P>
+a datagram channel is a network channel over which messages, typically open sound control (OSC) messages, are sent from one application to another. to communicate with supercollider for example, one has to send OSC messages through such a channel. while sc supports two protocols, UDP and TCP, these lisp functions allow the use of the user datagram protocol (UPD) only.
+</P>
+<P>
+instead of specifying the target address in each write command, the target socket is specified once in the creation command of the channel. the host is a string argument which can be either an IP number such as <code>&quot;12.110.110.204&quot;</code> or a host name such as <code>&quot;localhost&quot;</code> or <code>&quot;www.nsa.gov&quot;</code> (a really cool organization of the world's largest democracy). an IP address identifies the target computer, where &quot;localhost&quot; is an abbrevation for the same computer as the message sender. the <code>port</code> is an arbitrary number, typically something between 1024 and 65535. the target application publishes its communication port which must be known by the sender. when omitting the <code>port</code> argument, a default of 57110 is used, which is the traditional port of supercollider.
+</P><p>
+when opening a channel, this channel is assigned to a lisp symbol <code>id</code> which serves as handle for writing and closing the channel. see the <A HREF="lispOBoundP.html">oboundp</A> for more information about object binding.
+</P>
+<P>
+when writing to the channel, the parameter <code>object</code> has to be a previously filled byte buffer. usually, you will want to use the simpler <A HREF="lispOSC.html">OSC commands</A>.
+</P>
+<P>Example:</P>
+<BLOCKQUOTE>see the <A HREF="lispByteBuffer.html">byte buffer document</A> for an example.</BLOCKQUOTE>
+</body>
+</html>

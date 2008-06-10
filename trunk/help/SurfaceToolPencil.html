@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Pencil Surface Tool</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Pencil Surface Tool</h1>
+<p>
+The pencil tool (keyboard <code>F5</code>) is used to create
+transmitter trajectories by recording mouse motion in realtime.
+</p>
+<IMG SRC="SurfaceToolPencil.png">
+<P>
+First select the transmitter(s) to edit in the timeline frame's
+<A HREF="TransmitterTrack.html">track list</A>. Then move the
+timeline position to a point somewhere before your 'punch in'
+point. To set the timeline position, use either the <A HREF="TimelineAxis.html">timeline axis</A>
+or the <A HREF="TransportPosition.html">transport's position label</A>.
+<code>Click+Drag</code> in the surface to begin to record your movements. When transport is not running, it will automatically be started and, when releasing the mouse, stopped again, which allows exact punch in. When transport is already running, pressing the mouse will instantely punch in at the current transport position.
+</p><p>
+Note that at the moment, the recording is only written to the trajectory tracks after
+the mouse is released. During recording, blue fading crosshairs follow the mouse movements
+and indicate the recorded trajectory. Since movements are transmitted as 'buffers' to the realtime plug-in, you while notice a slight delay of the audible movement of sound which corresponds to the <A HREF="prefsRTSenseBufSize.html">realtime sense buffer size</A>. The written trajectory is of course, accurately timed, so playing back the recorded movement should be satisfying.
+</p><p>
+If the <A HREF="ObserverCursor.html">cursor tab</A> of the observer palette is shown, which automatically happens when the pencil tool is selected, you will see the sensitivity of the two most prominent receivers with respect to the mouse position, along with the total energy sum of all receivers. If want to use this information feature without actually modifying trajectory tracks, use the <A HREF="SurfaceToolFork.html">fork tool</A> instead.
+</p><p>
+Note that in loop playback, when the timeline
+position is reset to the loop start, all 'non-recorded' parts of the loop are interpolated. This is more a bug than a feature and will change in a future version.
+</p><p>
+To prevent sudden jumps or 'clicks' at the punch in/out points, activate the
+<A HREF="ToolBlending.html">blending mode</A> which will apply an adjustable fade-in
+and fade-out of the rendered paths.
+</p>
+</body>
+</html>

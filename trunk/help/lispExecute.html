@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : execute</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : execute</h1>
+<pre>
+(execute <var>&lt;callback&gt;</var> <var>&lt;cmd-list&gt;</var> <var>&lt;env-list&gt;</var> <var>&lt;cwd&gt;</var>)
+</pre>
+<P>
+this function is available inside the plug-in source code to synchronously execute a terminal command, such as running csound or supercollider non-realtime. <code>cmd-list</code> is a string list whose first element is the command to be executed, while all other elements are passed to the command as its arguments. <code>env-list</code> is a list of environment variables (or <code>NIL</code>). each element must be a cons cell whose <code>car</code> is the variable name (string) and whose <code>cdr</code> is the variable value (string). <code>cwd</code> is the pathname (string) of the current work directory in which the command will be executed.
+</P>
+<P>
+console text output of the command is passed to the <code>callback</code> function. this parameter is not evaluated and therefore needs no to be quoted. the callback function is called for each new text line with that text line as its sole parameter. if <code>callback</code> is <code>NIL</code>, all text will be printed to meloncillo's main log pane. the callback is often used to filter out progress information and call the special function <A HREF="lispProgressionSet.html"><code>progression-set</code></A>.
+</P>
+<P>
+synchronous execution means that the lisp script execution is not continued before the external process is completed or aborted. the result of <code>execute</code> is the integer return code of the process (zero usually means that no errors occured. scsynth returns <code>1</code> for some reason).
+</P>
+<P>example:</P>
+<PRE>
+    (defun parse-sc-output (textline)
+        (if (and (> (length textline) 14)
+                 (eql &quot;nextOSCPacket &quot; (substring textline 0 14)))
+            (let ((timepos (format-parse &quot;{0,number}&quot;
+                     (substring textline 14 (length textline)))))
+                (if (> (length timepos) 0)
+                    (progression-set (/ (car timepos) duration))
+                ; else
+                    (println textline)
+                )
+            )
+        ; else
+            (println textline)
+        )
+    )
+    
+    (defun iter (itervar startidx stopidx success cmd)
+        (if (and (eval success) (< startidx stopidx))
+            (progn
+                (set itervar startidx)
+                (eval cmd)
+                (iter itervar (1+ startidx) stopidx success cmd)
+            )
+        )
+    )
+    
+    (defun prepare NIL T)
+    (defun cleanup NIL T)
+
+    (defun render NIL
+        (let ((prefs (gethash &quot;PREFERENCES&quot; cillo))
+              (timeline (gethash &quot;TIMELINE&quot; cillo)))
+            (let ((app-path (gethash &quot;SUPERCOLLIDERAPP&quot; prefs))
+                  (osc-cmd-file (temp-file-make)))
+                (setq duration (- (gethash &quot;STOP&quot; timeline)
+                                  (gethash &quot;START&quot; timeline)))
+                (file-open 'osc osc-cmd-file &quot;w&quot;)
+                (iter 'i 0 10000 'T
+                    '(osc-bundle-send 'osc (* (/ i 10000) duration)
+                        (list (list &quot;/status&quot;)))
+                )
+                (file-close 'osc)
+                (let ((return-code (execute parse-sc-output (list
+                        app-path &quot;-i&quot; 1 &quot;-o&quot; 2
+                        &quot;-N&quot; osc-cmd-file &quot;_&quot; &quot;test.aif&quot;
+                        (gethash &quot;AUDIORATE&quot; prefs) &quot;aiff&quot; &quot;int24&quot;)
+                        NIL    ; no environment variables
+                        (car (path-split app-path)))))  ; cwd
+                    (println (concatenate 'STRING &quot;Exited with &quot;
+                        &quot;return code &quot; return-code))
+                )
+            )
+        )
+    )
+</PRE>
+<P>
+this example creates an offline OSC file with dummy commands only. it launches supercollider in non-realtime mode, and the callback function filters sc's console outputs starting with <code>&quot;nextOSCPacket&quot;</code>. these lines are parsed to calculate and update the progression.
+</P>
+</body>
+</html>

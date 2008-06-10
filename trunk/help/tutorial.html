@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Tutorial</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>tutorial</h1>
+<P>
+this is a step by step tutorial through the programme. it will show you how to create a simple example session but not how to use every single feature of meloncillo. the session results do not accompany the normal meloncillo installation. you can download them separately from the <A HREF="http://sourceforge.net/projects/meloncillo" CLASS="ext">meloncillo sourceforge site</A>.
+</P>
+<h3>starting from scratch : adjusting preferences</h3>
+<P>
+when you are running meloncillo for the first time, it will open with a default window layout, a welcome screen, and the preferences frame. you can simulate this situation by deleting the preferences, which are for example on mac os x stored in <code><I>YourHomeFolder</I>/Library/Preferences/de.sciss.meloncillo.plist</code>.
+</P><P>
+before we look at the session's windows, let us examine the <A HREF="PrefsFrame.html">preferences frame</A>. if you select the &quot;General&quot; tab, you see a list of items that affect the general look and feel of the programme. meloncillo can be displayed with different graphical skins which are listed in the <A HREF="prefsLookAndFeel.html">&quot;Look-and-Feel&quot;</A> combo box. also note the field <A HREF="prefsKeyStrokeHelp.html">&quot;Shortcut for Online Help&quot;</A>. this shortcut key allows to you find online help documents related to the current focussed window. for example, if the preferences frame is selected and you type this shortcut, it will turn blue. once you move the mouse around, some areas are highlighted yellow. this indicates that help files are available for objects in this area. if you click the mouse button, they will be displayed in this help browser (therefore replacing the tutorial text you are reading now). to cancel the help mode, press the <code>Escape</code> key.
+</P><P>
+now take a look at the second tab labelled &quot;Plug-Ins&quot; as a beginner, you usually shouldn't adjust the fields here, but some information is useful: meloncillo doesn't synthesize sound itself, it relies on a third party application such as supercollider or csound. to follow the tutorial, you should have at least installed supercollider on your computer. supercollider can be downloaded from <A HREF="http://sourceforge.net/projects/supercollider" CLASS="ext">sourceforge</A>. after installing supercollider, verify that the field <A HREF="prefsSuperColliderApp.html">&quot;SuperCollider Synth Application&quot;</A> points to the file <code>scsynth</code> in your installation.
+</P><P>
+now close the preferences frame.
+</P>
+<H3>the surface frame</H3>
+<P>
+next we will look at the most important window, the <A HREF="SurfaceFrame.html">surface frame</A>. if you don't see this window, choose &quot;Surface&quot; from the window menu. 
+</P>
+for simplicity, think of the <B>surface</B> as a bird's view on your performance space. let us, for the moment, assume you want to diffuse a single mono soundfile through a bunch of speakers, say four speakers. with a group of discrete loudspeakers, you can create the virtual image of a moving or static sound source somewhere along the line or circle of your speakers, by putting the sound on one or several speakers, only altering the volume of each speaker. this is the traditional way of multi-speaker diffusion, called intensity panning. panning is an artificial word derived from the term &quot;panorama&quot; which assumes speakers are set up in front of you, forming the panoramic horizon, and the sound is placed somewhere in this panorama. intensity panning refers to the process of changing the speakers' volume.
+</P><BLOCKQUOTE>
+(<b>excursion</b>) you may know that our ear detects the location of sounds by different cues. natural sound sources are detected by comparing the volume (intensity) difference and the time interval (delay) of the wave front arrival between our ears. virtual or &quot;phantom&quot; sources can be created with loudspeakers by providing this level or phase difference. in a stereo situation where the left and right speakers are placed at the same angle to the left and right of your head, playing the sound back at the same volume means that both your left and right ear hear the same volume, suggesting that the sound source is located directly in front of you. if you attenuate the right speaker, the auditory system (your brain) thinks the sound comes from the left, because a real source that comes from the left would also result in this perception: the sound would have to travel around your head to the right ear, loosing some intensity.
+</P><P>
+the &quot;laws&quot; of intensity panning are quite well understood, but are dynamic depending on your spatial situation. for example, in a normal closed space there is interaction with reflecting sound waves, and the distance of the speakers to your head might be different, resulting in an intervention of other contradictory cues such as an unwanted time delay. this tutorial's aim is not to cover all these problems, there are whole books about this. let us just assume that you either know the target spatial situation or you have some means of readjusting the session setup directly at the site. let us take a pragmatic point of view and forget the &quot;laws&quot; of panning, instead using an empirical approach: meloncillo allows you to adjust the panning laws in an arbitrary way, so by using your aural judgement, you can create panning curves that sound right for you.
+</BLOCKQUOTE><P>
+by default, rulers are shown on the top and left of the surface. if not, check the &quot;Rulers&quot; item in the <A HREF="menus.html#View">view menu</A>. the surface is an abstraction of your real space. it has a width and height of 1.0, the top left having a coordinate of (0.0, 0.0), the center being (0.5, 0.5). first we should create some objects that correspond to your speakers. to do so, select the <A HREF="SurfaceToolPointer.html">pointer tool</A> (arrow icon) from the tool palette of the surface frame. now double-clicking on the surface will create a socalled <b>receiver</b> objects at that location. create four receivers. if you create more than wanted, you can delete them by pressing the <code>Delete</code> key. you can select and move receivers with the pointer tool as well. to do so, press and hold the mouse button over the receivers center (the red crosshair), then drag the mouse. you can see the exact position of the selected receiver in the <A HREF="ObserverPalette.html">observer palette</A>. if you don't see this palette, choose &quot;Observer&quot; from the window menu. be sure that the tab labelled &quot;rcv&quot; is selected. place</P>
+<UL>
+<LI>&quot;R1&quot; at X=0.375, Y=0.375</LI>
+<LI>&quot;R2&quot; at X=0.625, Y=0.375</LI>
+<LI>&quot;R3&quot; at X=0.375, Y=0.625</LI>
+<LI>&quot;R4&quot; at X=0.625, Y=0.625</LI>
+</UL>
+<P>
+you can type these values directly into the fields of the observer palette. confirm each value by pressing the <code>Enter</code> key.
+</P>
+<IMG SRC="tutSurface.png" ALT="">
+<P>
+you see, the boundary of each receiver touches the center of the neighbouring receiver's center (called the &quot;anchor&quot;). using the default panning curves of the receiver, indicated by the grayscale shading, this setup is a very good starting point, because the transitions between neighbouring receivers
+follow the &quot;equal power law&quot; and are acoustically smooth without producing the impression of &quot;holes&quot; between two speakers.
+</P>
+<H3>the timeline frame</H3>
+<p>
+next we will create an object that represents a moving mono sound file. the movement is recorded in a trajectory track that is shown in the <A HREF="TimelineFrame.html">timeline frame</A>. if you do not see the timeline frame, choose &quot;Timeline&quot; from the window menu. the timeline resembles the &quot;edit&quot; window in protools, the &quot;arrange&quot; window in logic pro or the &quot;sequence view&quot; in final cut.
+</P><p>
+a moving object with a trajectory is called <b>transmitter</b> in meloncillo. to create a new transmitter, choose &quot;New Transmitters...&quot; from the &quot;Insert&quot; submenu of the file menu (shortcut: <code>Meta+Shift+N</code> where <code>Meta</code> is the <code>Apple</code> or <code>Ctrl</code> key depending on your platform). a dialog will pop up and ask you how many transmitters you want. create just one transmitter now.
+</P><P>
+a new row will appear in the timeline frame, a field labelled &quot;T1&quot; on left -- the transmitter's name --, and a blank field on the right. before we can do anything else, you must make a preliminary decision about the length of our trajectory. this length can be truncated or expanded later on. for the moment, let us decide that the trajectory should last for thirty seconds. before we can record the movement, we must insert this amount of time into the track. to do so, choose &quot;Insert Time Span...&quot; from the timeline menu (shortcut <code>Meta+Shift+E</code>), type &quot;30&quot; and press &quotOk&quot;. the formerly blank field on the right side of the timeline frame will now show two horizontal lines, and at the top of the timeline frame, a time ruler, the socalled <A HREF="TimelineAxis.html">timeline axis</A> displays time labels for this new time span (0.0 seconds to 30.0 seconds).
+</P><p>
+The field on the right, next to &quot;T1&quot;, is called the <A HREF="TransmitterEditor.html">trajectory track</A> (or transmitter editor). the top half describes the horizontal movement (along the X-axis), the bottom half describes the vertical movement (alng the Y-axis). by selecting the <A HREF="TimelineToolPencil.html">pencil tool</A> from the timeline's toolbar, you can directly draw into the trajectory track (press and hold, then drag the mouse). you may have noticed that a green crosshair labelled &quot;T1&quot; has also appeared on the surface. it shows the transmitter's position at the current timeline position. the <B>timeline position</B> is indicated by a red vertical bar in the timeline frame. you can move this position by pressing and holding the mouse over the timeline axis and then moving the mouse to the left or the right. the green crosshair on the surface follows the movements in time.
+</P>
+<IMG SRC="tutTimeline.png" ALT="">
+<H3>configuring sound output</H3>
+<P>
+next we want an aural evidence of our gesture. remember that meloncillo is not producing sound by itself but relies on a plug-in to do this job. you may have noticed the <A HREF="TransportPalette.html">transport palette</A> containing the standard symbols for play, stop and cueing. pressing the play button (shortcut: <code>Space</code> bar) will playback your gesture from the current timeline position, but there is no sound output yet.
+</P><P>
+open the <A HREF="RealtimeDialog.html">realtime plug-in frame</A> by choosing &quot;Realtime Plug-In&quot; from the window menu. it will take a short moment to initialize the lisp library. the plug-in combo box of the realtime frame shows all available plug-ins. in this version, the lisp plug-in is the only available plug-in. note that lisp plug-in means that a script written in the language LISP is used to communicate between meloncillo and the synthesis application. you don't have know lisp to operate it. a few readymade lisp scripts are installed with meloncillo. select the &quot;[SC] Amplitude Matrix&quot; from the &quot;Lisp Source&quot; combo box (this is usually done automatically). the realtime frame should look like this now:
+</P>
+<IMG SRC="tutRealtime.png" ALT="">
+<P>
+each plug-in can define properties for the session objects, that is attributes for receivers and transmitters that control the realtime synthesis. these properties are shown in the observer palette. for example, the plug-in script we are using now allows you to specify the sound file associated with the transmitter and the output channel of each receiver. select the transmitter by clicking on it's name &quot;T1&quot; in the timeline frame. the field will turn blue to indicate that this transmitter is the selected transmitter. the observer will show the &quot;trns&quot; tab (if not, select it manually). it should look like this now:
+</P>
+<IMG SRC="tutObserverTrns.png" ALT="">
+<P>
+due to a <B>bug</B>, you may have to press &quot;Reload&quot; in the realtime frame to see these new fields. also, you may have to enlarge the observer palette to see all fields. we will ignore most of them now. only be sure that the &quot;Play Soundfile&quot; process is chosen. to point meloncillo to the sound file you wish to play, click on the small folder icon right to the &quot;Audio In File&quot; row. this brings up a file chooser dialog. supercollider, which we will use for synthesis, can handle most common uncompressed formats, for example AIFF and WAVE files. be sure to select a <b>mono file</b>, otherwise supercollider will crash! the file should have the length of our trajectory, i.e. thirty seconds or more. if you don't have such a file at hand, you can select a different process:
+</P>
+<UL>
+<LI>&quot;Test Signal&quot; will play a quite boring sine pulse instead</LI>
+<LI>&quot;Live Input&quot; will route a signal from your sound card's input to the spatialization engine. in this case, specify the appropriate channel in the &quot;Audio In Bus&quot; field. beware that you may create an acoustic feedback by using live input from a microphone close to your speakers.</LI>
+</UL>
+<P>
+now we need to associate each receiver with one of your sound card's output channels. using the pointer tool, select one receiver after another on the surface (click on its anchor). the observer should switch to the &quot;rcv&quot; tab, which now looks like this (if not, remember to click the realtime's reload button):
+</P>
+<IMG SRC="tutObserverRcv.png" ALT="">
+<P>
+enter the channel index in the &quot;Audio Out Bus&quot; field, for example &quot;1&quot; for receiver R1, &quot;2&quot; for receiver R2, &quot;3&quot; for receiver R3 and &quot;4&quot; for receiver R4.
+</P>
+<H3>launching supercollider</H3>
+<P>
+now comes a step that is a bit tricky for a beginner: you have to launch supercollider, this cannot be done from within meloncillo as of this version (it's planned to be included in the next release). for <B>mac os x</B> (<B>linux</B> is very similar):
+</P>
+<UL>
+<LI>go to the finder and open the terminal application which is located inside the utilities folder inside the applications folder (these folders may have a localized name, for example in german they are called &quot;Dienstprogramme&quot; and &quot;Programme&quot;!).</LI>
+<LI>at the prompt change into the directory that contains supercollider, for example:
+<PRE>
+<B>$</B> cd /Applications/SuperCollider_f
+</PRE>(the &quot;$&quot; character means we live in a capitalist world; it is your prompt and may look different, don't type this character)</LI>
+<LI>launch SuperCollider as follows:
+<PRE>
+<B>$</B> ./scsynth -i 8 -o 8 -u 57110
+</PRE></LI>
+</UL>
+<P>
+on <B>windows</B>, you can use the <code>SCSpawn</code> application to launch the supercollider server. be sure to use UDP port 57110, eight input and eight output channels. the number of channels need not correspond to the number of channels your sound card has. the only important thing is to <B>match</B> these parameters with the values specified in the meloncillo preferences. they are set to eight by default, that's why we use eight here, although we have only four actual output channels! to view the settings in meloncillo, open the <A HREF="prefsPlugIns.html">plug-in tab</A> of the preferences frame.
+</P><P>
+if you have more than one sound card, use the <code>-H <I>YourSoundcardName</I></code> option when launching supercollider.
+</P><P>
+if the launch is successful, supercollider will print a text into the terminal, which looks not exactly like but similiar to the one below:
+</P>
+<IMG SRC="tutSuperCollider.png" ALT="">
+<P></P>
+back in meloncillo, you have to enable playback with the realtime plug-in. this is done by pressing the ball-like icon on the very right of the transport palette (shortcut: <code>Numpad+*</code>). the realtime frame turns light gray to indicate that the plug-in is activated.
+</P>
+<blockquote>(<b>in case of an error</b>) if an error message is shown in the main window, stating something like &quot;java.net.PortUnreachableException. FAILED! supercollider osc notification&quot;, something is wrong with the communication. either supercollider wasn't launched (or it quit) or the network settings are wrong. check that supercollider is really running with the <code>-u 57110</code> option and look at the <A HREF="prefsSuperColliderOSC.html">&quot;SuperCollider OSC Socket&quot;</A> settings in the meloncillo preferences. it should read something like <code>Elektronengehirn.local:57110</code>, where instead of &quot;Elektronengehirn&quot; the name under which your computer is known in a network is printed. since we are running meloncillo and supercollider on the same machine, this should always be the local IP address. if you don't know the correct name, replace the field by <code>127.0.0.1:57110</code> which is a special address for the local host. check that all transmitters and receivers have the required properties described above (audio bus fields etc.) -- if not, press &quotReload&quot; in the realtime frame again. if everything fails, try to quit supercollider (pressing <code>Ctrl+C</code> in the terminal) and meloncillo and restart both.</blockquote>
+<P>
+now pressing the play button of the transport will tell supercollider to play back and spatialize your sound file. if you don't hear anything, look in the terminal window of supercollider. it prints an error message if the sound file path is wrong. check the output bus settings of the receivers in the observer palette. try to use the &quot;Test Signal&quot; process for the transmitter in the observer palette.
+</P>
+<H3>some important implications</H3>
+<P>
+first of all, note that all the settings you make for transmitters and receivers do not affect the realtime plug-in unless you disable and re-enable it (pressing the ball-icon in the transport palette)! this will be smoother in the next version. also <b>do not</b> create or delete objects when realtime is enabled, this results in a runtime exception (also to be fixed in the next release).
+</P>
+<P>
+<B>performance issues:</B> meloncillo sends information about the transmitter trajectory and so on to supercollider via a network protocol UDP. this has bandwidth limitations. if you experience drop-outs, sound not following the trajectory path, usually indicated by the <A HREF="TransportPosition.html">timeline position label</A> of the transport palette flashing red, you can decrease the resolution (accuracy) at which data is transmitted. to do so, open the plug-in tab of meloncillo's preferences. two fields are important:
+</P>
+<UL>
+<LI><A HREF="prefsRTSenseBufSize.html">&quot;Realtime Sense Buffer Size&quot;</A> : the trajectory data is send in chunks called buffers. the shorter the duration of each buffer, the lower the &quot;latency&quot;, the time delay you will encounter when recording movements in realtime for example. however, the shorter the buffer, the faster the transmission must be. therefore it can solve a performance problem to increase this size a bit. however, very long buffer sizes will make the graphic display stutter more because each time a buffer is created it takes more CPU power. also because of the limit of UDP messages, buffers cannot be too long.</LI>
+<LI><A HREF="prefsRTMaxSenseRate.html">&quot;Realtime Max. Sense Rate&quot;</A> : to solve performance problems, try first to decrease this value. by default, trajectories are recorded with 1000 samples per second. if the sense rate is limited in realtime playback, it means not all samples are transmitted, but some are skipped. this is called decimation or downsampling. for example, if you set this value to 250 hertz, only every fourth sample is sent. this doesn't make an audible difference usually, because your sound movements are comparably slow.</LI>
+</UL>
+<H3>recording movements in realtime</H3>
+<P>
+instead of drawing directly into the trajectory tracks as you have done in the beginning of the tutorial, it's much easier to record movements in realtime on the surface. to do so, select the transmitter whose trajectory you want to record. to select a transmitter, click on its name in the timeline frame. drag the timeline position just before the point at which you want to record. to drag the timeline, press and hold the mouse on the timeline axis and move it; alternatively use the timeline's pointer tool and click anywhere on a transmitter's track, or click on the timeline position label in the transport palette. switch to the surface frame and select the <A HREF="SurfaceToolPencil.html">surface pencil tool</A>. press and move the mouse on the surface to record a movement in realtime. you will notice a rather crude delay between your movement and the audio response and also notice the spatialization sounding quite coarse and not smooth. this is a technical limitation of the realtime preview. once you release the mouse, the actual trajectories are written to a temporary file on the harddisk. going back in time and replaying your movement will reveal a much smoother sounding movement.
+</P>
+<H3>writing final audio files</H3>
+<P>
+once you are satisfied with your recordings, you will want to save them. you can save your session by choosing &quot;Save Session&quot; from the file menu. you are prompted for a folder and a name. meloncillo creates a new folder with this name that contains the session and subfolders for receiver and transmitter specific data.
+</P>
+<p>
+however, when you want to continue to use the spatialized sound in another programme such as protools, you must create a <B>bounce</B> first. the term &quot;bouncing&quot; refers to a process that integrates all the spatialization into new autonomous sound files. in our case, you will create four soundfiles out of the mono sourcefile. these four files will then represent the sound that should go directly onto your four speakers, hence you can place these four files direcly onto different protools tracks.
+</P>
+<P>
+to create a bounce, select &quot;Bounce to Disk&quot; from the file menu. the <A HREF="BounceDialog.html">bounce dialog</A> is opened. it looks similar to the realtime frame. set the plug-in source again to &quot;[SC] Amplitude Matrix&quot;. Uncheck &quot;Selection Only&quot; and click on the folder icon right to the &quot;Output Sound File&quot; field to browse the harddisk for a target soundfile. note that the plug-in is programmed to create one multichannel interleaved soundfile. some programs -- including protools -- require multiple mono soundfiles, so you may have to convert them after the bounce (protools will do this automatically). change the soundfile format according to your preferences. the bounce dialog should look like this:
+</P>
+<IMG SRC="tutBounce.png" ALT="">
+<P>
+to start the bounce, press the &quot;Render&quot; button. you will see some messages in the main frame's <A HREF="MainLogPane.html">log pane</A>, along them the command that launches supercollider again -- this time in nonrealtime-mode. the progress bar reflects the bounce process and turns green when successfully completed or red when an error occurred.
+<BLOCKQUOTE>
+(<b>in case of an error</b>) if an error message is shown in the main window, stating something like &quot;ava.io.IOException: XYZ : not found&quot;, verify in the plug-in tab of the preferences, that <A HREF="prefsSuperColliderApp.html">&quot;SuperCollider Synth Application&quot;</A> points really to the file <code>scsynth</code> in your supercollider installation. if you modify this preferences, due to a <B>bug</B> close and re-open the bounce dialog.
+</BLOCKQUOTE>
+<BLOCKQUOTE>
+note that you should close the bounce dialog by pressing the close button, and re-open it, whenever you make changes to the session. for example, you may wish to bounce the left channel solo. to do so, click the vertical split bar on the left margin of the surface to show the <A HREF="SurfaceObjectTables.html">session object tables</A>. click the &quot;S&quot; icon of receiver R1, it turns yellow to indicate solo mode. close and re-open the bounce dialog. clicking &quot;Render&quot; will only render the left channel's output. note that the output file has four channels nevertheless, only channels two to four being silent. the <B>number of output channels</B> is always calculated from the highest specified channel number of all receivers!
+</BLOCKQUOTE>
+</P>
+<H3>going more into details</H3>
+<P>
+the aim of this tutorial was to get you started working with meloncillo. it is not supposed to go further into details. a good starting point to learn more about the tools and processes is to go back to the <A HREF="index.html">main help</A> index and read portions of the <A HREF="menus.html">menus reference</A> and the <A HREF="windows.html">windows reference</A>. if you want to explore the possibilities of the amplitude matrix plug-in, refer to the plug-in's <A HREF="sc-amplitudematrix.html">help document</A>.
+</P>
+</body>
+</html>

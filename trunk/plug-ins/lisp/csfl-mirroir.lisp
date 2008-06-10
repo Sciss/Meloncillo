@@ -1,0 +1,1 @@
+; CSOUND EXPERIMENTAL PATCHES;	MODE = "mirroir"(setq MODE "mirroir")(setq prefs (gethash "PREFERENCES" cillo))(load (path-concat (gethash "BASEDIRECTORY" prefs) "csfl-misc.lisp"))

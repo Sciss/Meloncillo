@@ -1,0 +1,16 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Plug-Ins Prefs : Realtime Sense Buffer Size</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Plug-Ins Prefs : Realtime Sense Buffer Size</h1>
+<p>
+This is the preferred buffer size in milliseconds for sense data in realtime synthesis mode. Its value is available in LISP scripts via <code>(gethash "SENSEBUFSIZE" (gethash "PREFERENCES" cillo))</code>. Depending on the sense rate, there is a physical limit determined by the maximum UDP packet size of
+approx. 8 KB. Since sense rate is sent as 32bit floating point data, this means
+that no more than c. 1500 frames should be sent at once. Hence, since data is sent as a half-size buffer, for a sense rate of 1 kHz, the sense buffer size should be no greater than three seconds (or six seconds at 500 Hz). Also the greater the sense buffer size, the more CPU intensive is each data transfer.
+However, the smaller the sense buffer size, the faster the transmission must be. If you recognize drop-outs in realtime mode, either increase the sense buffer size or decrease the <A HREF="prefsRTMaxSenseRate.html">sense buffer rate</A>.
+</p>
+</body>
+</html>

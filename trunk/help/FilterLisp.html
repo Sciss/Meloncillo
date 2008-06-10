@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Filter Trajectories : Lisp Plug-In</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Filter Trajectories : Lisp Plug-In</h1>
+<p>
+The Lisp Plug-In is a meta-plug-in, i.e. it bridges between the filter interface of Meloncillo
+and a user-programmable Lisp algorithm. The Lisp algorithm itself is usually also a meta-algorithm
+because it bridges Meloncillo and other signal processing software such as CSound. Since the
+Lisp interpreter Jatha doesn't handle arrays yet and besides is too slow, there is no direct way
+of transforming trajectories inside a Lisp script. However there are commands for executing external
+programs, reading and writing to files and requesting trajectory data to be submitted and reinserted
+into the session.
+</p><p>
+The 'Lisp Source' combo box holds a list of source code files which are specified in the
+<A HREF="prefsLispFilterList.html">Lisp Filter Source List</A> preferences. Selecting an item from
+the list will load the new source code, pre-compile it and execute a special GUI building function
+which is described below. When developing a Lisp script, you often have to fix bugs and reload the
+source code. The source code needs to be edited in a separate program such as BBEdit or Xcode and
+be saved in plain ASCII text. To reload the source into Meloncillo, press the 'Reload' button.
+Jatha will evaluate one complete Lisp expression after another and, if 'Verbose' is checked, each
+result of this evaluation is printed into the <A HREF="MainLogPane.html">main window's log pane<A>.
+Compilation or evaluation exceptions and errors are printed to this pane, too. Therefore, when a
+script is erroreous, activating the verbose mode is useful to find the location of the mistake
+(Jatha doesn't know 'source code line numbers' by now, unfortunately).
+</p><p>
+When the script was evaluated, it should have defined a set of Lisp functions which are then
+used to build the GUI and control the trajectory filtering:
+</p>
+<UL>
+<LI><code>(defun create-gui NIL <var>your-function-body</var>)</code> : this function is called
+by Meloncillo when the Filter Trajectories Dialog is opened and a Lisp source is (re)loaded. If
+you do not need a GUI you can omit this function. The function should return a boolean success
+status, i.e. the last statement should return either <code>T</code> (success) or <code>NIL</code>
+(failure). The most prominent special command you will want to use inside the function is
+<code><A HREF="lispGadgetMake.html">gadget-make</A></code> which tells Meloncillo to
+create a new GUI widget such as a number field or path field.
+</LI>
+<LI><code>(defun prepare NIL <var>your-function-body</var>)</code> : the prepare function is
+called by Meloncillo when the user presses the 'Render' button of the Filter Trajectories dialog.
+The function is called without any parameters, however there is a global object named <code>cillo</code>
+which contains preferences and session information and which is described in detail in a
+<A HREF="lispCilloSymbol.html">separate document</A>. The <code>prepare</code> function should make calls to
+the special commands <code><A HREF="lispFilterSourceRequest.html">source-request</A></code> and
+<code><A HREF="lispFilterTargetRequest.html">target-request</A></code> to inform Meloncillo about
+the data it wants and the data which should be reinserted into the session. The <code>prepare</code>
+function should return with a boolean <code>T</code> to indicate success or a boolean <code>NIL</code>
+to indicate failure. When preparation fails, the <code>cleanup</code> function is called and
+rendering is aborted. Otherwise the requested trajectory data is prepared and <code>render</code>
+will be called.</LI>
+<LI><code>(defun render NIL <var>your-function-body</var>)</code> : this function is called by
+Meloncillo when the <code>prepare</code> call was successfull and all data requested using
+<code><A HREF="lispFilterSourceRequest.html">source-request</A></code> has been submitted.
+Therefore, in the <code>render</code> function you usually make a call to an external program
+using the <code><A HREF="lispExecute.html">execute</A></code> command. Finally, you should, again,
+return <code>T</code> to indicate success or a boolean <code>NIL</code> to indicate failure.</LI>
+<LI><code>(defun cleanup NIL <var>your-function-body</var>)</code> : this function is called by
+Meloncillo either when rendering is complete or when it was aborted due to cancellation or an
+error. Use it to close files, destroy temporary files and buffers and so on.</LI>
+</UL>
+<p>
+For indepth information about programming Lisp scripts for Meloncillo refer to the
+<A HREF="lispOverview.html">lisp overview</A> section.
+</p>
+</body>
+</html>

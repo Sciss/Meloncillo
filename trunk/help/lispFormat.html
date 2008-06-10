@@ -1,0 +1,41 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : Message Formatting commands</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : Message Formatting commands</h1>
+<PRE>
+(format-apply <var>&lt;pattern&gt;</var> <var>&lt;args&gt;</var>)
+(format-parse <var>&lt;pattern&gt;</var> <var>&lt;str&gt;</var>)
+</PRE>
+<P>
+these functions are complementary. <code>format-apply</code> formats a pattern string by substitution of placeholders with a given list of arguments, <code>format-parse</code> tries to extract these arguments from a formatted string and returns them as a list. the <code>pattern</code> must follow the specification of
+<A HREF="http://java.sun.com/j2se/1.4.2/docs/api/java/text/MessageFormat.html" CLASS="ext">java.text.MessageFormat</A>.
+</P>
+<P>
+the <code>args</code> list may contain numbers (integers or reals) and strings.
+</P>
+<P>example:</P>
+<pre>
+    (println (format-apply (concatenate 'STRING "weimar is famous for its "
+ 	    "{0,choice,0#bratwurst|1#ginko|2#nazi heritage|3#megalomania}")
+        (list (logand (current-time-millis) 3))
+    ))
+    
+    (let ((hhmmss "02:30:44.666"))
+        (let ((args (format-parse
+            "{0,number,integer}:{1,number,integer}:{2,number,integer}"
+            hhmmss)))
+            
+            (println (concatenate 'STRING "a time span of " hhmmss
+                " is roughly " (+ (+ (third args)
+                                    (* 60 (second args)))
+                                      (* 3600 (first args)))
+                " seconds."))
+        )
+    )
+</pre>
+</body>
+</html>

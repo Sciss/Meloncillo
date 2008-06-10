@@ -1,0 +1,26 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Filter Trajectories : Time Warp</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Filter Trajectories : Time Warp</h1>
+<p>
+The Time Warp filter maps 'input' time to 'output' time using table-lookup. The vector editor shows output time on the X-axis and input-time on the Y-axis. The image below illustrates some common examples:
+</p>
+<IMG SRC="FilterTimeWarp.png">
+<p>
+The red dotted line from the bottom left to the top right indicates the 1:1 unchanged mapping. Note that the total duration of the timeline selection cannot be changed at the moment. If you want to stretch a section say by a factor of 3, insert an empty time span twice as long as the section right after that section. Select the section plus the newly inserted empty span. In the Time Warp dialog, <code>Right+Click</code> or <code>Ctrl+Click</code> on the vector editor, choose 'Apply Function', choose a 'Rising Sawtooth' of amplitude 0.3333, 1.0 periods, 0 degree phase and unipolarity (uncheck 'Bipolar'). Choose 'Replace Values' as the application mode and hit 'Ok. Voil&agrave;.
+</p><p>
+The vectors can be modified by drawing directly with the mouse (select the pencil tool first) or by invoking one of the context menus (<code>Right-Click</code> or <code>Ctrl+Click</code>):</p>
+<UL>
+<LI><A HREF="VectorTransformApplyFunction.html">Apply Function...</A></LI>
+<LI><A HREF="VectorTransformFlipShift.html">Flip and Shift...</A></LI>
+<LI><A HREF="VectorTransformRaiseMultiply.html">Raise and Multiply...</A></LI>
+<LI><A HREF="VectorTransformSetMean.html">Set Mean...</A></LI>
+<LI><B>Smooth</B> smoothes out sudden transitions. This amount of smoothing will be user-adjustable
+in the future.</LI>
+</UL>
+</body>
+</html>

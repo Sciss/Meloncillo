@@ -1,0 +1,1 @@
+; SUPERCOLLIDER OFFLINE PLUG-IN FOR MULTIPLE DISCRETE LOUDSPEAKERS AND INTENSITY PANNING; INVERSE MODE (RECEIVERS = INPUTS, TRANSMITTERS = OUTPUTS)(setq normal NIL)(setq prefs (gethash "PREFERENCES" cillo))(load (path-concat (gethash "BASEDIRECTORY" prefs) "scol-amplitudematrix.lisp"))

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Known Issues, Future Plans</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Known Issues</h1>
+<UL>
+<LI>Adding or removing objects, i.e. modifying the matrix, when the realtime plug-in is activated, will throw an exception.</LI>
+<LI>Objects created after loading a lisp plug-in are not equipped with properties declared by the plug-in. To fix this, you must load the lisp source again (click Reload button).</LI>
+<LI>The trajectory filtering dialog will not recognize changes of selected transmitters, unless closed and re-opened.</LI>
+<LI>The bounce dialog will not recognize changes of session objects (e.g. soloing, muting), unless closed and re-opened. you have to press the close button, don't use the frame's close gadget.</LI>
+<LI>The timeline window paint process for realtime playback (the moving red timeline position) is very slow and can seriously degrade performance on slower computers. At the moment, if this is an issue on your machine, you have to close the timeline frame when playing back with activated realtime plug-ins.</LI>
+<LI>Switching groups can cause graphic artifacts in the timeline frame. The shading of the selected span might be invisible or have the wrong height. In this case, change the timeline frame's size or close and re-open it.</LI>
+<LI>The user image associated with a group is often not painted, unless you change the surface frame's size.</LI>
+<LI>Session files created with Meloncillo 0.68 cannot be opened because the file format changed. Contact me if you have old sessions that need to be converted (it can be done manually but requires some work).</LI>
+<LI>The java docs of the source code seriously need an update.</LI>
+<LI>On Mac OS X, there are two versions of CSound, one by Anthony Kozar and one by Matt Ingalls; the former uses wrong line endings for text files and cannot handle the newline character created by the Meloncillo plug-ins. You can use the CSound binary that is included in MacCsound.</LI>
+<LI>The noise generator cannot work with beta &gt; 0.0 when used in trajectory filtering because it produces jumps between processing blocks. As a workaround for now use a beta of 0.0 (white noise) and apply smoothing afterwards.</LI>
+<LI>The realtime plug-in frame should be left open when using realtime synthesis.</LI>
+<LI>Timeline zoom tool rubberband has wrong display position if tracklist is vertically scrolled.</LI>
+<LI>Having different plug-in selection in bounce and realtime dialog results in confusing property fields of the observer (you cannot see which fields belong to which plug-in).</LI>
+<LI>On non-Mac OS X systems, the windows that do not have a menu bar do not react to keyboard shortcuts</LI>
+<LI>... (a lot more)</LI>
+</UL>
+<h1>Future Plans</h1>
+<UL>
+<LI>Finish manual pages (--sigh--)</LI>
+<LI>The Lisp plug-ins should be able to react instantaneously to object property changes by implementing a kind of call-back function.</LI>
+<LI>The Jatha Diddler should be more ergonomic with a multiline text input and optional startup file for user-defined functions.</LI>
+<LI>A small integrated SuperCollider launcher utility.</LI>
+<LI>Blending mode should allow for polar interpolation.</LI>
+<LI>Saving the session should omit superfluous processes, e.g. not save transmitters again if they haven't been modified.</LI>
+<LI>There should be a way for plug-ins to define default values for object properties, e.g. for new receivers a way to assign reasonable audio bus values. Also the layout of the properties should be controllable, or at least be alphabetical.</LI>
+<LI>Storing and recalling settings of the plug-in dialogs.</LI>
+<LI>Adding a scratch-board to place common transmitter movements, a kind of visible clipboard or library that can hold various objects.</LI>
+<LI>The geometric surface tools should immediately influence realtime transmitter movements even before being rendered. There should be a graphical hint for the direction of the movement.</LI>
+<LI>A matrix window should show the session configuration and allow the adding or removal of objects to existing groups.</LI>
+<LI>The object tables on the surface frame should not use JTable, so that modifier keys will be available for switching to solo-safe mode for example.</LI>
+<LI>A surface tool for affine transforms (rotation for example) of trajectories.</LI>
+<LI>A way to skip signal delays in trajectory filtering, for example when using long filters as in the csound smooth example for low frequencies.</LI>
+<LI>Storing and recalling a set of window arrangements.</LI>
+<LI>Get the Meloncillo-Max/MSP Bridge running. Try to bridge with Pure Data.</LI>
+<LI>Spatial and time based markers.</LI>
+<LI>Create an OSC server interface, allow the plug-ins to control the application to a certain extent. One can imagine a plug-in that will arrange all receivers in a certain way for example.</LI>
+<LI>Working line tool for vector editors. Parameters for smoothing process.</LI>
+<LI>Importing objects from other sessions</LI>
+<LI>... (a lot more)</LI>
+</UL>
+</body>
+</html>

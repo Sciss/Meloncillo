@@ -1,0 +1,30 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Receiver Sensitivity Editor</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Receiver Sensitivity Editor</h1>
+<p>
+The receiver sensitivity editor is comprised of two socalled vector-editors, one for the distance vector and one for the rotation vector. By default both vectors
+have 1024 elements, this will be user-adjustable in the future. The vectors are
+automatically scaled according to the window size.
+</p>
+<IMG SRC="ReceiverEditor.png">
+<p>
+The sensitivity of the the two table-lookup based receivers - <A HREF="SigmaReceiver.html">Sigma Receiver</A> and <A HREF="SectorReceiver.html">Sector Receiver<A> - is a product of these two vectors. For the Sigma Receiver, the distance vector describes the sensitivity as a function of the distance of a point from the receivers center anchor point, while the rotation vector describes the sensitivity as a function of the angle of a point in relation to the receiver's center point. Hence, for omnidirectional characteristics, the rotation vector should have the constant value 1.0. The distance vector usually has full sensitivity (1.0) at the center - which is the left margin in editor - and no sensitivity (0.0) at its bounds - which is the right margin in the editor. The default vectors follow
+a square-root rule and are quite suitable for amplitude-panning.
+</p><p>
+The unity gain of 1.0 is located at the center of the Y-axis, therefore its possible to 'boost' parts by a factor of up to 2.0 (= +6 dB). The vectors can be modified by drawing directly with the mouse (select the pencil tool first) or by invoking one of the context menus (<code>Right-Click</code> or
+<code>Ctrl+Click</code>):</p>
+<UL>
+<LI><A HREF="VectorTransformApplyFunction.html">Apply Function...</A></LI>
+<LI><A HREF="VectorTransformFlipShift.html">Flip and Shift...</A></LI>
+<LI><A HREF="VectorTransformRaiseMultiply.html">Raise and Multiply...</A></LI>
+<LI><A HREF="VectorTransformSetMean.html">Set Mean...</A></LI>
+<LI><B>Smooth</B> smoothes out sudden transitions. This amount of smoothing will be user-adjustable
+in the future.</LI>
+</UL>
+</body>
+</html>

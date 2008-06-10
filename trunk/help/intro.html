@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Meloncillo Introduction</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>meloncillo introduction</h1>
+<P>
+meloncillo is a graphical front-end for the spatial composition of sounds. it attempts to make an abstraction from concrete synthesis models by leaving the audio signal processing to a separate server application such as <A HREF="SuperCollider.html">supercollider</A>.
+</p>
+<h3>accessing online help</h3>
+<P>
+meloncillo has a built-in online help which is accessed by focussing the window of interest and typing the help keyboard accelerator, which by default is <code>Ctrl+Help</code> but may be altered in the <A HREF="prefsGeneral.html">general preferences tab</A>. when this key is pressed, the focussed window turns blue, and by moving the mouse, objects can be focussed. objects that have a distinct help page turn yellow. click the mouse to open the associated <A HREF="HelpHTMLPane.html">help document</A> or type <code>Escape</code> to leave the help mode.
+</P>
+<h3>objects and synthesis</h3>
+<p>
+meloncillo can be used to arrange sound in time and space. it has two main views, a <A HREF="TimelineFrame.html">timeline</A> that is easily understood if you are familiar with protools etc. the <A HREF="SurfaceFrame.html">surface</A> shows a spatial configuration in form of a two dimensional plane with static area objects and dynamic point objects.
+</p><p>
+the meaning of these objects is left to so-called plug-ins, though there are some obvious solutions, for example to see the surface as a big panning field with loudspeakers represented by the area objects and moving sound sources represented by the point objects. however, since the plug-ins can be exchanged and customly programmed, other interpretations are possible. in fact, meloncillo can be used for something completely different than spatialization.
+</p><p>
+spatialization research came up with several different models depending on the technical specification of the sound diffusion: binaural convolution with head-related transfer functions for playback on headphones, vector based amplitude panning (the generalization of a normal stereo intensity panning), ambisonics, delay (doppler) based panning, wave field synthesis etc. all of these models are generally &quot;compatible&quot; with meloncillo, if you find a solution for the audio server part, e.g. a suitable patch or plug-in for supercollider, msp etc.
+</p><p>
+however, from a musical point of view, the question of what space or room actually means or expresses, is much more relevant. we can think of loudspeakers as objects which have attributes, for example their colour and shape, and sound being just one of these attributes. this viewpoint is common to many sound installations from artists with a sculptural background. in electroacoustic music, this approach is known as the 'acousmatic' loudspeaker orchestra, i.e. the loudspeaker is seen as an instrumental body. another approach of electroacoustic music neutralizes the loudspeaker. the goal is to have the best possible acoustic specifications of many equal loudspeakers, and the space transcends the physical space of the concert room.
+</p><p>
+the way we hear space is very much influenced by complex interaction of psychological, cultural and psychoacoustic parameters, for example we can well hear a vertical dimension in sound, despite a two-dimensional planar loudspeaker setup. diffusing similar sounds -- for example different sound objects playing the same rhythmic phrase or the same sound object filtered and transformed in different ways -- from different locations of a room stimulates our perception apparatus to fuse these similarities into one complex gestalt. even with a mono loudspeaker, we can play with perceptual cues for space, like reverberation, boosted bands and equalization. in fact the material itself is often spacially preconfigured; imagine someone screaming but the sound volume being remarkably moderate, this scream must therefore be &quot;remote&quot;.
+</p><p>
+meloncillo comes with a few preprogrammed plug-ins for different spatialization models. it maintains a 'session' -- just like other programs like protools etc. -- which describes the objects, the setting and the movements of objects. the realtime mode allows to listen to sound synthesis as you work. just as in a harddisk recording programme, when you are satisfied with the results, you can create selfcontained sound files with the rendered spatial sound (bouncing). the session you can bring to a different loudspeaker setup and re-render the sound with different speaker locations or perhaps more or less speakers. meloncillo is also a nice tool for creating &quot;downmixes&quot;, e.g. to make a quad or stereo version of an eight channel piece.
+</p>
+<h3>getting started</h3>
+<p>
+to get started, i suggest that you continue to read the <A HREF="concepts.html">conceptual section</A> and the <A HREF="tutorial.html">tutorial</A> next. last but not least, i want to say a few words about the origin and development of meloncillo. the programme was created for my magister artium thesis at the <A HREF="http://www.kgw.tu-berlin.de/Studio" CLASS="ext">electronic studio of the technical university berlin</A> in 2004. i shall say thank you to prof. stefan weinzierl for supervising the thesis, and especially to folkmar hein, without whom i probably would have got in touch with electroacoustic music and spatial music much less intensive. thanks has to go also to the supercollider development community, since this software is really the second half of meloncillo.
+</p><p>
+at the time of this writing, meloncillo is being developed at the studio of electroacoustic music (seam) at the <A HREF="http://www.hfm-weimar.de" CLASS="ext">school of music weimar</A>.
+</p>
+</body>
+</html>

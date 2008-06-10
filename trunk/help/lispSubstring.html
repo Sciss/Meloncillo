@@ -1,0 +1,26 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : substring</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : substring</h1>
+<pre>
+(substring <var>&lt;str&gt;</var> <var>&lt;start&gt;</var> <var>&lt;stop&gt;</var>)
+</pre>
+<P>
+returns the portion of the passed string <code>str</code> starting at character index <code>start</code> (inclusive) and stopping at character index <code>stop</code> (exclusive). character indices are counted from zero.
+</P>
+<P>example:</P>
+<PRE>
+    (let ((tough-guy "donald rumsfeld"))
+        (println (concatenate 'STRING
+            (substring tough-guy 0 3)
+            (substring tough-guy 6 10)
+            "!"
+        ))
+    )
+</PRE>
+</body>
+</html>

@@ -1,0 +1,27 @@
+body {
+	padding: 8px;
+	background-color: #F8F8F8;
+	font: "Helvetica" sans-serif 12pt;
+}
+
+h1 {
+	font-size: 125%;
+	font-weight: bold;
+}
+
+a.ext {
+	font-style: italic;
+}
+
+a.anchor {
+	color: black;
+}
+
+p {
+	margin-top:8px;
+	margin-bottom:8px;
+}
+
+.red {
+	color: red;
+}

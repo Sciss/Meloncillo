@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : source-request (Realtime Synthesis)</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : source-request (Realtime Synthesis)</h1>
+<PRE>
+(source-request <var>&lt;source&gt;</var> <var>&lt;params&gt;</var> <var>&lt;medium&gt;</var> <var>&lt;medium-options&gt;</var>)
+</PRE>
+<P>
+this function must be called within the <code>prepare</code> function. it tells meloncillo to provide stream information for the plug-in. <code>source</code> can be either <code>&quot;TRAJ&quot;</code> or <code>&quot;SENSE&quot;</code>. the stream data is created dynamically, once the transport is started and meloncillo has called the plug-in's <code>play</code> function.
+</P>
+<H3>trajectory source</H3>
+<P>
+<CODE>params</CODE> must be an integer which is the index of the transmitter. this index refers to the elements of the global collection as returned by <code>(gethash "TRANSMITTERS" cillo)</code>. in a future version it will be possible to provide the objects themselves or their names which would make indexing more easy when processing groups.
+</P>
+<H3>sensitivity source</H3>
+<P>
+<CODE>params</CODE> must be a cons cell whose <code>car</code> is the index of the transmitters and whose <code>cdr</code> is the index of the receivers. these indices refer to the elements of the global collections as returned by <code>(gethash "TRANSMITTERS" cillo)</code> and <code>(gethash "RECEIVERS" cillo)</code>. in a future version it will be possible to provide the objects themselves or their names which would make indexing more easy when processing groups.
+</P>
+<H3>target medium</H3>
+<P>
+<code>medium</code> defines the target to which the stream data should be sent. for realtime synthesis, this must be the handle of a <A HREF="lispByteBuffer.html">byte-buffer</A> which is used to fill in an OSC message. <code>medium-options</code> is a list that describes how data is to be transferred to the byte-buffer and how the byte-buffer is send to the realtime synthesis application. each element of the <code>medium-options</code> list is a list itself whose first element is a command string. the following commands are defined:
+</P>
+<UL>
+<LI><code>&quot;INT&quot;</code> : write an integer (32bit) to the buffer. the second list element is the value, the third list element is the buffer offset in bytes.</LI>
+<LI><code>&quot;FLOAT&quot;</code> : write a float (32bit) to the buffer. the second list element is the value, the third list element is the buffer offset in bytes.</LI>
+<LI><code>&quot;VAR&quot;</code> : write an variable to the buffer. the second list element is the variable identifier, the third list element is the buffer offset in bytes. the only available variable at the moment is <code>&quot;BUFOFF&quot;</code> whose value alternates between zero and half of the sensitivity buffer size as returned by the <code>&quot;SENSEBUFSIZE&quot;</code> preferences hashtable entry (which in turn is linked to the <A HREF="prefsRTSenseBufSize.html">realtime sense buffer size</A> preferences). the idea is to use a phasor on the synthesis server side that scans the stream data buffer. when the phasor is scanning the second half of the buffer, the next buffer update is sent from meloncillo and written to the first half of the buffer, and vice versa.</LI>
+<LI><code>&quot;STREAM&quot;</code> : fill in a half sense buffer of floating point frames at the buffer index specified as the second list element.</LI>
+<LI><code>&quot;SEND&quot;</code> : write the byte-buffer (the OSC message) to a target network socket. the second list element must be a handle to a <A HREF="lispDatagramChannel.html">datagram-channel</A>.</LI>
+</UL>
+<P>
+the normal way of using this is to prepare an OSC message to send to the realtime synthesis application, for example a <code>&quot;/b_setn&quot;</code> message for supercollider. the command list then tells meloncillo to set the correct supercollider buffer index (using the <code>&quot;INT&quot;</code> command), the buffer offset (using the <code>&quot;VAR&quot;</code> command), to fill in the trajectory or sensitivity frames (using the <code>&quot;STREAM&quot;</code> command) and finally to send this message to supercollider's OSC port (using the <code>&quot;SEND&quot;</code> command). because the buffer index can be modified on the fly, it is sufficient to create just one reusable byte-buffer for all trajectories or sense data.
+</P>
+</body>
+</html>

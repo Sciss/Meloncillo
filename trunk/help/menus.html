@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Menu Reference</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Menu Reference</h1>
+<P>Scroll down for <A HREF="#File" CLASS="anchor">File</A> | <A HREF="#Edit" CLASS="anchor">Edit</A> | <A HREF="#Timeline" CLASS="anchor">Timeline</A> | <A HREF="#View" CLASS="anchor">View</A> | <A HREF="#Window" CLASS="anchor">Window</A> | <A HREF="#Debug" CLASS="anchor">Debug</A> | <A HREF="#Help" CLASS="anchor">Help</A></P>
+<H3></A>Meloncillo menu</H3>
+<P>
+On Mac OS X, this menu carries the items to open the about dialog, to open the <A HREF="PrefsFrame.html">preferences pane</A> and to quit the application. On other platforms, the about item appears in the <A HREF="#Help" CLASS="anchor">Help</A> menu, the preferences item appears in the <A HREF="#Edit" CLASS="anchor">Edit</A> menu, the quit item is listed in the <A HREF="#File" CLASS="anchor">File</A> menu.
+</P>
+<H3><A NAME="File"></A>File menu</H3>
+<UL>
+<LI><B>Clear Session</B> : removes all objects from the session, clears the timeline and resets session specific preferences. Meloncillo is a single-document-application which means there can be only one open session.</LI>
+<LI><B>Open Session</B> : opens a file chooser for a stored session to be loaded. Select the session file (&quot;.llo&quot; extension). Meloncillo is a single-document-application which means there can be only one open session.</LI>
+<LI><B>Open Recent</B> : the submenu contains the last five(?) session files used for quick re-opening. &quot;Clear Menu&quot; will empty the list.<HR WIDTH="20%"></LI>
+<LI><B>Save Session (As)</B> : saves any changes made to the current session. if the session was created from scratch or if you choose &quot;Save Session As&quot;, a file chooser pops up to select a new file name. note that a folder of this name is created and the session file itself is placed inside this folder having the same name plus &quot;.llo&quot; suffix. also this folder contains subfolders for receiver and transmitter specific data. <strong>Never place any other files inside a session folder because they will be erased the next time you save your session!</strong><br><br>There might still be an <strong>issue on Windows</strong> computers: if you see an error message saying that some files or folders could not be deleted, you will have to use &quot;Save Session As&quot; to store your session under another name!<HR WIDTH="20%"></LI>
+<LI><B>Insert</B>
+<UL>
+<LI><B>New Receivers</B> : opens a dialog to specify the number and type of receivers to insert into the session. unlike the <A HREF="SurfaceToolPointer.html">surface pointer tool</A>, this allows you to choose between <A HREF="SigmaReceiver.html">SigmaReceivers</A> and <A HREF="SectorReceiver.html">SectorReceivers</A>. the receivers will be created with default locations and sizes and added to all selected groups. it's not possible at the moment to add existing receivers to a group.</LI>
+<LI><B>New Transmitters</B> : opens a dialog to specify the number and type of transmitters to insert into the session. the transmitters will be added to all selected groups. it's not possible at the moment to add existing transmitters to a group.</LI>
+<LI><B>New Group from Selected Object</B> : opens a dialog to enter the name for a newly created group. this group consists of all receivers and transmitters currently selected. it's not possible at the moment, once the group has been created, to add or remove receivers or transmitters from a group. to do so, the group must be removed and re-created.</LI>
+</UL>
+</LI>
+<LI><B>Remove</B>
+<UL>
+<LI><B>Selected Receivers</B> : removes the selected receivers from the session (and all groups which contain these receivers).</LI>
+<LI><B>Selected Transmitters</B> : removes the selected transmitters from the session (and all groups which contain these transmitters).</LI>
+<LI><B>Selected Groups</B> : removes the selected groups from the session. the contents of these groups, the contained receivers and transmitters, are not deleted.</LI>
+</UL>
+<HR WIDTH="20%"></LI>
+<LI><B>Bounce to Disk</B> : allows you to create autonomous audio files from your session by using an offline playback and recording plug-in. choosing this menu item will open the <A HREF="BounceDialog.html">bounce dialog</A>.</LI>
+</UL>
+<H3><A NAME="Edit"></A>Edit menu</H3>
+<UL>
+<LI><B>Undo</B> : makes the last editing operation undone. this includes creation and deletion of objects, object property changes (e.g. renaming a receiver or moving its position), and trajectory editing. the number of undoable steps is not limited. once a session is opened, saved, or cleared, the undo buffer is erased.</LI>
+<LI><B>Redo</B> : when undo was invoked and no new editing has been performed, it is possible to redo the undone steps.<HR WIDTH="20%"></LI>
+<LI><B>Cut</B> : what this item does, depends on the window that is focussed. for the <A HREF="SurfaceFrame.html">surface frame</A>, the selected receivers are removed and put in the clipboard. for the <A HREF="TimelineFrame.html">timeline frame</A>, the selected time span of the selected transmitters is removed and put in the clipboard.</LI>
+<LI><B>Copy</B> : what this item does, depends on the window that is focussed. for the <A HREF="SurfaceFrame.html">surface frame</A>, the selected receivers are put in the clipboard. for the <A HREF="TimelineFrame.html">timeline frame</A>, the selected time span of the selected transmitters is put in the clipboard. for a <A HREF="ReceiverEditor.html">receiver editor</A>, the receiver (and its sensitivity tables) are put in the clipboard.</LI>
+<LI><B>Paste</B> : what this item does, depends on the window that is focussed. for the <A HREF="SurfaceFrame.html">surface frame</A>, if receivers had been put in the clipboard, they will be pasted to the surface. for the <A HREF="TimelineFrame.html">timeline frame</A>, if trajectory portions had been put in the clipboard, they get pasted to the selected transmitters at the current timeline position. for a <A HREF="ReceiverEditor.html">receiver editor</A>, if a receiver had been put in the clipboard, it's sensitivity tables will be pasted to the receiver in the editor.</LI>
+<LI><B>Delete</B> : what this item does, depends on the window that is focussed. for the <A HREF="SurfaceFrame.html">surface frame</A>, the selected receivers are removed. for the <A HREF="TimelineFrame.html">timeline frame</A>, the selected time span of the selected transmitters is removed. for the main window with the <A HREF="MainLogPane.html">message log pane</A>, the log will be cleared.<HR WIDTH="20%"></LI>
+<LI><B>Select All</B> : what this item does, depends on the window that is focussed. for the <A HREF="SurfaceFrame.html">surface frame</A>, all receivers are selected. for the <A HREF="TimelineFrame.html">timeline frame</A>, the selected time span is set to the whole session span.</LI>
+</UL>
+<H3><A NAME="Timeline"></A>Timeline menu</H3>
+<UL>
+<LI><B>Insert Time Span</B> : opens a dialog to enter the length of the span in seconds. the time span is inserted at the current timeline position and affects all transmitters equally. when you have an empty session, one of the first steps is this insertion of an amount of time.</LI>
+<LI><B>Selection Move Forward</B> : the timeline selection is shifted forward such that the new selection start equals the previous selection end and the selection length is not altered.</LI>
+<LI><B>Selection Move Backwards</B> : the timeline selection is shifted backwards such that the new selection end equals the previous selection start and the selection length is not altered.<HR WIDTH="20%"></LI>
+<LI><B>Filter Trajectories</B> : opens a <A HREF="FilterDialog.html">dialog for filtering</A> or transforming the selected trajectories within the selection span.</LI>
+</UL>
+<H3><A NAME="View"></A>View menu</H3>
+<UL>
+<LI><B>Snap to Objects</B> : </LI>
+<LI><B>Surface Shows</B>
+<UL>
+<LI><B>Receiver Sensitivity</B> : if checked, the sensitivity of the receivers are visualized by shades of grey, where white corresponds to zero sensitivity and black corresponds to a sensitivity of 1.0 or greater.</LI>
+<LI><B>Equal Power Summing</B> : if the receiver sensitivity is shown, this item affects the way how overlapping receivers are painted. if checked, an equal power summing of the individual sensitivities is used, if unchecked, the sensitivities are linearly added. For example, if two receivers overlap and their sensitivity is 0.5 each at a particular spot, linear summing would result in a total sensitivity of 1.0, hence being a black pixel, while with equal power summing the total sensitivity is sqrt( 0.5*0.5 + 0.5*0.5 ) = sqrt( 0.5 ) = 0.71, hence being a dark gray pixel. When using intensity panning for several discrete loudspeakers, equal power summing is a good graphical approximation to the actual acoustic intensity summing.</LI>
+<LI><B>Transmitter Trajectories</B> : if checked, the trajectories of the selected transmitters within the selected time span are shown as dashed green polylines. the resolution of the painted trajectory decreases when the selected timeline span increases in order to prevent too much CPU load. viewing a long span, say a few minutes, thus can show a lot of artifacts because of the polylines being too coarse.</LI>
+<LI><B>User Images</B> : if checked, the user images of all selected groups are superimposed on the surface. the user image can be specified in the <A HREF="ObserverGroup.html">group tab</A> of the observer palette. because the images are superimposed, it is possible to use PNG images with transparency so the images are layered. due to a bug, the images are not painted often, unless you resize the surface frame. try to use small images with small file size.</LI>
+<LI><B>Rulers</B> : if checked, rulers (axis) are shown to the left and top of the surface pane, giving a hint about the underlying coordinate system.</LI>
+</UL>
+</LI>
+</UL>
+<H3><A NAME="Window"></A>Window menu</H3>
+<UL>
+<LI><B>Surface</B> (<code>Meta+Numpad-*</code>) : opens the <A HREF="SurfaceFrame.html">surface frame</A> and brings it to the front.</LI>
+<LI><B>Timeline</B> (<code>Meta+Numpad-=</code>) : opens the <A HREF="TimelineFrame.html">timeline frame</A> and brings it to the front.<HR WIDTH="20%"></LI>
+<LI><B>Transport</B> (<code>Meta+Numpad-1</code>) : opens the <A HREF="TransportPalette.html">transport palette</A> and brings it to the front.</LI>
+<LI><B>Observer</B> (<code>Meta+Numpad-3</code>) : opens the <A HREF="ObserverPalette.html">observer palette</A> and brings it to the front.</LI>
+<LI><B>Meter</B> (<code>Meta+Numpad-4</code>) : opens the <A HREF="LevelMeter.html">level meter frame</A> and brings it to the front.</LI>
+<LI><B>Realtime Plug-In</B> (<code>Meta+Numpad-2</code>) : opens the <A HREF="RealtimeDialog.html">realtime plug-in frame</A> and brings it to the front.</LI>
+</UL>
+<H3><A NAME="Debug"></A>Debug menu</H3>
+<UL>
+<LI><B>Jatha Diddler</B> : brings up a prompt which can be used to evaluate lisp expressions. the <A HREF="JathaPrompt.html">jatha diddler help page</A> lists all special functions available. useful also as a small calculator. for example, to know what the X and Y position of receiver in a centered circle with radius 0.25 should be for 60 degrees:
+<pre>
+IN: (SETQ X (+ 0.5 (* 0.25 (COS (/ (* 60 PI) 180)))))
+OUT: 0.625
+IN: (SETQ Y (- 0.5 (* 0.25 (SIN (/ (* 60 PI) 180)))))
+OUT: 0.28349364905389035
+</pre>
+you can copy and paste the results to the observer palette's receiver tab.
+</LI>
+</UL>
+<H3><A NAME="Help"></A>Help menu</H3>
+<UL>
+<LI><B>Meloncillo Help</B> : opens the <A HREF="HelpHTMLPane.html">help viewer</A> and shows the <A HREF="index.html">help index</A>.</LI>
+<LI><B>Keyboard Shortcuts</B> : opens the <A HREF="HelpHTMLPane.html">help viewer</A> and shows the <A HREF="shortcuts.html">keyboard shortcuts</A>.<HR WIDTH="20%"></LI>
+<LI><B>Open Meloncillo Website</B> : opens the application home page in the system's default web browser.</LI>
+</UL>
+</body>
+</html>

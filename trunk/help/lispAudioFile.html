@@ -1,0 +1,20 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : Audio File I/O commands</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : Audio File I/O commands</h1>
+<PRE>
+(audio-file-open <var>&lt;id&gt;</var> <var>&lt;path&gt;</var> [<var>&lt;type&gt;</var> <var>&lt;res&gt;</var> <var>&lt;rate&gt;</var> <var>&lt;channels&gt;</var>])
+(file-close <var>&lt;id&gt;</var>)
+</PRE>
+<P>
+<code>audio-file-open</code> can be used with two or six arguments. the two arguments call will open the audio file denoted by the <code>path</code> for reading and assign a handle to the lisp symbol <code>id</code>, as explained in the <A HREF="lispOBoundP.html"><code>oboundp</code> document</A>. this handle can then be used to close the file. audio-files are used to exchange stream data in trajectory filtering and bouncing. see the <A HREF="lispFilterSourceRequest.html"><code>source-request</code></A> and the <A HREF="lispFilterTargetRequest.html"><code>target-request</code></A> documents. there are no functions to read or write directly from within a lisp script.
+</P>
+<P>
+when opening an audio file for writing, <code>type</code> can be one of the strings <code>&quot;AIFF&quot;</code>, <code>&quot;WAVE&quot;</code>, <code>&quot;IRCAM&quot;</code>, <code>&quot;AU&quot;</code> or <code>&quot;RAW&quot;</code>. <code>res</code> can be one of the strings <code>&quot;int16&quot;</code>, <code>&quot;int24&quot;</code>, <code>&quot;int32&quot;</code> or <code>&quot;float32&quot;</code>. <code>rate</code> is an integer or real that specifies the sampling rate. <code>channels</code> is the number of audio channels (<code>1</code> for sense data, <code>2</code> for trajectory data).
+</P>
+</body>
+</html>

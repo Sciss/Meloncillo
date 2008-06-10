@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : object-bound predicate</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : object-bound predicate</h1>
+<PRE>
+(oboundp <var>&lt;id&gt;</var>)
+</PRE>
+<P>
+this predicate function returns <code>T</code> if the lisp symbol <code>id</code> is bound to a java object, and <code>NIL</code> if it is not assigned to such an object. functions that assign a java handle to a lisp symbol include <A HREF="lispFile.html"><code>file-open</code></A>, <A HREF="lispByteBuffer.html"><code>byte-buffer-alloc</code></A> and <A HREF="lispDatagramChannel.html"><code>datagram-channel-open</code></A>. these functions store their newly created object in a global object table of the lisp environment and use a specified identifier as the hashing key. using this function, you can check if this hashtable contains an object for a given key. 
+</P>
+<P>
+objects are removed (unbind) by complementary functions such as <code>file-close</code>, <code>byte-buffer-free</code> and <code>datagram-channel-close</code>. hence, by using the <code>oboundp</code> function, you can find out if an object was already properly disposed or not. 
+</P>
+<P>example</P>
+<PRE>
+    (println (concatenate 'STRING
+        "test 1 : (oboundp 'scosc) returns "
+        (oboundp 'scosc)))
+    (datagram-channel-open 'scosc "127.0.0.1" 57110)
+    (println (concatenate 'STRING
+        "test 2 : (oboundp 'scosc) returns "
+        (oboundp 'scosc)))
+    (datagram-channel-close 'scosc)
+    (println (concatenate 'STRING
+        "test 3 : (oboundp 'scosc) returns "
+        (oboundp 'scosc)))
+</PRE>
+<p>
+this example will print the three test results : <code>NIL</code>, <code>T</code> (after opening the channel), <code>NIL</code> (after closing the channel).
+</p>
+</body>
+</html>

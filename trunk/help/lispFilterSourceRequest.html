@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : source-request (Trajectory Filtering)</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : source-request (Trajectory Filtering)</h1>
+<PRE>
+(source-request <var>&lt;source&gt;</var> <var>&lt;params&gt;</var> <var>&lt;medium&gt;</var> <var>&lt;medium-options&gt;</var>)
+</PRE>
+<P>
+this function must be called within the <code>prepare</code> function. it tells meloncillo to provide stream information for the plug-in. <code>source</code> can be either <code>&quot;TRAJ&quot;</code> or <code>&quot;SENSE&quot;</code>. the stream data is available from the specified target medium, when meloncillo calls the plug-in's <code>render</code> function.
+</P>
+<H3>trajectory source</H3>
+<P>
+<CODE>params</CODE> must be an integer which is the index of the transmitter. this index refers to the elements of the global collection as returned by <code>(gethash "TRANSMITTERS" cillo)</code>. in a future version it will be possible to provide the objects themselves or their names which would make indexing more easy when processing groups.
+</P>
+<H3>sensitivity source</H3>
+<P>
+<CODE>params</CODE> must be a cons cell whose <code>car</code> is the index of the transmitters and whose <code>cdr</code> is the index of the receivers. these indices refer to the elements of the global collections as returned by <code>(gethash "TRANSMITTERS" cillo)</code> and <code>(gethash "RECEIVERS" cillo)</code>. in a future version it will be possible to provide the objects themselves or their names which would make indexing more easy when processing groups.
+</P>
+<H3>target medium</H3>
+<P>
+<code>medium</code> defines the target to which the stream data should be sent. for trajectory filtering, this must be the handle of an <A HREF="lispAudioFile.html">audio-file</A>. for trajectory data, a stereo file must be opened, where channel 1 is filled with the X coordinates of the trajectory, and channel 2 is filled with the Y coordinates of the trajectory. for sensitivity data, a mono file must be opened. it will contain the sensitivities of the receiver as scanned by the trajectory of the transmitter.
+</P>
+<P>
+<code>medium-options</code> must be <code>NIL</code>.
+</P>
+</body>
+</html>

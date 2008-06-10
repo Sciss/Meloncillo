@@ -1,0 +1,17 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Plug-Ins Prefs : Offline Sense Buffer Size</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Plug-Ins Prefs : Offline Sense Buffer Size</h1>
+<p>
+This is the preferred buffer size in milliseconds for sense data in offline (bounce-to-disk) mode. Its value
+is available in LISP scripts via <code>(gethash "SENSEBUFSIZE" (gethash "PREFERENCES" cillo))</code>.
+</p>
+<P>
+<strong>Warning!</strong> As of the time of this writing, there is a severe bug in <A HREF="SuperCollider.html">SuperCollider's</A> nonrealtime mode which is used for bouncing: Whenever the rate of messages is to small, the <code>DiskIn</code> UGen will produce strange artifacts like looping the soundfiles etc. If you encounter this, use a smaller offline sense buffer size which results in increased buffer update rate and usually removes the described problem, though the rendering will be substantially slower, unfortunately.
+</P>
+</body>
+</html>

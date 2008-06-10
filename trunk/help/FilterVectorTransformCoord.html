@@ -1,0 +1,33 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Filter Trajectories : Vector Transformation Coordinate Settings</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Filter Trajectories : Vector Transformation Coordinate Settings</h1>
+<p>
+In a two dimensional world there are two common coordinate systems, i.e. ways
+to describe locations of objects on a plane: The cartesian system uses a X-axis
+and a Y-axis. In Meloncillo, the top left corner of the surface has the
+coordinates (0,0), the top right is (1,0), the bottom right is (1,1) and the
+bottom left is (0,1).
+</p><p>
+However, often it is convenient to shift the origin of the coordinate system.
+In the Vector Transformation dialog you can set the origin using the Center-X and Center-Y fields. If the surface's center should be (0,0), you would set both
+values to 0.5, then the top left corner of the surface becomes (-0.5,-0.5) and
+the bottom right corner becomes (0.5,0.5).
+</p><p>
+Another common view is the polar coordinate system, where each point is
+described by a distance from and angle to a reference point. The reference point
+here again is the Center-X / Center-Y location. If both are set to 0.5, the
+top left has radius 0.707 and angle 1.25 (225 degrees). The angle of 0 degrees
+is located 'East' and increasing angles travel in clockwise direction.
+The angle is normalized so that +/- 1.0 correspond to 180 degrees or 'West',
+0.5 corresponds to 90 degrees or 'South' and 1.5 or -0.5 corresponds to 270 or
+90 degrees or 'North'.
+</p><P>
+This system is different from what you have learned about the <A HREF="SectorReceiver.html">Sector Receiver's</A> angular system where zero degrees is north and travels clockwise. <STRONG>This will be unified in the next version.</STRONG>
+</P>
+</body>
+</html>

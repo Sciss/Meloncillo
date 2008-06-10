@@ -1,0 +1,25 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Surface Object Tables</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Surface Object Tables</h1>
+<p>
+On the left side of the surface frame, a list of receivers and groups is displayed. This can be shown or hidden by dragging the vertical split pane bar that separates the table from the surface.
+</p>
+<IMG SRC="SurfaceObjectTables.png">
+<p>
+The table on the top displays a list of all receivers in a session. Clicking on a row will select that receivers. To extend the selection hold down the <code>Shift</code> or <code>Meta</code> key. To deselect a receiver, <code>Meta+Click</code> on its row. Receivers can also be selected and deselected using the <A HREF="SurfaceToolPointer.html">pointer tool</A>. Receivers can be created by calling the menu item File-&gt;Insert-&gt;New Receivers, and deleted by calling the menu item File-&gt;Remove-&gt;Selected Receivers. To edit the name of a receiver, go to the <A HREF="ObserverReceiver.html">receiver tab</A> of the observer palette.
+</P><P>
+The table on the bottom displays a list of all groups in a session. A group is a subset of receivers and transmitters. When no groups are created or no group is selected, the surface, timeline frame and meter display all receivers and transmitters of the session. When one or more groups are selected, only those receivers and transmitters that are part of these groups are displayed. The <STRONG>meaning of groups for bounce or realtime plug-ins</STRONG> is not defined per se and depends on the particular implementation of the plug-in.
+</P><P>
+Clicking on a row will select that group. To extend the selection hold down the <code>Shift</code> or <code>Meta</code> key. To deselect a group, <code>Meta+Click</code> on its row. Groups can be created by first selecting a subset of receivers and transmitters which shall be part of the new group, and then calling the menu item File-&gt;Insert-&gt;New Group from Selected Objects. To delete groups, call the menu item File-&gt;Remove-&gt;Selected Groups. To edit the name of a group or select a group's background image, go to the <A HREF="ObserverGroup.html">group tab</A> of the observer palette.
+</P><P>
+Each group can have a separate background image. This image will be displayed on the surface, when the menu item View-&gt;Surface Shows-&gt;User Images is checked. Due do a bug, when switching groups, the surface frame needs to be resized for the images to correctly display. When multiple groups are selected, the images are superimposed which is useful when using PNG or GIF images with transparency.
+</P><P>
+The 'S' and 'M' buttons toggle the Solo and Mute flags of each receiver or group. These flags can be used by the <A HREF="BounceDialog.html">bounce</A> or <A HREF="RealtimeDialog.html">realtime</A> plug-ins and have no meaning in Meloncillo itself. Note that there is a built-in solo-safe mode which cannot be accessed due to a bug as of version 0.72. This will be fixed in the next version.
+</p>
+</body>
+</html>

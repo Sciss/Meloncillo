@@ -1,0 +1,49 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Arc Surface Tool</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Arc Surface Tool</h1>
+<p>
+The arc tool (keyboard <code>F4</code>) is used to draw elliptic or arc shaped
+transmitter trajectories.
+</P>
+<IMG SRC="SurfaceToolArc.png">
+<P>
+First select the transmitter(s) to edit in the timeline frame's
+<A HREF="TransmitterTrack.html">track list</A>. Then make a timeline selection
+using either the <A HREF="TimelineAxis.html">timeline axis</A> or the
+observer's <A HREF="ObserverTimeline.html">timeline tab</A>. <code>Click+Drag</code>
+on the surface to draw the container frame of the ellipsis or arc. A default shape
+will be drawn in light blue colour and can be adjusted by dragging on of the crosshair
+shaped anchor points. To render the shape hit <code>Return</code>. To cancel the
+rendering hit <code>Escape</code>. At any time you can activate or deactive the Snap
+function from the View menu. When activated, anchor points are snapped to neighbouring
+transmitter positions or receiver anchors (center points).
+</p><p>
+Two anchor points in the top left and bottom right define the arc's container frame.
+Two anchor points define the starting and stopping angle where by default the top right
+anchor point corresponds to the timeline selection start and the bottom left anchor
+point corresponds to the timeline selection stop. A fifth anchor point can be moved
+on the arc to determine the orientation of the movement.
+</p><p>
+By default the movement will have constant speed. To enter variable speed mode, double
+click on the surface. The anchor points are replaced by new anchor points which control
+the velocity of the movement corresponding to the timeline selection start and stop
+respectively. A transparent yellow shape indicates the velocity. Dragging the anchor
+points farer away from the arc will increase velocity and vice versa. Velocity is
+interpolated between the start and stop point in order to retain the total timeline
+selection's duration. The algorithm will keep acceleration (dv/dt) constant.
+</p><p>
+To concatenate successive paths, hit <code>Ctrl+Return</code>. After the current gesture
+is rendered, the timeline selection will be advanced by its duration and the new initial
+drag is started automatically at the end of the previous path.
+</p><p>
+To prevent sudden jumps or 'clicks' at the timeline selection start and stop, activate the
+<A HREF="ToolBlending.html">blending mode</A> which will apply an adjustable fade-in
+and fade-out of the rendered paths.
+</p>
+</body>
+</html>

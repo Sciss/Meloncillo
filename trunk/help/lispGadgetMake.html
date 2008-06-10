@@ -1,0 +1,49 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : gadget-make</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : gadget-make</h1>
+<pre>
+(gadget-make <var>&lt;binding-variable&gt;</var> <var>&lt;type&gt;</var> <var>&lt;placement&gt;</var>
+    [<var>&lt;initial-value&gt;</var> [<var>&lt;options&gt;</var>]])
+</pre>
+<P>
+this function allows you to create custom GUI elements for the plug-in's frame. it is only available in the special function <code>create-gui</code>, as explained in the <A HREF="lispPlugInConcept.html">plug-in concept document</A>.
+</P>
+<P>
+the contents to the GUI element, for example the text string of a textfield or the number of a number field, is stored in the <code>binding-variable</code>. the <code>binding-variable</code> parameter is not evaluated (similiar to the variable name in <code>setq</code>). it may be <code>NIL</code>.  <code>type</code> is a string and can be one of <code>&quot;LABEL&quot;</code>, <code>&quot;CHECKBOX&quot;</code>, <code>&quot;CHOICE&quot;</code>, <code>&quot;PATH&quot;</code>, <code>&quot;NUMBER&quot;</code>, <code>&quot;TEXT&quot;</code>. <code>placement</code> is a list of four elements specifying the position and extent of the gadget <I>(x y width height)</I> where each value is an integer in a virtual grid space with columns and rows being as compact as possible. the <code>initial-value</code> and <code>options</code> depend on the gadget type:
+</P>
+<ul>
+<li><code>&quot;LABEL&quot;</code> has no initial value or options</li>
+<li><code>&quot;CHECKBOX&quot;</code> has an initial integer value of <code>0</code> or <code>1</code> (we are not using <code>NIL</code> and <code>T</code> to avoid <code>NIL</code> being confused with an uninitialized state). no <code>options</code></li>
+<li><code>&quot;CHOICE&quot;</code> has an initial string representing the selected item. <code>options</code> is a list of cons cells whose <code>car</code> is the internally used key value and whose <code>cdr</code> is the string presented to the user.</li>
+<li><code>&quot;PATH&quot;</code> has a string <code>initial-value</code> representing the pathname. <code>options</code> is a list whose first element is a string shown in the file selection dialog (or <code>NIL</code>). all following elements are options; allowed values are <code>&quot;INPUT&quot;</code>, <code>&quot;OUTPUT&quot;</code>, <code>&quot;FOLDER&quot;</code> to specify the type of path gadget.</li>
+<li><code>&quot;NUMBER&quot;</code> has a numeric <code>initial-value</code>, either integer or real. <code>options</code> is a list of one or four elements. the first element is a string specifying the unit label. elements two, three and four specify the number space as <I>(min max quantization)</I>. a quantization of <code>0.0</code> will allow any decimal, a quantization of <code>1.0</code> will allow only integers, a value of </code>4.0</code> allows only integer multiples of four etc.</li>
+<li><code>&quot;TEXT&quot;</code> has a string <code>initial-value</code>, no <code>options</code>.</li>
+</ul>
+<P>example:</P>
+<PRE>
+    (defun create-gui NIL (progn
+        (gadget-make NIL "LABEL" '(1 1 2 1) "Master Gain")
+        (gadget-make master-gain "NUMBER" '(3 1) 0.0 '("dB"))
+        (gadget-make NIL "LABEL" '(1 2 2 1) "Output Sound File")
+        (gadget-make output-file "PATH" '(3 2 3 1) "output.aif"
+            '("Choose Output File" "OUTPUT"))
+        (gadget-make NIL "LABEL" '(1 3 2 1) "Output Format")
+        (gadget-make output-format "CHOICE" '(3 3) "aiff"
+            '(("aiff" . "AIFF") ("next" . "NeXT/Sun AU")
+              ("ircam" . "IRCAM")))
+        (gadget-make output-res "CHOICE" '(4 3 2 1) "int24"
+            '(("int16" . "16-bit int") ("int24" . "24-bit int")
+              ("int32" . "32-bit int") ("float" . "32-bit float")
+              ("double" . "64-bit float")))
+        (gadget-make NIL "LABEL" '(1 4 2 1) "Multiple Mono")
+        (gadget-make multi-mono "CHECKBOX" '(3 4) 0)
+        T
+    ))
+</PRE>
+</body>
+</html>

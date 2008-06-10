@@ -1,0 +1,19 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Plug-Ins Prefs : Audio Hardware Outputs</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Plug-Ins Prefs : Audio Hardware Outputs</h1>
+<p>
+Meloncillo does not care about audio processing at all. The value specified here is available
+to LISP scripts via <code>(gethash "OUTPUTCHANNELS" (gethash "PREFERENCES" cillo))</code>.
+For example, in <A HREF="SuperCollider.html">SuperCollider</A>, audio busses are automatically routed to the sound card's
+output interface for channel indices smaller than the number of specified output channels.
+</p>
+<P>
+<STRONG>Note</STRONG> that this field doesn't influence realtime SuperCollider which is started manually. However, for the plug-ins to not get confused, this value should be greater or equal than the number of audio outputs specified when launching scsynth!
+</P>
+</body>
+</html>

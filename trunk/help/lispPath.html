@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : Pathname commands</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : Pathname commands</h1>
+<PRE>
+(path-concat <var>&lt;parent&gt;</var> <var>&lt;child&gt;</var>)
+(path-split <var>&lt;pathname&gt;</var>)
+</PRE>
+<P>
+<CODE>path-concat</CODE> creates a new string describing the path to file <code>child</code> in directory <code>parent</code> using the native file separators (e.g. <code>&quot;/&quot;</code> on mac and linux, <code>&quot;\&quot;</code> on windows). <code>path-split</code> splits the given <code>pathname</code> into the file name and the directory containing that file using the native file separators, returning a cons cell whose <code>car</code> is the directory and whose <code>cdr</code> is the file.
+</P>
+<P>example:</P>
+<PRE>
+    (let ((afile (temp-file-make)))
+        (let ((splitted (path-split afile)))
+            (println (concatenate 'STRING "created the file '"
+                (cdr splitted)
+                "' in the temporary directory '"
+                (car splitted)
+                "'."
+            ))
+        )
+        (file-delete afile)
+    )
+</PRE>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The Apply-Function-Transform</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>The Apply-Function-Transform</h1>
+<p>
+The transformation is basically a function generator. There are
+two types of functions: periodic and nonperiodic functions. Periodic
+functions are the falling and rising sawtooth, triangle, sine and square wave.
+These are characterized by a frequency and a phase. The frequency is expressed in periods
+per vector length. For example, in the <A HREF="ReceiverEditor.html">receiver's
+sensitivity editor</A>, choosing a sine with four periods results in a
+distance or rotation table that is filled with four periods of a sine wave.
+Likewise, when applying <A HREF="FilterVectorTransform.html">vector transform trajectory
+filtering</A>, the trajectory between the beginning and ending of the timeline
+selection is filled with four periods of a sine wave. The phase is given in degrees
+where 360 degrees equals one complete cycle and produces the same result as 0 degrees.
+To produce a cosine wave, select the sine function and 90 degree phase. Note that the falling
+sawtooth starts at its maximum value and the rising sawtooth starts at its minimum value.
+The square wave starts at its positive halfwave. Phases can be specified as negative values,
+such as -60 degrees.
+</p><p>
+Aperiod functions are
+the constant, noise and the gaussian bell (which is not yet implemented!).
+</p><p>
+Each function generates a range of values whose margin is called amplitude. Values
+can be unipolar which means they are always positive and zero is the minimum value,
+or they can be bipolar which means their extreme values reach plus or minus the
+amplitude value. Hence, in bipolar mode, the amplitude of a sine wave specifies the
+half wave amplitude, while the peak-peak amplitude is actually twice as big. So in
+bipolar mode, a sine of amplitude 1.0 will oscillate between -1.0 and +1.0, while
+in unipolar mode, a sine of amplitude 1.0 will oscillate between 0.0 and 1.0. Note that
+amplitude can be specified as a negative value which produces a phase reversed (inverted)
+wave. For noise it's difficult to specify an amplitude. In this case, care is taken
+that practically all values lie within the amplitude range. The constant simply produces
+a 'DC offset' of the given amplitude.
+</p><p>
+The noise generator is an algorithm by Paul Bourke and has an additional argument, the
+beta value which describes the speed of the oscillation. A beta of 0.0 is white noise,
+a beta of 1.0 is pink noise, a beta of 2.0 is brownian noise. Try much higher values for
+slowly moving random walks.
+</p><p>
+Application specifies how the function generator interacts with the previous vector
+content. 'Replace Values' simply overwrites to previous content, 'Add Values' adds the
+function generator output to the previous content, and 'Multiply Values' multiplies
+(modulates) the previous content with the function generator output.
+</p>
+</body>
+</html>

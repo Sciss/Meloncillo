@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Transmitter Track</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Transmitter Track</h1>
+<p>
+In the timeline frame all active transmitters are listed vertically, where each
+row shows the transmitter's trajectory. The transmitter's name is shown
+on the left margin. To select a transmitter, click on its name. To select
+multiple transmitters or to deselect a transmitter, use <code>Shift+Click</code>.
+To select or deselect all transmitters, use <code>Alt+Click</code> on the
+transmitter's name. Selected transmitter's are indicated by their names
+having a blue shaded background.
+</p>
+<IMG SRC="TransmitterTrack.png">
+<p>
+Active transmitters are those that are part of the selected groups. When no groups exist or all groups are deselected, all transmitters of the session are shown. See the <A HREF="SurfaceObjectTables.html">surface object tables</A> document to learn how to use groups.
+</P><p>
+The selected transmitters are the ones which are affected by surface tools
+such as the <A HREF="SurfaceToolLine.html">line tool</A> or the
+<A HREF="SurfaceToolPencil.html">pencil tool</A>, as well as by cut/copy/paste operations from the edit menu. They can be removed by
+choosing File-&gt;Remove-&gt;Selected Transmitters. Their
+views can be vertically magnified or shrinked by typing <code>Ctrl+Cursor Up</code>
+and <code>Ctrl+Cursor Down</code> when the timeline frame is focussed.
+</P><P>
+The 'S' and 'M' buttons toggle the Solo and Mute flags of each transmitter. These flags can be used by the <A HREF="BounceDialog.html">bounce</A> or <A HREF="RealtimeDialog.html">realtime</A> plug-ins and have no meaning in Meloncillo itself. <code>Alt+Click</code> will toggle all active transmitters. <code>Meta+Click</code> on the solo button toggle's solo-safe mode.
+</P><P>
+Editing their <A HREF="TransmitterEditor.html">trajectory tracks</A> using the <A HREF="TimelineToolPencil.html">timeline pencil tool</A> is independant of the transmitter selection.
+</p>
+<p>
+The selected transmitter's name can be edited in the
+<A HREF="ObserverTransmitter.html">transmitter tab</A> of the observer.
+</p>
+</body>
+</html>

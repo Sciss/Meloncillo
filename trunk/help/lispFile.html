@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : File I/O commands</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : File I/O commands</h1>
+<PRE>
+(file-open <var>&lt;id&gt;</var> <var>&lt;path&gt;</var> <var>&lt;mode&gt;</var>)
+(file-write <var>&lt;id&gt;</var> <var>&lt;object&gt;</var>)
+(file-close <var>&lt;id&gt;</var>)
+</PRE>
+<P>
+these file functions are used to write arbitrary data to harddisk file. the <code>file-open</code> command assigns a handle to the lisp symbol <code>id</code>, as explained in the <A HREF="lispOBoundP.html"><code>oboundp</code> document</A>. this handle can then be used to write to the file or to close the file.
+</P>
+<P>
+note that the way pathnames are constructed may vary depending on the operation system. it is recommended to use the functions <A HREF="lispPath.html"><code>path-split</code> and <code>path-concat</code></A> to create the <code>path</code> argument. see also the <A HREF="lispTempFileMake.html"><code>temp-file-make</code> document</A> for a way to automatically create a temporary path name.
+</P>
+<code>mode</code> is one of the strings <code>&quot;r&quot;</code> (for read access to an existing file), <code>&quot;w&quot;</code> (for write access to a new file) and <code>&quot;rw&quot;</code> (for read/write access to an existing file). note that for <code>&quot;w&quot;</code>, if a file of the given pathname already exists, it will be deleted before re-opening. since no <code>file-read</code> command exists at the moment, there is little sense in using any other mode than <code>&quot;w&quot;</code>. this will change in the future.
+</P>
+<P>
+the <code>file-write</code> command behaves similar to <A HREF="lispByteBuffer.html"><code>byte-buffer-write</code></A>: a single integer is written as a signed 32bit integer, a single real is written as a 32bit IEEE 754 floating point number, a list of integers is written as a sequence of 8bit bytes, a boolean (<code>T</code> or <code>NIL</code>) is written as a single byte 0 or 1. any other type is written as a byte sequence of its string representation (not terminated). writing booleans may be <B>impossible</B> in the future because <code>NIL</code> should be interpreted as an empty list.
+</P>
+<P>Example</P>
+<PRE>
+    (let ((csd-file "/tmp/test.csd"))
+        (file-open 'csd csd-file "w")
+        (file-write 'csd (concatenate 'STRING
+            "&lt;CSoundSynthesizer&gt;\\n&lt;CsInstruments&gt;\\n"
+            "nchnls = 1\\n"
+            "instr 1\\n"
+            "   asig  oscili 16384, 220.5, 1\\n"
+            "         out    asig\\n"
+            "endin\\n"
+            "&lt;CsInstruments&gt;\\n&lt;CsScore&gt;\\n"
+            "f1 0 32 10 0 1\\n"
+            "i1 0 5\\n"
+            "&lt;/CsScore&gt;\\n&lt;CSoundSynthesizer&gt;\\n"
+        ))
+        (file-close 'csd)
+        (println (concatenate 'STRING
+            "A CSound unified Orc/Sco file is available "
+            "for your pleasure: "
+            csd-file)) 
+    )
+</PRE>
+<P>
+this example creates the file <code>&quot;/tmp/test.csd&quot;</code> and writes a very small csound text to it. it can be executed from a terminal by typing <code>&quot;csound /tmp/test.csd -o test.aif -A&quot;</code>. note the way the newline character is escaped: using <B>two</B> backslashes!
+</P>
+</body>
+</html>

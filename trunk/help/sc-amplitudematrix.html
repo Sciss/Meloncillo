@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Lisp Plug-In : SuperCollider Amplitude Matrix</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Lisp Plug-In : SuperCollider Amplitude Matrix</h1>
+<P>
+this plug-in allows intensity panning between any number of discrete output channels. optionally, a doppler-shift and frequency filtering can be activated. synthesis is made by supercollider. <A HREF="#schematic" CLASS="anchor">scroll down</A> to see a schematic of the audio routing.
+</P>
+<p>
+this plug-in works in realtime and offline (bounce) mode. it is installed twice, as &quot;[SC] Amplitude Matrix&quot; and as &quot;[SC] Inverse Matrix&quot;. the inverse mode is described <A HREF="#inverse" CLASS="anchor">further down this document</A>.
+</P>
+<h3>plug-in settings</h3>
+<P>
+the plug-in has a master-gain field and a toggle that requests supercollider to print incoming OSC messages to its terminal. this is for debugging purposes. the master-gain in decibels will be applied equally to all input objects and adds to their individual gains. when bouncing, additional fields appear for specification of the output sound file and its format. the bounce output will always be multichannel interleaved. the number of channels is calculated from the highest specified output channel of all objects. this calculation includes all objects, no matter if they are muted or not.
+</P>
+<h3>session object properties</h3>
+<P>
+properties are added for input and output objects. in normal mode, transmitters are input objects and receivers are output objects. this relationship flips in the inverse mode.
+</P>
+<P>input object properties:</P>
+<UL>
+<LI><B>Process</B> : the source of input sound. &quot;Play Soundfile&quot; is used in conjunction with the &quot;Audio In File&quot; field. &quot;Live Input&quot; is used in conjunction with the &quot;Audio In Bus&quot; field. &quot;Test Signal&quot; generates a fixed frequency sine pulse. &quot;Slave Control&quot; is described <A HREF="#slave" CLASS="anchor">below</A>.</LI>
+<LI><B>Gain</B> : individual input gain (&quot;drive&quot;) for this object. Note that the nominal level of test signal objects is -12 dBFS, the gain field here works as an additional amplification (for positive values) or attenuation (for negative values). This field is useless for slave objects.</LI>
+<LI><B>Direct Out</B> : If checked, the sound is not routed to a mixing matrix but directly to an output channel specified in the &quot;Direct Out Bus&quot; field. This is also known as &quot;auxiliary&quot; mode and can be used to inject formerly bounced (already spatialized) sounds. To do so, it is convenient to create a separate group consisting only of those aux inputs, because otherwise -- if aux inputs are grouped with matrix output objects -- unnecessary trajectory streaming is performed and CPU power is wasted. It's senseless to put slave control inputs in aux mode.</LI>
+<LI><B>Direct Out Bus</B> : this is the output channel of the sound card used for this input object, if -- and only if -- &quot;Direct Out&quot; is checked.</LI>
+<LI><B>Audio In File</B> : this field is only used for inputs of process &quot;Play Soundfile&quot;. in this case, you specify the path to the soundfile here. Beware to only use mono soundfiles, otherwise supercollider will crash. Also note that when supercollider is run on a different computer in a network, that soundfile must be located on the same computer as supercollider and the pathname is that on the remote computer (therefore, in this case it's useleess to try to select a soundfile by clicking on the folder-icon).</LI>
+<LI><B>Audio In Bus</B> : this field is only used for inputs of process &quot;Live Input&quot;. in this case, you specify the sound card's input channel to inject into the spatializer, or an internal input channel of Jack when using the Jack audio patch system. Note that it is not possible to use live input when bouncing to disk.</LI>
+<LI><B>Slaved to</B> : this field is only used for inputs of process &quot;Slave Control&quot;. in this case, you specify the name of the master object. Slaving is described <A HREF="#slave" CLASS="anchor">further below</A>.</LI>
+</UL>
+<P>output object properties:</P>
+<UL>
+<LI><B>Process</B> : the type of processing this object should do. &quot;Volume Matrix&quot; multiplies each input object by the sensitivity cell in matrix formed by that input object and this output object. the output is written to the bus given in the &quot;Audio Out Bus&quot; field. &quot;Volume Insert&quot; works similar, however it doesn't write the output to an interface output but instead replaces the input sound. it therefore operates before any matrix objects and can be used as a global volume controller. All other insert processes work in a similar fashion. &quot;HPF Insert&quot; treats the input with a high pass filter, whereby a sensitivity of zero means no filtering and a sensitivity of 1.0 means filtering at 20 kHz (barely audible). &quot;LPF Insert&quot; works the same but uses a low pass filter. &quot;Delay Insert&quot; is used for doppler shift. It inserts a variable delay line, where a sensitivity of 1.0 (e.g. when a transmitter is located at the center of a sigma receiver) means zero delay, and a sensitivity of 0.0 means maximum delay. The maximum delay is given in the &quot;Delay&quot; field. Therefore, when a transmitter approaches a receiver, the delay time decreasing, resulting in increased pitch; when the transitter passes the receiver and distance increases, the delay time increases as well, resulting in a lower pitch (normal doppler behaviour).</LI>
+<LI><B>Audio Out Bus</B> : the soundcard interface channel to which the output will be send. This is only used for process &quot;Volume Matrix&quot;.</LI>
+<LI><B>Delay</B> : this field is only used for process &quot;Delay Insert&quot;. However, in a future version it may be possible to specify a static delay for each output object, therefore it is a good idea to keep this value at 0.0 for all objects other than &quot;Delay Insert&quot;. Here is a simply calculation of the delay time for a physical space:
+<UL>
+<LI>assume your real room is quadratic and has a width and height of six meters. <code>s = 6m</code></LI>
+<LI>the speed of sound in air be <code>c = 340m/s</code></LI>
+<LI>the delay between a wall and the center of the room is therefore <code>t = s/(2*c) = circa 9 milliseconds</code></LI>
+</UL>
+Therefore, using a receiver of width and height 1.0 which has a uniformly decreasing sensitivity from 1.0 at the center and 0.0 at the boundary, setting delay to 9 milliseconds will accurately simulate the doppler shift in the specified room.</LI>
+</UL>
+</P>
+<h3>grouping and solo/mute behaviour</h3>
+<P>
+all groups are initialized separately after another. this allows you to create sub-matrices or infact completely non-overlapping matrices as a means of overcoming the limitation of not being able to open more than one session at the same time. only groups that are &quot;playing&quot; are initialized. if a group is solo'ed, all other groups are practially muted, unless they are solo'ed as well or made solo-safe. transmitters and receivers in this group are not processed (unless they appear also in a different, playing group).
+</P><P>
+if the session does not contain any groups, the plug-in assumes one group formed by all receivers and transmitters.
+</P>
+<h3><A NAME="slave"></A>slaving objects</h3>
+<P>
+slaving allows you to control sub-matrices with different trajectory sources, though referring to the same input sound. imagine (in normal mode) you have a soundfile playback transmitter -- named &quot;T1&quot; -- and a bunch of receivers using the volume matrix process. imagine now that you want to dynamically apply a high pass filter to this sound. to do so, you create a seperate group with one receiver object that uses the insert filter process. putting the soundfile playback receiver in this group would result in the filter being controlled by the same trajectory that already controls the volume matrix. this can be useful in many cases. however, sometimes you want to control the filter separately. to do so, you put a new transmitter -- named &quot;T2&quot; -- in the group that contains the filtering receiver. this transmitter is set to slave control mode and you put the &quot;master's&quot; name, that is &quot;T1&quot; in the slave's &quot;Slaved to&quot; field. by doing so, the filter will be inserted into the right input channel that belongs to your soundfile playback object.
+</P>
+<h3><A NAME="inverse"></A>inverse mode</h3>
+<P>
+while usually you will want transmitters to be the sound source objects and receivers to be the filters and output channels, you can also think of an inverted setup. in the inverse mode, receivers are input objects and transmitters are output processors. for example, you set up three receivers as soundfile players and then have two transmitters in matrix volume mode, &quot;scanning&quot; these &quot;sound-fields&quot; and outputing a stereo mix. now imagine the same situation with eight transmitters for eight channel spatialization. two (established) composers immediately reacted the same way, when i explained this inverse mode: &quot;that's just crazy&quot;. maybe that reaction is natural, but once you have worked with this mode, you will find it very useful in many situations. and there is nothing wrong in thinking of loudspeakers as devices scanning sound objects, is it?
+</P>
+<h3><A NAME="schematic"></A>audio routing schematic</h3>
+<IMG SRC="sc-amplitudematrix.png" ALT="">
+</body>
+</html>

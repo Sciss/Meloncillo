@@ -1,0 +1,29 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Concepts</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Concepts</h1>
+<P>
+meloncillo is constructed based on the following principles:
+</P>
+<UL>
+<LI><B>separation of graphical user interface (GUI) and sound synthesis engine</B>. in fact, the sound synthesis engine is not part of meloncillo at all, but you will have to use <A HREF="SuperCollider.html">supercollider</A> for example. this implies that meloncillo does not know -- and should not know -- anything about sound synthesis, your audio hardware and signal path etc. this is all left to the plug-ins. however, some compromises were made for a smoother integration, for example all session objects (receivers, transmitters, groups) have solo and mute flags.</LI>
+<LI>this also implies that <B>different spatialization models</B> can be used with meloncillo. whether you have a group of discrete loudspeakers with intensity panning, or binaural headphone playback, is not hardcoded in the software.</LI>
+<LI>meloncillo is a <B>single document application</B>, there is always exactly one current session. if you open a session, the current session is replaced etc.</LI>
+<LI>a <B>session</B> consists of objects. some objects are unique and cannot be created or deleted. for example, each session has a timeline that describes the data rate of the samples and the duration of the session. the session is populated with variable session objects, the two most prominent ones being receivers and transmitters</LI>
+<LI><B>receivers</B> are area objects, statically placed in a two dimensional space. their area is described in terms of a sensitivity as a function of space.</LI>
+<LI><B>transmitters</B> are point objects, dynamically placed space and time, described by a two dimensional trajectory.</LI>
+<LI>receivers and transmitters form a <B>matrix</B> which can be interpreted in different ways. the classical model assumes that receivers represent audio output channels (or loudspeakers) and that transmitters describe mono sound sources being moved around in the sound field and distributed dynamically through the output channels (receivers). this view is not hardcoded.</LI>
+<LI>sub-matrices can be created and are called <B>groups</B>. a group is an ensemble of receivers and transmitters. the elements of this ensemble are always elements of the main matrix (shown gray shaded in the picture), however different groups or sub-matrices can overlap, as depicted below:<br>
+<IMG SRC="matrix.png" ALT="">
+</LI>
+<LI>sound synthesis processes can be based upon <B>stream data</B>. stream data can be either the trajectory of a transmitter or the sensitivity of a receiver being scanned by a transmitter's trajectory. this data is <B>sampled at equal intervals</B>, by default 1000 times per second, and can be transmitted to the sound synthesis application through the <B>open sound control (OSC)</B> protocol.</LI>
+<LI>for example, in classical discrete loudspeaker intensity panning, the panning law is described by the sensitivity tables of the receivers, and receivers are placed in an overlapping way, such that the sum of neighbouring receiver's sensitivities is always zero decibels in terms of equal power summing. then a moving sound source can be modelled by a transmitter trajectory that moves from the center of one receiver to that of the neighbouring receiver, acoustically resulting in a socalled phantom sound source.</LI>
+<LI>meloncillo defines <B>three kinds of plug-ins</B>: trajectory filtering, offline bouncing and realtime synthesis. plug-ins for all of these interfaces can be written using <B>lisp scripts</B> that bridge meloncillo and an external synthesis software such as supercollider or csound.</LI>
+<LI>sessions can be saved and restored. the session contains all the objects, the sensitivity tables and transmitter trajectories. while working on the project, the sound synthesis can be previewed with a realtime plug-in. once the project is complete, autonomous audio files can be created through a process called bouncing. the bounced audio files incorporate all the spatialization, for example panning between channels or binaural convolution. they can then be used in another application such as protools.</LI>
+</UL>
+</body>
+</html>

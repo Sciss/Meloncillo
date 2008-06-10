@@ -1,0 +1,1 @@
+; SUPERCOLLIDER REALTIME DEMO PATCH(setq realtime T)(setq prefs (gethash "PREFERENCES" cillo))(load (path-concat (gethash "BASEDIRECTORY" prefs) "sc-demo.lisp"))

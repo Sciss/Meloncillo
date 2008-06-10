@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : the cillo hashtable symbol</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : the <code>cillo</code> hashtable symbol</h1>
+<P>
+when special script functions such as <code>prepare</code>, <code>render</code> or <code>cleanup</code> are executed, you have access to a global lisp symbol <code>cillo</code>. this is a hashtable that contains information about meloncillo's preferences and the session objects. to query a value, use <code>(gethash <var>&lt;key&gt;</var> cillo)</code>. the following table lists all key/value pairs as of version 0.73:
+</P>
+<TABLE>
+<TR><TD><B>key</B></TD><TD><B>value</B></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;PREFERENCES&quot;</code></TD><TD>(hashtable) a subset of meloncillo's preferences. <A HREF="#prefs" CLASS="anchor">described below</A>.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;TIMELINE&quot;</code></TD><TD>(hashtable) description the timeline properties. this table is <A HREF="#timeline" CLASS="anchor">described below</A>.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;RECEIVERS&quot;</code></TD><TD>(list) a list whose elements describe each receiver in the session. each element is a hashtable <A HREF="#rcv" CLASS="anchor">described below</A>.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;TRANSMITTERS&quot;</code></TD><TD>(list) a list whose elements describe each transmitter in the session. each element is a hashtable <A HREF="#trns" CLASS="anchor">described below</A>.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;GROUPS&quot;</code></TD><TD>(list) a list whose elements describe each group in the session. each element is a hashtable <A HREF="#grp" CLASS="anchor">described below</A>.</TD></TR>
+</TABLE>
+<H3><A NAME="prefs"></A>preferences hashtable</H3>
+<TABLE>
+<TR><TD><B>key</B></TD><TD><B>value</B></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;DISKBUFSIZE&quot;</code></TD><TD>(integer) the preferred buffer size for file i/o, for example to allocate buffers for supercollider's <code>DiskIn</code> ugen.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;INPUTCHANNELS&quot;</code></TD><TD>(integer) number of audio interface input channels. if in sync with supercollider, can be used to calculate the offset of non-interface busses.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;OUTPUTCHANNELS&quot;</code></TD><TD>(integer) number of audio interface output channels. if in sync with supercollider, can be used to calculate the offset of audio interface input channels and non-interface busses: <code>(setq internal-bus-offset (+ (gethash "INPUTCHANNELS" prefs) (gethash "OUTPUTCHANNELS" prefs)))</code></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;AUDIORATE&quot;</code></TD><TD>(integer) audio sample rate. if in sync with supercollider, can be used to calculate sound file frame offsets in the <code>play</code> and <code>position</code> functions.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;SUPERCOLLIDERAPP&quot;</code></TD><TD>(string) path to the <code>scsynth</code> application. can be used for bounce-to-disk.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;CSOUNDAPP&quot;</code></TD><TD>(string) path to the <code>csound</code> application. can be used for bounce-to-disk or trajectory filtering.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;SUPERCOLLIDEROSC&quot;</code></TD><TD>(cons cell) OSC port of realtime supercollider. the <code>car</code> is the IP address (string), the <code>cdr</code> is the port number (integer).</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;BASEDIRECTORY&quot;</code></TD><TD>(string) path of the directory that contains the lisp plug-in source. can be used to load helper files relative to the current source file: <code>(load (path-concat (gethash "BASEDIRECTORY" (gethash "PREFERENCES" cillo)) "utilities.lisp"))</code></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;SENSERATE&quot;</code></TD><TD>(integer) the actual data rate of trajectory and sensitivity data. for bounce-to-disk and trajectory filtering, this is identical to the <A HREF="prefsSenseRate.html">sense rate</A> preferences. for realtime synthesis, this will be decimated value as limited by the <A HREF="prefsRTMaxSenseRate.html">realtime maximum sense rate</A> preferences.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;SENSEBUFSIZE&quot;</code></TD><TD>(integer) the buffer size (<strong>in sample frames</strong>, not milliseconds!) of the stream data buffers (trajectory and sense) as determined from the <A HREF="prefsRTSenseBufSize.html">realtime sense buf size</A> preferences (for realtime synthesis) or the <A HREF="prefsOLSenseBufSize.html">offline sense buf size</A> preferences (for trajectory filtering and bounce-to-disk).</TD></TR>
+</TABLE>
+<H3><A NAME="timeline"></A>timeline hashtable</H3>
+<TABLE>
+<TR><TD><B>key</B></TD><TD><B>value</B></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;START&quot;</code></TD><TD>(real) beginning of session or timeline selection (for trajectory filtering) in seconds.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;STOP&quot;</code></TD><TD>(real) end of session or timeline selection (for trajectory filtering) in seconds.</TD></TR>
+</TABLE>
+<H3><A NAME="rcv"></A>receiver hashtable</H3>
+<TABLE>
+<TR><TD VALIGN="top"><B>key</B></TD><TD><B>value</B></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;NAME&quot;</code></TD><TD>(string) the receiver's name</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;FLAGS&quot;</code></TD><TD>(integer) each bit represents a certain flag of the object: bit0 (decimal 1) = solo, bit1 (decimal 2) = mute, bit2 (decimal 4) = solosafe, bit3 (decimal 8) = virtually muted. usually you will only check bit3 -- which is set by meloncillo if another object is solo'ed and this object is not solo'ed and not solo safe -- and bit1: <code>(if (zerop (logand (gethash &quot;FLAGS&quot; <I>my-receiver</I>) 10)) (println &quot;this receiver is playing!&quot;)</code></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;X&quot;</code></TD><TD>a list whose elements describe each receiver in the session. each element is a hashtable <A HREF="#rcv" CLASS="anchor">described below</A>.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;Y&quot;</code></TD><TD>a list whose elements describe each transmitter in the session. each element is a hashtable <A HREF="#trns" CLASS="anchor">described below</A>.</TD></TR>
+</TABLE>
+<P>
+furthermore, the receiver contains all class specific keys:</P>
+<UL>
+<LI><A HREF="SigmaReceiver.html">sigma receiver</A> keys : <code>&quot;WIDTH&quot;</code> (real), <code>&quot;HEIGHT&quot;</code> (real)</LI>
+<LI><A HREF="SectorReceiver.html">sector receiver</A> keys : <code>&quot;OUTERDIAM&quot;</code> (real), <code>&quot;INNERDIAM&quot;</code> (real), <code>&quot;ANGLESTART&quot;</code> (real), <code>&quot;ANGLEEXTENT&quot;</code> (real)</LI>
+</UL>
+<P>it is not advised to read these keys, and there is no way to determine the receiver's class at the moment. it is safe to read the <code>&quot;X&quot;</code> and <code>&quot;Y&quot;</code> fields though.
+</P>
+<P>
+when a plug-in adds session properties using the <A HREF="lispSessionPropertyAdd.html"><code>session-property-add</code> function</A>, they are also available from the object's hashtable. see the <A HREF="lispExample.html">plug-in case study</A> for an example to make use of custom properties.
+</P>
+<H3><A NAME="trns"></A>transmitter hashtable</H3>
+<TABLE>
+<TR><TD><B>key</B></TD><TD><B>value</B></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;NAME&quot;</code></TD><TD>(string) the transmitters's name</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;FLAGS&quot;</code></TD><TD>(integer) same as for receivers (see there).</TD></TR>
+</TABLE>
+<P>
+as with receivers, custom properties added using the <A HREF="lispSessionPropertyAdd.html"><code>session-property-add</code> function</A>, are also available from the object's hashtable.
+</P>
+<H3><A NAME="grp"></A>group hashtable</H3>
+<TABLE>
+<TR><TD><B>key</B></TD><TD><B>value</B></TD></TR>
+<TR><TD VALIGN="top"><code>&quot;NAME&quot;</code></TD><TD>(string) the groups's name</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;FLAGS&quot;</code></TD><TD>(integer) same as for receivers (see there).</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;RECEIVERS&quot;</code></TD><TD>(list) a list whose elements describe each receiver in the group.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;TRANSMITTERS&quot;</code></TD><TD>(list) a list whose elements describe each transmitter in the group.</TD></TR>
+<TR><TD VALIGN="top"><code>&quot;USERIMAGE&quot;</code></TD><TD>(string) pathname of a custom user image displayed in the surface frame when the group is active. not very useful for the plug-in.</TD></TR>
+</TABLE>
+<P>
+as with receivers, custom properties added using the <A HREF="lispSessionPropertyAdd.html"><code>session-property-add</code> function</A>, are also available from the object's hashtable.
+</P>
+<HR>
+<P>
+it is safe to modify these hashtables using <code>setf-gethash</code>. however, these tables are just copies of the object properties. modification does not affect the meloncillo session at all. it can be useful to store additional information for each object, for example which synthesis node is associated with which transmitter etc. it may be possible in a future version that plug-ins modify session objects.
+</P>
+</body>
+</html>

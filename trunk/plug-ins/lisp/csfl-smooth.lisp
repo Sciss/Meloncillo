@@ -1,0 +1,1 @@
+; CSOUND EXPERIMENTAL PATCHES;	MODE = "smooth"(setq MODE "smooth")(setq prefs (gethash "PREFERENCES" cillo))(load (path-concat (gethash "BASEDIRECTORY" prefs) "csfl-misc.lisp"))

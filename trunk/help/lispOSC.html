@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : Open Sound Control (OSC) commands</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : Open Sound Control (OSC) commands</h1>
+<PRE>
+(osc-bundle-send <var>&lt;target-id&gt;</var> <var>&lt;when&gt;</var> <var>&lt;cmd-list&gt;</var>)
+(osc-bundle-send-and-wait <var>&lt;target-id&gt;</var> <var>&lt;when&gt;</var> <var>&lt;cmd-list&gt;</var> <var>&lt;timeout&gt;</var> <var>&lt;return-cmd&gt;</var>)
+</PRE>
+<P>
+open sound control (OSC) is a transport independant communication protocol for multimedia applications. applications that support OSC include <A HREF="SuperCollider.html">supercollider</A>, max/msp, pure data, reaktor and many others. OSC is a convenient way of inter-application communication and is therefore the preferred way to control realtime synthesis in meloncillo. for a complete overview of OSC visit the <A HREF="http://www.cnmat.berkeley.edu/OpenSoundControl/" CLASS="ext">berkeley OSC website</A>. to learn how to use OSC to control the supercollider synthesis server, refer to the document <code>&quot;Server-Command-Reference.rtf&quot;</code> which resides in sc's help folder.
+</P>
+<P>
+these commands send OSC bundles. a bundle is a time tagged list of OSC messages. each message is written as a list whose first element is the OSC command string, something beginning with a slash and being defined by the target application. for example the command <code>&quot;/s_new&quot;</code> tells supercollider to create a new synth object. the remaining elements of the message list are parameters to the command whose syntax, too, is defined by the target application. for example, the <code>&quot;/s_new&quot;</code> command requires a synth definition name (string), a synth id (integer), a list placement id (integer) and a target group id (integer), for example:
+<PRE>
+(list &quot;/s_new&quot; &quot;sinus-oscillator&quot; 1000 1 0)
+</PRE>
+a bundle contains one or more messages, for example:
+<PRE>
+(list (list &quot;/s_new&quot; &quot;sinus-oscillator&quot; 1000 1 0) (list &quot;/n_run&quot; 1000 0))
+</PRE>
+the timetag given by the parameter <code>when</code> can be a real or integer. an integer specifies the time by which the bundle is to be executed by the target application. to execute a bundle in ten seconds starting from the very moment, use a term like <code>(+ 10000 <A HREF="lispCurrentTimeMillis.html">(current-time-millis)</A>)</code>. use the special decimal <code>0.0</code> to force immediate execution. when using supercollider in non-realtime-mode, decimal (real) timetags are used to specify a relative execution time, where <code>0.0</code> is the beginning of the non-realtime output.
+</P>
+<P>
+in supercollider, some commands are processed synchronously, some asynchronously. in some cases, your lisp script needs to be sure that the asynchronous commands have been processed. while <code>osc-bundle-send</code> returns immediately and doesn't know if the bundle arrived at the target, to wait for asynchronous commands, you can use <code>osc-bundle-send-and-wait</code>. this requires two additional parameters: a <code>return-cmd</code> string (or regular expression for pattern matching) that specifies the command to wait for in reply. many asynchronous commands in supercollider reply with the special message <code>&quot;/done&quot;</code>. another possibility is to send a <code>&quot;/sync&quot;</code> command to supercollider and wait for the corresponding &quot;/synced&quot; message. to avoid deadlocks, you have to specify a <code>timeout</code> span in milliseconds. if the reply message was received, it is returned as a list similiar to the OSC message list described above. if the timeout occured, <code>NIL</code> is returned.
+</P>
+<P>
+OSC message parameters are encoded with a unique type tag. meloncillo supports 32bit integers (all lisp integers), 32bit floating point (all lisp reals) and strings.
+</P>
+<p>
+OSC messages are usually communicated via UDP. to do so, use the <A HREF="lispDatagramChannel.html"><code>datagram-channel-open</code></A> command and pass its handle to <code>osc-bundle-send</code> as the <code>target-id</code> parameter. alternatively, a <A HREF="lispFile.html">file handle</A> can be used to create a binary OSC file for supercollider non-realtime mode.
+</P>
+<P>example:</P>
+<PRE>
+    (datagram-channel-open 'scosc "127.0.0.1" 57110)
+    (let ((reply-msg (osc-bundle-send-and-wait 'scosc 0.0
+             (list (list "/status")) "status.reply" 3000)))
+       (if (null reply-msg) (println "TIMEOUT! no reply from sc!")
+           (println (concatenate 'STRING "sc says it's using "
+               (seventh reply-msg) "% of CPU power. "
+               (sixth reply-msg) " synth definitions are loaded."
+           ))
+       )
+    )
+    (datagram-channel-close 'scosc)
+</PRE>
+<P>
+this example sends a status query to supercollider and prints some of the information contained in the reply. see the <A HREF="lispCurrentTimeMillis.html"><code>current-time-millis</code> document</A> and the <A HREF="lispByteBuffer.html">byte buffer document</A> for more examples.
+</P>
+</body>
+</html>

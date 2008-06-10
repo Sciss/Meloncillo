@@ -1,0 +1,19 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LISP Functional Extensions : target-request (Trajectory Filtering)</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>LISP Functional Extensions : target-request (Trajectory Filtering)</h1>
+<PRE>
+(target-request <var>&lt;source&gt;</var> <var>&lt;params&gt;</var> <var>&lt;medium&gt;</var>)
+</PRE>
+<P>
+this function must be called within the <code>prepare</code> function. it tells meloncillo that the plug-in server application will provide a filtered version of the trajectories that should be copied back into meloncillo's session right after the plug-in returns from the <code>render</code> function.
+</P>
+<P>
+<CODE>source</CODE> must be <CODE>&quot;TRAJ&quot;</CODE> to indicate trajectory data. <CODE>params</CODE> must be an integer which is the index of the transmitter. this index refers to the elements of the global collection as returned by <code>(gethash "TRANSMITTERS" cillo)</code>. in a future version it will be possible to provide the objects themselves or their names which would make indexing more easy when processing groups. <code>medium</code> defines from where to receive the filtered data. it must be a pathname denoting a stereo audio-file, where channel 1 contains the X coordinates of the trajectory, and channel 2 contains the the Y coordinates of the trajectory. meloncillo can read AIFF, WAVE, some IRCAM and some AU files.
+</P>
+</body>
+</html>

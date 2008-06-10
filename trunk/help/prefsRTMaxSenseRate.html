@@ -1,0 +1,28 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Plug-Ins Prefs : Realtime Max. Sense Rate</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Plug-Ins Prefs : Realtime Max. Sense Rate</h1>
+<p>
+The session's default sense data sampling rate is 1 kHz which is quite high when compared
+to our ear's sensitivity regarding azimuth detection of a sound source, for example. However
+there are many reasons for keeping the sense rate high, for example to retain high quality
+even after several steps of trajectory filtering or for experimenting with audio rate modulations.
+When playing back the session in realtime mode, such a data rate might be too high for your
+network connection or CPU load. Therefore, adjusting this preferences, you can limit the realtime
+data rate to an integer fraction of the session data rate.
+</p><p>
+Note that downsampling is restricted to a power of two, i.e. if your session rate is 1 kHz, the
+realtime sense rate can be either 1 kHz, 500 Hz, 250 Hz, 125 Hz, 62.5 Hz etc. The value entered
+in the preferences is automatically downgraded to the next possible value, for example, if you specifiy
+300 Hz, data is sent at 250 Hz.
+</p><p>
+The preference's value is available in LISP scripts via <code>(gethash "SENSERATE" (gethash "PREFERENCES" cillo))</code>.
+If you recognize drop-outs in realtime mode, either decrease the maximum sense buffer rate or
+decrease the <A HREF="prefsRTSenseBufSize.html">sense buffer size</A>.
+</p>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Writing LISP Plug-Ins : Aspects of Jatha</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Writing LISP Plug-Ins : Aspects of Jatha</h1>
+<P>
+when a lisp plug-in source is loaded, it is precompiled by the jatha library. this speeds up the actual execution. however, there are both functional and speed limitations that forbid the use of lisp as a direct way of sound synthesis for example. jatha provides a reasonable subset of common lisp functionality, but there aren't any libraries. jatha was chosen because it is free software, it is compact and it is easily integrated into java. the purpose of lisp scripts is to eliminate interdependancies between meloncillo and a sound synthesis server such as supercollider. by putting a lisp plug-in between these two programs, meloncillo doesn't need to know anything about supercollider, the translation is done by the lisp script. it's therefore possible to exchange the sound synthesis server. in fact, a simple mixer was built with max/msp; it's still buggy and not efficient, therefore it's not included with the release, but might be in a next one. also some scripts use csound, for example.
+</P><p>
+besides lacking libraries -- for file i/o etc. --, jatha doesn't handle arrays and streams and doesn't support macros. some basic functions are missing, for example there is no <code>for</code> or <code>while</code> statement. you can circumvent these problems in most cases as you will learn in the case study.
+</p><p>
+jatha is configured in a way that all sourcecode is converted to upper case internally, therefore it doesn't matter if you type lower case or upper case names. string literal are of course not affected.
+</p><p>
+jatha has little support for error detection. if a script doesn't load correctly or an exception is thrown, it requires some experience to find the responsible source code line. common mistakes include missing <code>quote</code> statements, unbalanced parantheses, a missing quotationmark in string literals and missing <code>progn</code> blocking of a group of statements (for example in an <code>if</code> expression). if you check the &quot;Verbose&quot; box in the plug-in window, each compilation step's result is printed to the main log frame. this is a hint about the point in your source at which compilation fails (for example when the function name which is the result of <code>defun</code> compilation is not printed). when errors occur inside a function, you can try to locate the error by placing helper <code>println</code> statements between blocks.
+</P><P>
+note that if you use the <code>eval</code> function to evaluate quoted source code, local variables are not accessible. for example in the following looping function:
+<PRE>
+(defun cycle (itervar alist success cmd)
+    (if (and (eval success) (not (null alist)))
+        (progn
+            (set itervar (car alist))
+            (eval cmd)
+            (cycle itervar (cdr alist) success cmd)
+        )
+    )
+)
+</PRE>
+the actual loop body is passed as the <code>cmd</code> argument which is evaluated using <code>eval</code>. the following code will fail:
+<PRE>
+   (let ((x (* 0.25 pi)))
+       (cycle 'a '(0.25 0.333 0.75) 'T '(println (concatenate 'STRING
+           "cos( " a " * " x " ) = " (cos (* a x))))
+       )
+   )
+</PRE>
+because inside the quoted expression (the <code>println</code> block) the local variable <code>x</code> is unknown!
+</P><P>
+also note that the plug-in hosts, for example the realtime plug-in, do not re-initialize the jatha environment, unless the window is closed using the &quot;Close&quot; gadget and re-opened. that means that any globals -- e.g. variable assignments using <code>setq</code> -- exist beyond the execution of certain plug-in functions. if you switch the lisp source, the variables created by the previous source are not deleted. this can be a trap when debugging your source. to be sure to test your source in a &quot;virgin&quot; situation, close and re-open the plug-in window. note that the different hosts (bounce, realtime, trajectory filtering) do <b>not</b> share the same interpreter, therefore they do not know each other's globals.
+</P>
+</body>
+</html>

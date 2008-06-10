@@ -1,0 +1,34 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Session Prefs : Sense Rate</title>
+<LINK REL="stylesheet" TYPE="text/css" HREF="stylesheet.css">
+</head>
+<body>
+<h1>Session Prefs : Sense Rate</h1>
+<p>
+The trajectory path of each transmitter and the sense
+data corresponding to each cell of the receivers/transmitters matrix are so-called
+streaming data. The streaming data is digitized and sampled at regular intervals. The
+rate of the streaming or sense data is called sense rate and is expressed in Hertz
+(samples per second).
+</p><p>
+The session's default sense data sampling rate is 1 kHz which is quite high when compared
+to our ear's sensitivity regarding azimuth detection of a sound source, for example. However
+there are many reasons for keeping the sense rate high, for example to retain high quality
+even after several steps of trajectory filtering or for experimenting with audio rate modulations.
+However, you can change the session's sense rate to an arbitrary value, say 100 Hz, which would
+reduce disk size and CPU load to one tenth of a session with a 1 kHz rate.
+</p><p>
+Note that changing the sense rate after the session has been created will not alter the
+trajectory data at all. Therefore changing a session from 1 kHz to 100 Hz will result in
+motions being played back at 1/10 of the original speed. You can use this trick intentionally
+to slow down or accelerate a session. If you wish to retain the original tempo, use a
+resampling mechanism such as a <A HREF="FilterLisp.html">self-programmed trajectory filter</A> or the
+<A HREF="FilterTimeWarp.html">time warp trajectory filter</A>.
+</p><p>
+When played back with a realtime plug-in, the sense data can be decimated by an amount
+specified by the <A HREF="prefsRTMaxSenseRate.html">max sense rate prefs</A>.
+</p>
+</body>
+</html>
