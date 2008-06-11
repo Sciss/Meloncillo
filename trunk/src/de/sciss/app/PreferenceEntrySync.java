@@ -2,7 +2,7 @@
  *  PreferenceEntrySync.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@
 
 package de.sciss.app;
 
-import java.util.prefs.*;
+import java.util.prefs.Preferences;
 
 /**
  *  Objects implementing this interface
@@ -37,7 +37,7 @@ import java.util.prefs.*;
  *  representation in a given preference entry
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.27, 25-Sep-05
  */
 public interface PreferenceEntrySync
 {
@@ -61,6 +61,9 @@ public interface PreferenceEntrySync
 	 *					into a string.
 	 */
 	public void setPreferences( Preferences prefs, String key );
+
+	public void setPreferenceNode( Preferences prefs );
+	public void setPreferenceKey( String key );
 	
 	/**
 	 *  Gets the recently set preference node
@@ -77,4 +80,11 @@ public interface PreferenceEntrySync
 	 *			null if no prefs were set
 	 */
 	public String getPreferenceKey();
+		
+	public void setReadPrefs( boolean b );
+	public void setWritePrefs( boolean b );
+	public boolean getReadPrefs();
+	public boolean getWritePrefs();
+	public void readPrefs();
+	public void writePrefs();
 }

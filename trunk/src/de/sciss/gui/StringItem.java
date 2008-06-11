@@ -2,7 +2,7 @@
  *  StringItem.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
  *
  *  Changelog:
  *		20-May-05	created from de.sciss.meloncillo.util.StringItem
+ *		04-Aug-05	fixed missing hashCode() override
  */
 
 package de.sciss.gui;
@@ -39,10 +40,10 @@ package de.sciss.gui;
  *  the user on the GUI.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.13, 04-Aug-05
  *
- *  @see	de.sciss.meloncillo.gui.PrefComboBox#addItem( Object )
- *  @see	de.sciss.meloncillo.io.AudioFileDescr#getFormatItems()
+ *  @see	de.sciss.gui.PrefComboBox#addItem( Object )
+ *  @see	de.sciss.io.AudioFileDescr#getFormatItems()
  */
 public class StringItem
 {
@@ -99,6 +100,11 @@ public class StringItem
 		} else {
 			return false;
 		}
+	}
+	
+	public int hashCode()
+	{
+		return( key.hashCode() ^ value.hashCode() );
 	}
 	
 	/**

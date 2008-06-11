@@ -29,11 +29,11 @@
 
 package de.sciss.meloncillo.util;
 
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.session.*;
+import de.sciss.app.Application;
+import de.sciss.gui.ProgressComponent;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  A subclass of Thread that is capable of
@@ -85,7 +85,7 @@ implements Runnable
 	 *							will be paused during processing.
 	 *  @synchronization		must be called in the event thread
 	 */
-	public ProcessingThread( final RunnableProcessing rp, final ProgressComponent pc, final Main root,
+	public ProcessingThread( final RunnableProcessing rp, final ProgressComponent pc, final Application root,
 							 Session doc, String procName, final Object rpArgument, int requiredDoors )
 	{
 		super( procName );
@@ -113,8 +113,9 @@ implements Runnable
 		runProcessFinished = new Runnable() {
 			public void run()
 			{
-				root.menuFactory.setMenuBarsEnabled( true );
-				pc.finishProgression( success );
+//				root.menuFactory.setMenuBarsEnabled( true );	// EEE
+				pc.finishProgression( success ? ProgressComponent.DONE :
+					(exception == null ? ProgressComponent.CANCELLED : ProgressComponent.FAILED ));
 				rp.finished( context, rpArgument, success );
 				if( !success && (exception != null) ) {
 					pc.displayError( exception, name );
@@ -130,7 +131,7 @@ implements Runnable
 			start();
 			try {
 				this.wait();	// we will be notified when the locks have been attached!
-				root.menuFactory.setMenuBarsEnabled( false );
+//				root.menuFactory.setMenuBarsEnabled( false );	// EEE
 			} catch( InterruptedException e1 ) {
 				System.err.println( e1.getLocalizedMessage() );
 			}

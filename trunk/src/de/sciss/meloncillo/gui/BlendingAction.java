@@ -31,6 +31,7 @@ package de.sciss.meloncillo.gui;
 
 import java.awt.event.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 
 import de.sciss.meloncillo.util.*;
@@ -49,7 +50,7 @@ import de.sciss.app.*;
  */
 public class BlendingAction
 extends AbstractAction
-implements LaterInvocationManager.Listener
+implements PreferenceChangeListener
 {
 	private final JToggleButton b;
 	private final Preferences	prefs;
@@ -115,7 +116,7 @@ implements LaterInvocationManager.Listener
 	}
 
 	// o instanceof PreferenceChangeEvent
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
 		updateButtonState();
 	}

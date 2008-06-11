@@ -2,7 +2,7 @@
  *  PathEvent.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -40,7 +40,7 @@ import de.sciss.app.BasicEvent;
  *  the user modified the path.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.16, 05-May-06
  *
  *  @see		PathField#addPathListener( PathListener )
  *  @see		PathListener
@@ -49,7 +49,7 @@ import de.sciss.app.BasicEvent;
 public class PathEvent
 extends BasicEvent
 {
-// --- ID values ---
+	// --- ID values ---
 	/**
 	 *  returned by getID() : the path changed
 	 */

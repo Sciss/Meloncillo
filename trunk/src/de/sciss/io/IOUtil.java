@@ -2,7 +2,7 @@
  *  IOUtil.java
  *  de.sciss.io package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,6 +29,12 @@
  *		04-Feb-05	bugfix in deleteAll()
  *		21-Apr-05	removed getBuildFolder()
  *		26-May-05	now de.sciss.io package, 'main' class, getResourceString()
+ *		22-Jul-05	fixed bug in createTempFile (null pointer exception)
+ *		08-Sep-05	setFileExtension() added
+ *		15-Oct-05	nonExistentFileVariant() added
+ *		06-Nov-05	getNoWriteIcon() added
+ *		10-Mar-06	moved getNoWriteIcon() into GUI package because
+ *					we don't want GUI package objects have dependencies on the de.sciss.io package!
  */
 
 package de.sciss.io;
@@ -46,7 +52,7 @@ import java.util.prefs.Preferences;
  *  functions for common file operations.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.1, 26-May-05
+ *  @version	0.32, 25-Feb-08
  */
 public class IOUtil
 {
@@ -58,11 +64,11 @@ public class IOUtil
 	 */
 	public static final String KEY_TEMPDIR	= "tmpdir";		// string : pathname
 
-	private static final double VERSION	= 0.1;
+	private static final double VERSION	= 0.32;
 	private static final ResourceBundle resBundle = ResourceBundle.getBundle( "IOUtilStrings" );
 	private static final Preferences prefs = Preferences.userNodeForPackage( IOUtil.class );
-
-	private IOUtil() {}
+	
+	private IOUtil() { /* empty */ }
 	
 	public static final Preferences getUserPrefs()
 	{
@@ -170,7 +176,18 @@ public class IOUtil
 			begBuf.append( File.separator );
 			len += name.length() - 1;
 		}
-		for( b = false; !coll.isEmpty() && len <= maxLen; b = !b ) {
+		if( !coll.isEmpty() ) {
+			name = (String) coll.remove( 0 );
+			if( name.equals( "Volumes" )) {	// ok dis wan me don want
+				begBuf.append( '\u2026' );
+				begBuf.append( File.separator );
+			} else {
+				begBuf.append( name );
+				begBuf.append( File.separator );
+				len += name.length() - 1;
+			}
+		}
+		for( b = true; !coll.isEmpty() && len <= maxLen; b = !b ) {
 			if( b ) {
 				name = (String) coll.remove( coll.size() - 1 );
 				endBuf.insert( 0, File.separator );
@@ -216,7 +233,7 @@ public class IOUtil
 				IOUtil.getResourceString( "errMakeDir" ));
 		}
 	}
-
+	
 	/**
 	 *	Creates an empty file. If file denoted
 	 *	by <code>f</code> already exists, it will
@@ -239,7 +256,7 @@ public class IOUtil
 			raf.close();
 		}
 	}
-	
+
 	/**
 	 *  Creates a new temporary file,
 	 *  using the preferred temp file folder
@@ -252,7 +269,7 @@ public class IOUtil
 	 *  @throws IOException if this method fails to create the file
 	 *  @see	File#createTempFile( String, String, File )
 	 *  @see	File#deleteOnExit()
-	 *  @see	PrefsUtil#KEY_TEMPDIR
+	 *  @see	#KEY_TEMPDIR
 	 */
 	public static File createTempFile()
 	throws IOException
@@ -278,13 +295,13 @@ public class IOUtil
 	 *  @throws IOException if this method fails to create the file
 	 *  @see	File#createTempFile( String, String, File )
 	 *  @see	File#deleteOnExit()
-	 *  @see	PrefsUtil#KEY_TEMPDIR
+	 *  @see	#KEY_TEMPDIR
 	 */
 	public static File createTempFile( String prefix, String suffix )
 	throws IOException
 	{
-		File tmpF = File.createTempFile( prefix, suffix, new File( IOUtil.getUserPrefs().get(
-			IOUtil.KEY_TEMPDIR, null )));
+		final String	tmpDir	= IOUtil.getUserPrefs().get( IOUtil.KEY_TEMPDIR, null );
+		final File		tmpF	= File.createTempFile( prefix, suffix, tmpDir == null ? null : new File( tmpDir ));
 		tmpF.deleteOnExit();
 		return tmpF;
 	}
@@ -337,5 +354,93 @@ public class IOUtil
 					IOUtil.getResourceString( "errDeleteFile" ));
 			}
 		}
+	}
+
+	/**
+	 *	Sets the extension (suffix) of a file name.
+	 *	If the provided path has already a suffix,
+	 *	it is replaced. Otherwise, the new suffix
+	 *	will be appended.
+	 *
+	 *	@param	f	the file whose suffix to change.
+	 *				can be <code>null</code> in which
+	 *				case <code>null</code> is returned
+	 *	@param	ext	the new suffix, e.g. &quot;.aif&quot;, &quot;.xml&quot; etc.
+	 *				the leading period may be omitted.
+	 *				if <code>ext</code> is <code>null</code>,
+	 *				the suffix is removed.
+	 *
+	 *	@return	the newly composed file name or the original
+	 *			path, if path name didn't change
+	 */
+	public static File setFileSuffix( File f, String ext )
+	{
+		if( f == null ) return null;
+	
+		final String	name	= f.getName();
+		final File		parent	= f.getParentFile();
+		final int		i		= name.lastIndexOf( '.' );
+		
+		if( i == -1 ) {
+			if( ext == null ) {
+				return f;
+			} else {
+				return new File( parent, name + (ext.startsWith( "." ) ? ext : '.' + ext) );
+			}
+		} else {
+			if( ext == null ) {
+				return new File( parent, name.substring( 0, i ));
+			} else {
+				return new File( parent, name.substring( 0, ext.startsWith( "." ) ? i : i + 1 ) + ext );
+			}
+		}
+	}
+	
+	/**
+	 *	Iteratres a filename template as long as filenames
+	 *	generated by the template already exist. This method
+	 *	returns the template if a file denoted by the template does not exist.
+	 *	<p>
+	 *	Example: with <code>template = new File( &quot;/Users/schoko/myFile.aif&quot; )</code>,
+	 *	<code>insertPos = -1</code> and <code>prefix = &quot; &quot;</code> (white space),
+	 *	the method will first check if file &quot;/Users/schoko/myFile.aif&quot;</code>
+	 *	exists, if not that file will be returned. Next, it will check for the file
+	 *	&quot;/Users/schoko/myFile 1.aif&quot;</code>, then for &quot;/Users/schoko/myFile 2.aif&quot;</code>
+	 *	etc.
+	 *
+	 *	@param	template	template path
+	 *	@param	insertPos	the index in the name portion of the template at which variants are to be inserted;
+	 *						if <code>insertPos</code> is <code>-1</code>, the position of the period
+	 *						of the filetype suffix will be used (and if not found, the end of the template).
+	 *	@param	prefix		a string to paste before the inserted variant, can be <code>null</code>
+	 *	@param	suffix		a string to paste after the inserted variant, can be <code>null</code>
+	 */
+	public static File nonExistentFileVariant( File template, int insertPos, String prefix, String suffix )
+	{
+		if( !template.exists() ) return template;
+	
+		final File		parent	= template.getParentFile();
+		final String	name	= template.getName();
+		StringBuffer	strBuf;
+		File			f;
+		int				count	= 1;
+		
+		if( insertPos == -1 ) {
+			insertPos = name.lastIndexOf( '.' );
+			if( insertPos == -1 ) insertPos = name.length();
+		}
+
+		strBuf = new StringBuffer( name.substring( 0, insertPos ));
+		
+		do {
+			strBuf.delete( insertPos, strBuf.length() );
+			if( prefix != null ) strBuf.append( prefix );
+			strBuf.append( count++ );
+			if( suffix != null ) strBuf.append( suffix );
+			strBuf.append( name.substring( insertPos ));
+			f	= new File( parent, strBuf.toString() );
+		} while( f.exists() );
+		
+		return f;
 	}
 }

@@ -37,7 +37,7 @@ import java.io.*;
 import java.util.prefs.*;
 import javax.swing.*;
 
-import de.sciss.meloncillo.gui.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -83,9 +83,11 @@ extends VectorTransformer
 		ggFlipX		= new PrefCheckBox( app.getResourceString( "vectorFlipX" ));
 		ggFlipY		= new PrefCheckBox( app.getResourceString( "vectorFlipY" ));
 		ggShiftX	= new PrefCheckBox( app.getResourceString( "vectorShiftX" ));
-		ggShiftXVal	= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggShiftXVal	= new PrefNumberField();
+		ggShiftXVal.setSpace( NumberSpace.genericDoubleSpace );
 		ggShiftY	= new PrefCheckBox( app.getResourceString( "vectorShiftY" ));
-		ggShiftYVal	= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggShiftYVal	= new PrefNumberField();
+		ggShiftYVal.setSpace( NumberSpace.genericDoubleSpace );
 
 		rows		= 0;
 		msgPane.add( ggFlipX );
@@ -102,7 +104,7 @@ extends VectorTransformer
 		rows++;
 
 		GUIUtil.makeCompactSpringGrid( msgPane, rows, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
-        HelpGlassPane.setHelp( msgPane, "VectorTransformFlipShift" );
+//        HelpGlassPane.setHelp( msgPane, "VectorTransformFlipShift" );	// EEE
 	}
 
 	public void setPreferences( Preferences prefs )

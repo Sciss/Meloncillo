@@ -34,8 +34,8 @@ package de.sciss.meloncillo.receiver;
 import java.awt.*;
 import java.awt.geom.*;
 
-import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 /**
  *  A Receiver modelled after the
@@ -134,7 +134,8 @@ extends TableLookupReceiver
 	{
 		super.init();
 		
-		final NumberSpace	spcCoord	= new NumberSpace( 0.0, 1.0, 0.0001, 0.5, 0.1 );
+//		final NumberSpace	spcCoord	= new NumberSpace( 0.0, 1.0, 0.0001, 0.5, 0.1 );
+		final NumberSpace	spcCoord	= new NumberSpace( 0.0, 1.0, 0.0, 0, 4, 0.5 );
 		final MapManager	map			= getMap();
 
 		map.putContext( null, MAP_KEY_WIDTH, new MapManager.Context(  MapManager.Context.FLAG_OBSERVER_DISPLAY |

@@ -2,7 +2,7 @@
  *  ProgressBar.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -36,9 +36,9 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentListener;
 import java.awt.event.ComponentEvent;
 import javax.swing.JProgressBar;
+import javax.swing.SwingConstants;
 
 /**
  *  A bit more sophisticated progression bar
@@ -50,23 +50,21 @@ import javax.swing.JProgressBar;
  *  remaining progression time.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 26-May-05
+ *  @version	0.17, 12-Oct-06
  */
 public class ProgressBar
 extends JProgressBar
 {
-// -------- public Variablen --------
-
 // -------- private Variablen --------
 
-	private float		p			= 0.0f;
-	private Color		progColor;
+	protected float		p			= 0.0f;
+//	private Color		progColor;
 
 	private long		startTime;				// Zeitpunkt, an dem reset() aufgerufen wurde
 	private long		pauseTime;
 	private int			remain;
 	private byte		timeStr[];
-	private int			maximum		= 0;
+	protected int		maximum		= 0;
 
 	private String altString = null;
 
@@ -83,7 +81,7 @@ extends JProgressBar
 	 */
 	public ProgressBar()
 	{
-		super( JProgressBar.HORIZONTAL, 0, 0x1000 );
+		super( SwingConstants.HORIZONTAL, 0, 0x1000 );
 		
 		timeStr			= "00:00:00".getBytes();
 
@@ -222,15 +220,16 @@ extends JProgressBar
 	 *					or <code>false</code> upon failure; the
 	 *					corresponding bar colours are green and red.
 	 */
-	public void finish( boolean success )
+	public void finish( int result )
 	{
 		setIndeterminate( false );
 //		setString( success ? "done." : "aborted." );
+setValue( maximum );
 		setStringPainted( false );
 		
-		if( success ) {
+		if( result == ProgressComponent.DONE ) {
 			setPaint( COLOR_SUCCESS );
-		} else {
+		} else if( result == ProgressComponent.FAILED ) {
 			setPaint( COLOR_FAILURE );
 		}
 	}

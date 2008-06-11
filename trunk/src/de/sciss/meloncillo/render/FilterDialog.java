@@ -44,7 +44,6 @@ import de.sciss.meloncillo.transmitter.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
 
 /**
  *  The dialog for filtering trajectory data.
@@ -87,7 +86,7 @@ implements RenderConsumer
 	public FilterDialog( Main root, Session doc )
 	{
 		super( root, doc, AbstractApplication.getApplication().getResourceString( "frameFilter" ), GADGET_RESAMPLING );
-        HelpGlassPane.setHelp( this.getRootPane(), "FilterDialog" );
+//		HelpGlassPane.setHelp( this.getRootPane(), "FilterDialog" );	// EEE
 	}
 
 	protected java.util.List getProducerTypes()

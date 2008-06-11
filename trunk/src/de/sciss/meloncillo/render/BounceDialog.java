@@ -40,7 +40,6 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
 import de.sciss.io.*;
 
 /**
@@ -69,7 +68,7 @@ extends BasicRenderDialog
 	{
 		super( root, doc, AbstractApplication.getApplication().getResourceString( "frameBounce" ),
 			GADGET_RESAMPLING | GADGET_SELECTION );
-        HelpGlassPane.setHelp( this.getRootPane(), "BounceDialog" );
+//		HelpGlassPane.setHelp( this.getRootPane(), "BounceDialog" );	// EEE
 	}
 
 	protected java.util.List getProducerTypes()

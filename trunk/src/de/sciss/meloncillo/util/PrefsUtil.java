@@ -45,12 +45,9 @@ import java.util.prefs.*;
 import javax.swing.*;
 import org.w3c.dom.*;
 
-import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.session.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.GUIUtil;
-import de.sciss.gui.HelpGlassPane;
 import de.sciss.io.IOUtil;
 
 import net.roydesign.mac.MRJAdapter;
@@ -388,8 +385,8 @@ public class PrefsUtil
 		putBooleanDontOverwrite( mainPrefs, KEY_RECALLFRAMES, true );
 		putDontOverwrite( mainPrefs, KEY_LOOKANDFEEL, UIManager.getSystemLookAndFeelClassName() );
 		putBooleanDontOverwrite( mainPrefs, KEY_INTRUDINGSIZE, isMacOS );
-		putDontOverwrite( GUIUtil.getUserPrefs(), HelpGlassPane.KEY_KEYSTROKE_HELP, strokeToPrefs(
-			KeyStroke.getKeyStroke( KeyEvent.VK_HELP, KeyEvent.CTRL_MASK )));
+//		putDontOverwrite( GUIUtil.getUserPrefs(), HelpGlassPane.KEY_KEYSTROKE_HELP, strokeToPrefs(
+//			KeyStroke.getKeyStroke( KeyEvent.VK_HELP, KeyEvent.CTRL_MASK )));
 
 		putBooleanDontOverwrite( mainPrefs, KEY_BLENDING, false );
 		putDoubleDontOverwrite( mainPrefs, KEY_BLENDTIME, 0.250 );
@@ -780,7 +777,7 @@ public class PrefsUtil
 	 *  structure of the MultiTrackEditors of
 	 *  all selected transmitters
 	 */
-	public static Action getDebugDumpAction( final Main root, Session doc )
+	public static Action getDebugDumpAction( Session doc )
 	{
 		AbstractAction a = new AbstractAction( "Dump preferences tree" ) {
 

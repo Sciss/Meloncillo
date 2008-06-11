@@ -1,8 +1,8 @@
 /*
  *  PrefNumberField.java
- *  Meloncillo
+ *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -24,22 +24,24 @@
  *
  *
  *  Changelog:
- *		15-Jun-04   bugfix : now decides whether to use Preferences.get/putDouble
- *					or get/putLong, since getInt/getLong won't parse double values
- *					even if they're integer (e.g. if value = "4.0", getInt() does
- *					return only the default value)
- *		21-Jul-04   debugged.
- *		31-Jul-04   commented
- *		14-Aug-04   added defaultValue. bugfixes
+ *		25-Jan-05	created from de.sciss.meloncillo.gui.PrefNumberField
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.gui;
 
-import java.util.prefs.*;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
+import java.util.prefs.Preferences;
 
-import de.sciss.meloncillo.math.*;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.EventManager;
+import de.sciss.app.LaterInvocationManager;
+import de.sciss.app.PreferenceEntrySync;
 
-import de.sciss.app.*;
+import de.sciss.gui.NumberEvent;
+import de.sciss.gui.NumberField;
+import de.sciss.gui.NumberListener;
 
 /**
  *  Equips a NumberField with
@@ -59,7 +61,7 @@ import de.sciss.app.*;
  *  mechanisms.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.28, 17-Apr-07
  *
  *  @see		java.util.prefs.PreferenceChangeListener
  */
@@ -68,38 +70,36 @@ extends NumberField
 implements  DynamicListening, PreferenceChangeListener,
 			LaterInvocationManager.Listener, PreferenceEntrySync
 {
-	private boolean listening				= false;
-	private Preferences prefs				= null;
-	private String key						= null;
-	private final LaterInvocationManager lim= new LaterInvocationManager( this );
-	private NumberListener listener;
+	private boolean							listening		= false;
+	private Preferences						prefs			= null;
+	private String							key				= null;
+	private final LaterInvocationManager	lim				= new LaterInvocationManager( this );
+	private NumberListener					listener;
 	
-	private Number defaultValue				= null;
+	private Number							defaultValue	= null;
+
+	private boolean							readPrefs		= true;
+	protected boolean						writePrefs		= true;
 
 	/**
 	 *  Constructs a new <code>PrefNumberField</code>.
 	 *
-	 *  @param  flags		type of number field, usually zero
-	 *  @param  space		NumberSpace to use for the number formatting
-	 *  @param  unitLabel   text label to display right to the text field
-	 *						or null
 	 *  @synchronization	Like any other Swing component,
 	 *						the constructor is to be called
 	 *						from the event thread.
 	 */
-	public PrefNumberField( int flags, NumberSpace space, String unitLabel )
+	public PrefNumberField()
 	{
-		super( flags, space, unitLabel );
+		super();
 		
 		new DynamicAncestorAdapter( this ).addTo( this );
 		listener = new NumberListener() {
 			public void numberChanged( NumberEvent e )
 			{
 				if( EventManager.DEBUG_EVENTS ) System.err.println( "@numb numberChanged : "+key+" --> "+e.getNumber()+" ; node = "+(prefs != null ? prefs.name() : "null" ));
-				updatePrefs( e.getNumber() );
+				if( writePrefs ) writePrefs();
 			}
 		};
-		this.addNumberListener( listener );
 	}
 	
 //	public void setNumber( Number number )
@@ -109,10 +109,49 @@ implements  DynamicListening, PreferenceChangeListener,
 //		updatePrefs( number );
 //	}
 	
-	private void updatePrefs( Number guiNumber )
+	public void setReadPrefs( boolean b )
 	{
-		if( prefs != null ) {
+		if( b != readPrefs ) {
+			readPrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( readPrefs ) {
+					prefs.addPreferenceChangeListener( this );
+				} else {
+					prefs.removePreferenceChangeListener( this );
+				}
+			}
+		}
+	}
+	
+	public boolean getReadPrefs()
+	{
+		return readPrefs;
+	}
+	
+	public void setWritePrefs( boolean b )
+	{
+		if( b != writePrefs ) {
+			writePrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( writePrefs ) {
+					this.addListener( listener );
+				} else {
+					this.removeListener( listener );
+				}
+			}
+		}
+	}
+	
+	public boolean getWritePrefs()
+	{
+		return writePrefs;
+	}
+
+	public void writePrefs()
+	{
+		if( (prefs != null) && (key != null) ) {
 			Number prefsNumber;
+			final Number guiNumber = getNumber();
 			if( getSpace().isInteger() ) {
 							// default value mustn't be guiNumber.doubleValue()
 				prefsNumber	= new Long( prefs.getLong( key, guiNumber.longValue() + 1 ));
@@ -128,6 +167,16 @@ implements  DynamicListening, PreferenceChangeListener,
 				}
 			}
 		}
+	}
+	
+	public void setPreferenceNode( Preferences prefs )
+	{
+		setPreferences( prefs, this.key );
+	}
+
+	public void setPreferenceKey( String key )
+	{
+		setPreferences( this.prefs, key );
 	}
 	
 	/**
@@ -151,7 +200,7 @@ implements  DynamicListening, PreferenceChangeListener,
 	 */
 	public void setPreferences( Preferences prefs, String key )
 	{
-		if( this.prefs == null ) {
+		if( (this.prefs == null) || (this.key == null) ) {
 			defaultValue = getNumber();
 		}
 		if( listening ) {
@@ -171,26 +220,43 @@ implements  DynamicListening, PreferenceChangeListener,
 	public void startListening()
 	{
 		if( prefs != null ) {
-			prefs.addPreferenceChangeListener( this );
 			listening	= true;
-			laterInvocation( new PreferenceChangeEvent( prefs, key, prefs.get( key, null ) ));
+			if( writePrefs ) this.addListener( listener );
+			if( readPrefs ) {
+				prefs.addPreferenceChangeListener( this );
+				readPrefs();
+			}
 		}
 	}
 
 	public void stopListening()
 	{
 		if( prefs != null ) {
-			prefs.removePreferenceChangeListener( this );
+			if( readPrefs ) prefs.removePreferenceChangeListener( this );
+			if( writePrefs ) this.removeListener( listener );
 			listening = false;
 		}
 	}
-	
+
 	// o instanceof PreferenceChangeEvent
 	public void laterInvocation( Object o )
 	{
 		String prefsValue   = ((PreferenceChangeEvent) o).getNewValue();
+		readPrefsFromString( prefsValue );
+	}
+	
+	public void readPrefs()
+	{
+		if( (prefs != null) && (key != null) ) readPrefsFromString( prefs.get( key, null ));
+	}
+
+	private void readPrefsFromString( String prefsValue )
+	{
 		if( prefsValue == null ) {
-			if( defaultValue != null ) updatePrefs( defaultValue );
+			if( defaultValue != null ) {
+				setNumber( defaultValue );
+				if( writePrefs ) writePrefs();
+			}
 			return;
 		}
 		Number prefsNumber;
@@ -213,10 +279,11 @@ implements  DynamicListening, PreferenceChangeListener,
 			// remain unchanged, it's more clean and produces less
 			// overhead to temporarily remove our NumberListener
 			// so we don't produce potential loops
-			this.removeNumberListener( listener );
+			if( listening && writePrefs ) this.removeListener( listener );
 			if( EventManager.DEBUG_EVENTS ) System.err.println( "@numb setNumberAndDispatchEvent" );
-			setNumberAndDispatchEvent( prefsNumber );
-			this.addNumberListener( listener );
+			setNumber( prefsNumber );
+			fireNumberChanged(); // setNumberAndDispatchEvent( prefsNumber );
+			if( listening && writePrefs ) this.addListener( listener );
 		}
 	}
 	

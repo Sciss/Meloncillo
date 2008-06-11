@@ -52,6 +52,7 @@ import java.io.*;
 import java.text.*;
 import java.util.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 import javax.swing.undo.*;
 
@@ -95,7 +96,7 @@ import de.sciss.io.*;
 public class SurfacePane
 extends JComponent		// JPanel
 implements  VirtualSurface, TimelineListener,
-			ToolActionListener, DynamicListening, RealtimeConsumer, LaterInvocationManager.Listener
+			ToolActionListener, DynamicListening, RealtimeConsumer, PreferenceChangeListener
 {
     // --- global communication ---
 
@@ -421,7 +422,7 @@ implements  VirtualSurface, TimelineListener,
 		setOpaque( true );
 		setFocusable( true );		// required for the tools to hear key presses
 		updateSurfacePaneImage( null );
-        HelpGlassPane.setHelp( this, "Surface" );
+//        HelpGlassPane.setHelp( this, "Surface" );	// EEE
     }
 	
 	/**
@@ -1214,10 +1215,10 @@ implements  VirtualSurface, TimelineListener,
 // ---------------- LaterInvocationManager.Listener interface ---------------- 
 
 	// o instanceof PreferenceChangeEvent
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
-		String  key		= ((PreferenceChangeEvent) o).getKey();
-		String  value	= ((PreferenceChangeEvent) o).getNewValue();
+		String  key		= pce.getKey();
+		String  value	= pce.getNewValue();
 
 		if( key.equals( PrefsUtil.KEY_SNAP )) {
 			prefSnap	= Boolean.valueOf( value ).booleanValue();
@@ -1583,7 +1584,7 @@ implements  VirtualSurface, TimelineListener,
 			Receiver		rcv;
 			Rectangle2D		clipRect;
 			ReceiverEditor  rcvEdit;
-			JFrame			rcvEditFrame;
+			AbstractWindow	rcvEditFrame;
 			java.util.List  coll;
 			UndoableEdit	edit;
 
@@ -1613,7 +1614,7 @@ implements  VirtualSurface, TimelineListener,
 						rcvEdit.init( root, doc, rcv );
 						rcvEditFrame = rcvEdit.getView();
 						rcvEditFrame.setVisible( true );
-						rcvEditFrame.show();
+						rcvEditFrame.toFront();
 						showCursorTab();
 					}
 				}

@@ -33,7 +33,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 
-import de.sciss.meloncillo.*;
+import de.sciss.app.AbstractApplication;
 import de.sciss.meloncillo.io.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.transmitter.*;
@@ -103,12 +103,12 @@ extends JFrame
 	 *  @param  doc		session document
 	 *  @return <code>Action</code> suitable for attaching to a <code>JMenuItem</code>.
 	 */
-	public static Action getDebugViewAction( final Main root, final Session doc )
+	public static Action getDebugViewAction( final Session doc )
 	{
 		return new AbstractAction( "View structure of selected track" ) {
 			public void actionPerformed( ActionEvent e )
 			{
-				root.addComponent( new Integer( -1 ), new DebugTrackEditor( doc ));
+				AbstractApplication.getApplication().addComponent( new Integer( -1 ), new DebugTrackEditor( doc ));
 			}
 		};
 	}
@@ -122,7 +122,7 @@ extends JFrame
 	 *  @param  doc		session doc
 	 *  @return <code>Action</code> suitable for attaching to a <code>JMenuItem</code>.
 	 */
-	public static Action getDebugDumpAction( final Main root, final Session doc )
+	public static Action getDebugDumpAction( final Session doc )
 	{
 		return new AbstractAction( "Dump structure of selected tracks" ) {
 			public void actionPerformed( ActionEvent e )

@@ -1,8 +1,8 @@
 /*
- *  NumberListener.java
- *  Meloncillo
+ *  ComboBoxEditor.java
+ *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -24,33 +24,13 @@
  *
  *
  *  Changelog:
- *		 7-Jun-04	created
- *		31-Jul-04   commented
+ *		21-Jan-06	created
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.gui;
 
-import java.util.*;
-
-/**
- *  Interface for listening
- *  the changes of the contents
- *  of a <code>NumberField</code> gadget
- *
- *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
- *
- *  @see	NumberField#addNumberListener( NumberListener )
- */
-public interface NumberListener
-extends EventListener
+public interface ComboBoxEditor
+extends javax.swing.ComboBoxEditor
 {
-	/**
-	 *  Notifies the listener that
-	 *  a number changed occured.
-	 *
-	 *  @param  e   the event describing
-	 *				the number change
-	 */
-	public void numberChanged( NumberEvent e );
+	public void setComboGate( boolean gate );
 }

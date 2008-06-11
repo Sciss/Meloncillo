@@ -2,7 +2,7 @@
  *  KeyStrokeTextField.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,10 +29,8 @@
 
 package de.sciss.gui;
 
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.beans.PropertyChangeListener;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 import java.util.prefs.Preferences;
@@ -52,29 +50,32 @@ import de.sciss.app.PreferenceEntrySync;
  *	separated by a comma : "keyCode,modifiers"
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 26-May-05
+ *  @version	0.31, 17-Apr-07
  */
 public class KeyStrokeTextField
 extends JTextField
 implements  DynamicListening, PreferenceChangeListener,
 			LaterInvocationManager.Listener, PreferenceEntrySync
 {
-	private boolean listening				= false;
-	private Preferences prefs				= null;
-	private String key						= null;
-	private final LaterInvocationManager lim= new LaterInvocationManager( this );
-	private ActionListener listener;
+	private boolean					listening		= false;
+	private Preferences				prefs			= null;
+	private String					key				= null;
+	private final LaterInvocationManager lim		= new LaterInvocationManager( this );
+//	private ActionListener listener;
 	
-	private KeyStroke guiStroke				= null;
-	private KeyStroke defaultValue			= null;
+	protected KeyStroke				guiStroke		= null;
+	private KeyStroke				defaultValue	= null;
 
+	private boolean					readPrefs		= true;
+	protected boolean				writePrefs		= true;
+	
 	/**
 	 *  Creates a new empty <code>KeyStrokeTextField</code>
 	 *  with no preferences initially set
 	 */
 	public KeyStrokeTextField()
 	{
-		super();
+		super( 24 );
 		init();
 	}
 
@@ -86,11 +87,37 @@ implements  DynamicListening, PreferenceChangeListener,
 	 */
 	public KeyStrokeTextField( KeyStroke stroke )
 	{
-		super( strokeToString( stroke ));
+		super( strokeToString( stroke ), 24 );
 		defaultValue = stroke;
 		init();
 	}
 	
+	public void setReadPrefs( boolean b )
+	{
+		if( b != readPrefs ) {
+			readPrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( readPrefs ) prefs.addPreferenceChangeListener( this );
+				else prefs.removePreferenceChangeListener( this );
+			}
+		}
+	}
+	
+	public boolean getReadPrefs()
+	{
+		return readPrefs;
+	}
+	
+	public void setWritePrefs( boolean b )
+	{
+		writePrefs	= b;
+	}
+	
+	public boolean getWritePrefs()
+	{
+		return writePrefs;
+	}
+
 	/**
 	 *  Converts a a key stroke's string representation as
 	 *	from preference storage into a KeyStroke object.
@@ -110,10 +137,9 @@ implements  DynamicListening, PreferenceChangeListener,
 			prefsStroke = KeyStroke.getKeyStroke( Integer.parseInt( prefsValue.substring( i+1 )),
 												  Integer.parseInt( prefsValue.substring( 0, i )));
 		}
-		catch( NumberFormatException e1 ) {}
-		finally {
-			return prefsStroke;
-		}
+		catch( NumberFormatException e1 ) { e1.printStackTrace(); }
+
+		return prefsStroke;
 	}
 	
 	/**
@@ -150,7 +176,9 @@ implements  DynamicListening, PreferenceChangeListener,
 					break;
 				}
 				
-				updatePrefs( KeyStroke.getKeyStroke( e.getKeyCode(), e.getModifiers() ));
+				guiStroke = KeyStroke.getKeyStroke( e.getKeyCode(), e.getModifiers() );
+				
+				if( writePrefs ) writePrefs();
 				
 				e.consume();
 			}
@@ -169,9 +197,9 @@ implements  DynamicListening, PreferenceChangeListener,
 		new DynamicAncestorAdapter( this ).addTo( this );
 	}
 	
-	private void updatePrefs( KeyStroke guiStroke )
+	public void writePrefs()
 	{
-		if( prefs != null ) {
+		if( (prefs != null) && (key != null) ) {
 			KeyStroke prefsStroke = KeyStrokeTextField.prefsToStroke( prefs.get( key, null ));
 			if( EventManager.DEBUG_EVENTS ) {
 				System.err.println( "@text updatePrefs : "+this.key+"; old = "+strokeToString( prefsStroke )+" --> "+strokeToString( guiStroke ));
@@ -182,8 +210,6 @@ implements  DynamicListening, PreferenceChangeListener,
 
 				prefs.put( key, KeyStrokeTextField.strokeToPrefs( guiStroke ));
 			}
-		} else {
-			this.guiStroke = guiStroke;
 			setText( strokeToString( guiStroke ));
 		}
 	}
@@ -192,6 +218,16 @@ implements  DynamicListening, PreferenceChangeListener,
 	{
 		return KeyEvent.getKeyModifiersText( stroke.getModifiers() ) + ' ' +
 			   KeyEvent.getKeyText( stroke.getKeyCode() );
+	}
+
+	public void setPreferenceNode( Preferences prefs )
+	{
+		setPreferences( prefs, this.key );
+	}
+
+	public void setPreferenceKey( String key )
+	{
+		setPreferences( this.prefs, key );
 	}
 
 	public void setPreferences( Preferences prefs, String key )
@@ -212,10 +248,12 @@ implements  DynamicListening, PreferenceChangeListener,
 
 	public void startListening()
 	{
-		if( prefs != null ) {
+		if( (prefs != null) && readPrefs ) {
 			prefs.addPreferenceChangeListener( this );
 			listening	= true;
-			laterInvocation( new PreferenceChangeEvent( prefs, key, prefs.get( key, null )));
+			if( key != null ) {
+				readPrefsFromString( prefs.get( key, null ));
+			}
 		}
 	}
 
@@ -230,9 +268,22 @@ implements  DynamicListening, PreferenceChangeListener,
 	// o instanceof PreferenceChangeEvent
 	public void laterInvocation( Object o )
 	{
-		KeyStroke prefsStroke   = KeyStrokeTextField.prefsToStroke( ((PreferenceChangeEvent) o).getNewValue() );
+		readPrefsFromString( ((PreferenceChangeEvent) o).getNewValue() );
+	}
+	
+	public void readPrefs()
+	{
+		if( (prefs != null) && (key != null) ) readPrefsFromString( prefs.get( key, null ));
+	}
+
+	private void readPrefsFromString( String prefsValue )
+	{
+		KeyStroke prefsStroke   = KeyStrokeTextField.prefsToStroke( prefsValue );
 		if( prefsStroke == null ) {
-			if( defaultValue != null ) updatePrefs( defaultValue );
+			if( defaultValue != null ) {
+				guiStroke = defaultValue;
+				if( writePrefs ) writePrefs();
+			}
 			return;
 		}
 

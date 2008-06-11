@@ -41,6 +41,7 @@ import java.awt.geom.*;
 import java.io.*;
 import java.util.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 import javax.swing.undo.*;
 
@@ -52,6 +53,8 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
+import de.sciss.common.BasicApplication;
 import de.sciss.gui.*;
 
 /**
@@ -63,10 +66,9 @@ import de.sciss.gui.*;
  *  @version	0.75, 10-Jun-08
  */
 public class SurfaceFrame
-extends BasicFrame
-implements EditMenuListener, ClipboardOwner, LaterInvocationManager.Listener
+extends AppWindow
+implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 {
-	private final Main			root;
 	private final Session		doc;
 	private final SurfacePane	surface;
 	
@@ -83,9 +85,8 @@ implements EditMenuListener, ClipboardOwner, LaterInvocationManager.Listener
 	 */
 	public SurfaceFrame( Main root, Session doc )
 	{
-		super( AbstractApplication.getApplication().getResourceString( "frameSurface" ));
+		super( REGULAR );
 
-		this.root   = root;
 		this.doc	= doc;
 		
 		final Container					cp		= getContentPane();
@@ -95,6 +96,8 @@ implements EditMenuListener, ClipboardOwner, LaterInvocationManager.Listener
 		final VectorSpace				space	= VectorSpace.createLinSpace( 0.0, 1.0, 0.0, 1.0, null, null, null, null );	// XXX
 		final SurfaceToolBar			stb		= new SurfaceToolBar( root );
 		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+
+		setTitle( app.getResourceString( "frameSurface" ));
 
 		haxisBox	= Box.createHorizontalBox();
 		haxis		= new Axis( Axis.HORIZONTAL );
@@ -120,7 +123,7 @@ implements EditMenuListener, ClipboardOwner, LaterInvocationManager.Listener
 		split2.setTopComponent( new SessionGroupTable( doc, doc,
 			SessionGroupTable.VIEW_RECEIVERS | SessionGroupTable.VIEW_FLAGS ));
 		split2.setBottomComponent( new SessionGroupTable( doc, doc, SessionGroupTable.VIEW_GROUPS | SessionGroupTable.VIEW_FLAGS ));
-        HelpGlassPane.setHelp( split2, "SurfaceObjectTables" );
+//        HelpGlassPane.setHelp( split2, "SurfaceObjectTables" );	// EEE
 
 		haxis.setSpace( space );
 		vaxis.setSpace( space );
@@ -149,13 +152,13 @@ implements EditMenuListener, ClipboardOwner, LaterInvocationManager.Listener
 
 		// -------
 
-        HelpGlassPane.setHelp( getRootPane(), "SurfaceFrame" );
+//        HelpGlassPane.setHelp( getRootPane(), "SurfaceFrame" ); // EEE
 		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
         
-        new DynamicAncestorAdapter( new DynamicPrefChangeManager( app.getUserPrefs().node( PrefsUtil.NODE_SHARED ),
-			new String[] { PrefsUtil.KEY_VIEWRULERS }, this )).addTo(  getRootPane() );
+        addDynamicListening( new DynamicPrefChangeManager( app.getUserPrefs().node( PrefsUtil.NODE_SHARED ),
+			new String[] { PrefsUtil.KEY_VIEWRULERS }, this ));
 		
-        init( root );
+        init();
 	}
 
 	protected boolean alwaysPackSize()
@@ -176,10 +179,10 @@ implements EditMenuListener, ClipboardOwner, LaterInvocationManager.Listener
 // ---------------- LaterInvocationManager.Listener interface ---------------- 
 
 	// o instanceof PreferenceChangeEvent
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce )
 	{
-		String  key		= ((PreferenceChangeEvent) o).getKey();
-		String  value	= ((PreferenceChangeEvent) o).getNewValue();
+		String  key		= pce.getKey();
+		String  value	= pce.getNewValue();
 		boolean	b;
 
 		if( key.equals( PrefsUtil.KEY_VIEWRULERS )) {
@@ -368,7 +371,7 @@ implements EditMenuListener, ClipboardOwner, LaterInvocationManager.Listener
 	 */
 	public void editClear( ActionEvent e )
 	{
-		root.menuFactory.actionRemoveReceivers.perform();
+		((MenuFactory) ((BasicApplication) AbstractApplication.getApplication()).getMenuFactory()).actionRemoveReceivers.perform();
 //	
 //		java.util.List  collSelection;
 //		CompoundEdit	edit;

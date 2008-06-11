@@ -2,7 +2,7 @@
  *  AbstractApplication.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -38,7 +38,6 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
-import javax.swing.undo.UndoManager;
 
 /**
  *  A rudimentary implementation of the <code>de.sciss.app.Application</code>
@@ -48,7 +47,7 @@ import javax.swing.undo.UndoManager;
  *	to supply easy access to methods.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.13, 15-Sep-05
  */
 public abstract class AbstractApplication
 extends net.roydesign.app.Application
@@ -59,7 +58,7 @@ implements de.sciss.app.Application
 	 */
 	private final ResourceBundle resBundle;
 
-	private final java.util.Map			mapComponents	= new HashMap();
+	private final Map					mapComponents	= new HashMap();
 
 	private final Class					mainClass;
 	private Preferences					userPrefs		= null;
@@ -146,7 +145,7 @@ implements de.sciss.app.Application
 	 *	Returns the system's clipboard, or a local
 	 *	clipboard if security permits to retrieve the system clipboard.
 	 */
-	public Clipboard getClipboard()
+	public final Clipboard getClipboard()
 	{
 		if( clipboard == null ) {
 			try {
@@ -161,9 +160,9 @@ implements de.sciss.app.Application
 	}
 
 	/**
-	 *	@sync	this method is synchronized
+	 *	@synchronization	this method is synchronized
 	 */
-	public Object getComponent( Object key )
+	public final Object getComponent( Object key )
 	{
 		synchronized( mapComponents ) {
 			return mapComponents.get( key );
@@ -171,9 +170,9 @@ implements de.sciss.app.Application
 	}
 
 	/**
-	 *	@sync	this method is synchronized
+	 *	@synchronization	this method is synchronized
 	 */
-	public void addComponent( Object key, Object component )
+	public final void addComponent( Object key, Object component )
 	{
 		synchronized( mapComponents ) {
 			mapComponents.put( key, component );
@@ -181,9 +180,9 @@ implements de.sciss.app.Application
 	}
 
 	/**
-	 *	@sync	this method is synchronized
+	 *	@synchronization	this method is synchronized
 	 */
-	public void removeComponent( Object key )
+	public final void removeComponent( Object key )
 	{
 		synchronized( mapComponents ) {
 			mapComponents.remove( key );

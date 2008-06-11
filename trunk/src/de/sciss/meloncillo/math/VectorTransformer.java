@@ -39,6 +39,7 @@ import javax.swing.*;
 import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;

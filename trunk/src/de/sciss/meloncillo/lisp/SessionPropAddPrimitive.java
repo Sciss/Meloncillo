@@ -36,9 +36,9 @@ import org.jatha.compile.*;
 import org.jatha.dynatype.*;
 import org.jatha.machine.*;
 
-import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.gui.*;
 

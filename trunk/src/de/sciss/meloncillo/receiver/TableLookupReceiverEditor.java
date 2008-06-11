@@ -194,7 +194,9 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 		distanceEditor.addListener( this );
 		rotationEditor.addListener( this );
 		
-		getRootPane().setPreferredSize( new Dimension( 320, 320 ));		// XXX
+//		getRootPane().setPreferredSize( new Dimension( 320, 320 ));		// XXX
+		padPanel1.setPreferredSize( new Dimension( 320, 160 ));
+		padPanel2.setPreferredSize( new Dimension( 320, 160 ));
     }
 	
 	protected boolean alwaysPackSize()
@@ -491,7 +493,7 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 			System.err.println( e2.getLocalizedMessage() );
 		}
 		catch( IOException e3 ) {
-			GUIUtil.displayError( this, e3, app.getResourceString( "menuCopy" ));
+			GUIUtil.displayError( getWindow(), e3, app.getResourceString( "menuCopy" ));
 		}
 		finally {
 			doc.bird.releaseShared( Session.DOOR_RCV );

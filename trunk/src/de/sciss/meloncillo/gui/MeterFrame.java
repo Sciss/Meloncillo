@@ -47,7 +47,7 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
+import de.sciss.common.AppWindow;
 
 /**
  *  A GUI component that displays
@@ -68,7 +68,7 @@ import de.sciss.gui.*;
  *  @version	0.75, 10-Jun-08
  */
 public class MeterFrame
-extends BasicPalette
+extends AppWindow
 implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 {
 	private final Session		doc;
@@ -104,7 +104,8 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 	 */
 	public MeterFrame( Main root, Session doc )
 	{
-		super( AbstractApplication.getApplication().getResourceString( "frameMeter" ));
+		super( PALETTE );
+		setTitle( AbstractApplication.getApplication().getResourceString( "frameMeter" ));
 
 		this.doc	= doc;
 		transport   = root.transport;
@@ -142,12 +143,12 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
         }
         
 		// --- Listener ---
-		new DynamicAncestorAdapter( this ).addTo( getRootPane() );
+        addDynamicListening( this );
 
 		// -------
 
-        HelpGlassPane.setHelp( getRootPane(), "LevelMeter" );
-        init( root );
+// 		HelpGlassPane.setHelp( getRootPane(), "LevelMeter" );	// EEE
+        init();
 	}
 
 	/*
@@ -239,7 +240,7 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 //			rcvPane.revalidate();
 //			rcvPane.invalidate();
 //			rcvPane.validate();
-			this.repaint();
+			this.getContentPane().repaint();
 			pack();
 		}
 	}

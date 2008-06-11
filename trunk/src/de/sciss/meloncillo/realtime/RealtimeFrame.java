@@ -81,13 +81,14 @@ extends AbstractPlugInFrame
 		actionRealtime		= new actionRealtimeClass( GraphicsUtil.ICON_REALTIME );
         ggRealtime			= new JToggleButton( actionRealtime );
 		actionRealtime.setIcons( ggRealtime );
-		root.menuFactory.addGlobalKeyCommand( new DoClickAction( ggRealtime, KeyStroke.getKeyStroke(
-											  KeyEvent.VK_MULTIPLY, 0 )));
+//		root.menuFactory.addGlobalKeyCommand( new DoClickAction( ggRealtime, KeyStroke.getKeyStroke(
+//											  KeyEvent.VK_MULTIPLY, 0 )));
+// EEE
 		transportPalette.addButton( ggRealtime );
 		
 		// listeners
 //		transport.addTransportListener( this );
-        HelpGlassPane.setHelp( this.getRootPane(), "RealtimeDialog" );
+//		HelpGlassPane.setHelp( this.getRootPane(), "RealtimeDialog" );	// EEE
 	}
 
 	protected void checkReContext()
@@ -176,13 +177,13 @@ extends AbstractPlugInFrame
 					plugIn.init( root, doc );
 				}
 				catch( InstantiationException e1 ) {
-					GUIUtil.displayError( this, e1, getResourceString( "errInitPlugIn" ));
+					GUIUtil.displayError( getWindow(), e1, AbstractApplication.getApplication().getResourceString( "errInitPlugIn" ));
 				}
 				catch( IllegalAccessException e2 ) {
-					GUIUtil.displayError( this, e2, getResourceString( "errInitPlugIn" ));
+					GUIUtil.displayError( getWindow(), e2, AbstractApplication.getApplication().getResourceString( "errInitPlugIn" ));
 				}
 				catch( ClassNotFoundException e3 ) {
-					GUIUtil.displayError( this, e3, getResourceString( "errInitPlugIn" ));
+					GUIUtil.displayError( getWindow(), e3, AbstractApplication.getApplication().getResourceString( "errInitPlugIn" ));
 				}
 			}
 			success = reContext();
@@ -200,7 +201,7 @@ extends AbstractPlugInFrame
 			plugIn.realtimeDisable( context, transport );
 		}
 		catch( IOException e1 ) {
-			GUIUtil.displayError( this, e1, getResourceString( "errInitPlugIn" ));
+			GUIUtil.displayError( getWindow(), e1, AbstractApplication.getApplication().getResourceString( "errInitPlugIn" ));
 		}
 		finally {
 			realtimeRunning = false;
@@ -223,7 +224,7 @@ extends AbstractPlugInFrame
 			success			= plugIn.realtimeEnable( context, transport );
 		}
 		catch( IOException e1 ) {
-			GUIUtil.displayError( this, e1, getResourceString( "errInitPlugIn" ));
+			GUIUtil.displayError( getWindow(), e1, AbstractApplication.getApplication().getResourceString( "errInitPlugIn" ));
 		}
 		finally {
 			if( !success ) {

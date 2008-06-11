@@ -41,6 +41,7 @@ import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
@@ -49,6 +50,7 @@ import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.plugin.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -86,7 +88,7 @@ import de.sciss.io.*;
  */
 public class VectorTransformFilter
 extends JPanel
-implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Listener
+implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 {
 	private Main					root;
 	private Session					doc;
@@ -190,9 +192,11 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Lis
 		ggApplyY		= new PrefCheckBox(); // Main.getResourceString( "renderVTApplyY" ));
 		ggTransformX	= new PrefComboBox();
 		ggTransformY	= new PrefComboBox();
-		ggCenterX		= new PrefNumberField( 0, new NumberSpace( 0.0, 1.0, 0.0 ), null );
+		ggCenterX		= new PrefNumberField();
+		ggCenterX.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
 		ggCenterX.setNumber( new Double( 0.5 ));
-		ggCenterY		= new PrefNumberField( 0, new NumberSpace( 0.0, 1.0, 0.0 ), null );
+		ggCenterY		= new PrefNumberField();
+		ggCenterX.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
 		ggCenterY.setNumber( new Double( 0.5 ));
 		funcGUIX		= new JScrollPane( JScrollPane.VERTICAL_SCROLLBAR_NEVER,
 										   JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
@@ -229,7 +233,7 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Lis
 		con.weightx		= 1.0;
 		lay.setConstraints( ggMode, con );
 		this.add( ggMode );
-        HelpGlassPane.setHelp( ggMode, "FilterVectorTransformCoord" );
+//        HelpGlassPane.setHelp( ggMode, "FilterVectorTransformCoord" );	// EEE
 
 		lb				= new JLabel( app.getResourceString( "renderVTCenterX" ));
 		con.gridwidth	= 1;
@@ -240,7 +244,7 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Lis
 		con.weightx		= 1.0;
 		lay.setConstraints( ggCenterX, con );
 		this.add( ggCenterX );
-        HelpGlassPane.setHelp( ggCenterX, "FilterVectorTransformCoord" );
+//        HelpGlassPane.setHelp( ggCenterX, "FilterVectorTransformCoord" );	// EEE
 
 		lb				= new JLabel( app.getResourceString( "renderVTCenterY" ));
 		con.gridwidth	= 1;
@@ -251,13 +255,13 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Lis
 		con.weightx		= 1.0;
 		lay.setConstraints( ggCenterY, con );
 		this.add( ggCenterY );
-        HelpGlassPane.setHelp( ggCenterY, "FilterVectorTransformCoord" );
+//        HelpGlassPane.setHelp( ggCenterY, "FilterVectorTransformCoord" );	// EEE
 
 		con.gridwidth	= 1;
 		con.weightx		= 0.0;
 		lay.setConstraints( ggApplyX, con );
 		this.add( ggApplyX );
-        HelpGlassPane.setHelp( ggApplyX, "FilterVectorTransformFunc" );
+//        HelpGlassPane.setHelp( ggApplyX, "FilterVectorTransformFunc" );	// EEE
 		con.gridwidth	= GridBagConstraints.REMAINDER;
 		con.weightx		= 1.0;
 		lay.setConstraints( ggTransformX, con );
@@ -273,7 +277,7 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Lis
 		con.insets		= ascetic;
 		lay.setConstraints( ggApplyY, con );
 		this.add( ggApplyY );
-        HelpGlassPane.setHelp( ggApplyY, "FilterVectorTransformFunc" );
+//        HelpGlassPane.setHelp( ggApplyY, "FilterVectorTransformFunc" );	// EEE
 		con.gridwidth	= GridBagConstraints.REMAINDER;
 		con.weightx		= 1.0;
 		lay.setConstraints( ggTransformY, con );
@@ -283,7 +287,7 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Lis
 		lay.setConstraints( funcGUIY, con );
 		this.add( funcGUIY );
 
-        HelpGlassPane.setHelp( this, "FilterVectorTransform" );
+//        HelpGlassPane.setHelp( this, "FilterVectorTransform" );	// EEE
 	}
 
 	// --- GUI Presentation ---
@@ -711,10 +715,10 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, LaterInvocationManager.Lis
 	/**
 	 *	Deferred preference changes here
 	 */
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
-		final String					key		= ((PreferenceChangeEvent) o).getKey();
-		final String					value   = ((PreferenceChangeEvent) o).getNewValue();
+		final String					key		= pce.getKey();
+		final String					value   = pce.getNewValue();
 		String							oldValue;
 		boolean							b;
 		Window							ancestor;

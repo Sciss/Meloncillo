@@ -2,7 +2,7 @@
  *  InterleavedStreamFile.java
  *  de.sciss.io package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
  *
  *  Changelog:
  *		21-May-05	created from de.sciss.eisenkraut.io.InterleavedStreamFile
+ *		08-Jan-06	added setFrameNum()
  */
 
 package de.sciss.io;
@@ -46,9 +47,7 @@ import java.io.IOException;
  *  <code>NondestructiveTrackEditor</code>s
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 21-May-05
- *
- *  @see		NondestructiveTrackEditor
+ *  @version	0.26, 08-Jan-06
  */
 public interface InterleavedStreamFile
 {
@@ -66,9 +65,13 @@ public interface InterleavedStreamFile
 
 	public long getFrameNum() throws IOException;
 
+	public void setFrameNum( long n ) throws IOException;
+
+	public int getChannelNum();
+
 	public long getFramePosition() throws IOException;
 
-	public File getFile();
+	public void flush() throws IOException;
 
-//	public int getChannelNum();
+	public File getFile();
 }

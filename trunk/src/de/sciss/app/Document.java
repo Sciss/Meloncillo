@@ -2,7 +2,7 @@
  *  Document.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,6 +29,8 @@
 
 package de.sciss.app;
 
+import de.sciss.util.Disposable;
+
 /**
  *  The <code>Document</code> interface is an attempt
  *	to create common classes and interfaces (the package
@@ -40,9 +42,10 @@ package de.sciss.app;
  *	a general application document.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.11, 24-Jun-06
  */
 public interface Document
+extends Disposable
 {
 	/**
 	 *	Returns the application carrying this document.
@@ -79,10 +82,12 @@ public interface Document
 	 */
 	public void setDirty( boolean dirty );
 
-	/**
-	 *	Call this method to dispose any resources
-	 *	associated with the document, when the document
-	 *	is destroyed.
-	 */
-	public void dispose();
+	public String getName();
+
+//	/**
+//	 *	Call this method to dispose any resources
+//	 *	associated with the document, when the document
+//	 *	is destroyed.
+//	 */
+//	public void dispose();
 }

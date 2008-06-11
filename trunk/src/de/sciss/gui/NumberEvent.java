@@ -1,8 +1,8 @@
 /*
  *  NumberEvent.java
- *  Meloncillo
+ *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -24,14 +24,12 @@
  *
  *
  *  Changelog:
- *		07-Jun-04   created
- *		22-Jul-04   new method incorporate()
- *		31-Jul-04   commented
+ *		25-Jan-05	created from de.sciss.meloncillo.gui.NumberEvent
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.gui;
 
-import de.sciss.app.*;
+import de.sciss.app.BasicEvent;
 
 /**
  *  This kind of event is fired
@@ -39,9 +37,9 @@ import de.sciss.app.*;
  *  the user modified its contents.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.25, 05-May-06
  *
- *  @see	NumberField#addNumberListener( NumberListener )
+ *  @see	NumberField#addListener( NumberListener )
  *  @see	NumberListener
  *  @see	java.lang.Number
  */
@@ -55,6 +53,7 @@ extends BasicEvent
 	public static final int CHANGED		= 0;
 
 	private final Number	number;
+	private final boolean	adjusting;
 
 	/**
 	 *  Constructs a new <code>NumberEvent</code>
@@ -64,11 +63,17 @@ extends BasicEvent
 	 *  @param  when	system time when the event occured
 	 *  @param  number  the new number
 	 */
-	public NumberEvent( Object source, int ID, long when, Number number )
+	public NumberEvent( Object source, int ID, long when, Number number, boolean adjusting )
 	{
 		super( source, ID, when );
 	
 		this.number		= number;
+		this.adjusting	= adjusting;
+	}
+	
+	public boolean isAdjusting()
+	{
+		return adjusting;
 	}
 	
 	/**
@@ -80,7 +85,7 @@ extends BasicEvent
 	 *			depening of the <code>NumberField</code>'s
 	 *			<code>NumberSpace</code>.
 	 *
-	 *  @see	de.sciss.meloncillo.math.NumberSpace#isInteger()
+	 *  @see	de.sciss.util.NumberSpace#isInteger()
 	 */
 	public Number getNumber()
 	{

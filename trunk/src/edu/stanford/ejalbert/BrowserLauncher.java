@@ -1,7 +1,10 @@
+/*
+ *	changelog:
+ *		24-jul-07	(sciss) added dummy method to satisfy eclipse's warnings  
+ */
 package edu.stanford.ejalbert;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -243,7 +246,7 @@ public class BrowserLauncher {
 	/**
 	 * This class should be never be instantiated; this just ensures so.
 	 */
-	private BrowserLauncher() { }
+	private BrowserLauncher() { /* empty */ }
 	
 	/**
 	 * Called by a static initializer to load any classes, fields, and methods required at runtime
@@ -432,9 +435,9 @@ public class BrowserLauncher {
 							}
 						}
 					} catch (IllegalArgumentException iare) {
-						browser = browser;
+						browser = null;
 						errorMessage = iare.getMessage();
-						return null;
+						return browser;
 					} catch (IllegalAccessException iae) {
 						browser = null;
 						errorMessage = iae.getMessage();
@@ -474,8 +477,8 @@ public class BrowserLauncher {
 		if (!loadedWithoutErrors) {
 			throw new IOException("Exception in finding browser: " + errorMessage);
 		}
-		Object browser = locateBrowser();
-		if (browser == null) {
+		Object b = locateBrowser();
+		if (b == null) {
 			throw new IOException("Unable to locate browser: " + errorMessage);
 		}
 		
@@ -484,8 +487,8 @@ public class BrowserLauncher {
 				Object aeDesc = null;
 				try {
 					aeDesc = aeDescConstructor.newInstance(new Object[] { url });
-					putParameter.invoke(browser, new Object[] { keyDirectObject, aeDesc });
-					sendNoReply.invoke(browser, new Object[] { });
+					putParameter.invoke(b, new Object[] { keyDirectObject, aeDesc });
+					sendNoReply.invoke(b, new Object[] { });
 				} catch (InvocationTargetException ite) {
 					throw new IOException("InvocationTargetException while creating AEDesc: " + ite.getMessage());
 				} catch (IllegalAccessException iae) {
@@ -494,11 +497,11 @@ public class BrowserLauncher {
 					throw new IOException("InstantiationException while creating AEDesc: " + ie.getMessage());
 				} finally {
 					aeDesc = null;	// Encourage it to get disposed if it was created
-					browser = null;	// Ditto
+					b = null;	// Ditto
 				}
 				break;
 			case MRJ_2_1:
-				Runtime.getRuntime().exec(new String[] { (String) browser, url } );
+				Runtime.getRuntime().exec(new String[] { (String) b, url } );
 				break;
 			case MRJ_3_0:
 				int[] instance = new int[1];
@@ -534,7 +537,7 @@ public class BrowserLauncher {
 		    case WINDOWS_9x:
 		    	// Add quotes around the URL to allow ampersands and other special
 		    	// characters to work.
-				Process process = Runtime.getRuntime().exec(new String[] { (String) browser,
+				Process process = Runtime.getRuntime().exec(new String[] { (String) b,
 																FIRST_WINDOWS_PARAMETER,
 																SECOND_WINDOWS_PARAMETER,
 																THIRD_WINDOWS_PARAMETER,
@@ -552,7 +555,7 @@ public class BrowserLauncher {
 				// Assume that we're on Unix and that Netscape is installed
 				
 				// First, attempt to open the URL in a currently running session of Netscape
-				process = Runtime.getRuntime().exec(new String[] { (String) browser,
+				process = Runtime.getRuntime().exec(new String[] { (String) b,
 													NETSCAPE_REMOTE_PARAMETER,
 													NETSCAPE_OPEN_PARAMETER_START +
 													url +
@@ -560,7 +563,7 @@ public class BrowserLauncher {
 				try {
 					int exitCode = process.waitFor();
 					if (exitCode != 0) {	// if Netscape was not open
-						Runtime.getRuntime().exec(new String[] { (String) browser, url });
+						Runtime.getRuntime().exec(new String[] { (String) b, url });
 					}
 				} catch (InterruptedException ie) {
 					throw new IOException("InterruptedException while launching browser: " + ie.getMessage());
@@ -568,7 +571,7 @@ public class BrowserLauncher {
 				break;
 			default:
 				// This should never occur, but if it does, we'll try the simplest thing possible
-				Runtime.getRuntime().exec(new String[] { (String) browser, url });
+				Runtime.getRuntime().exec(new String[] { (String) b, url });
 				break;
 		}
 	}
@@ -581,4 +584,11 @@ public class BrowserLauncher {
 	private native static int ICStop(int[] instance);
 	private native static int ICLaunchURL(int instance, byte[] hint, byte[] data, int len,
 											int[] selectionStart, int[] selectionEnd);
+	
+	// dummy methods
+	protected static final void dummy()
+	{
+		System.err.println( linkage );
+		System.err.println( JDirect_MacOSX );
+	}
 }

@@ -37,8 +37,8 @@ import java.awt.*;
 import java.io.*;
 
 import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
 
+import de.sciss.gui.ProgressComponent;
 import de.sciss.io.*;
 
 /**

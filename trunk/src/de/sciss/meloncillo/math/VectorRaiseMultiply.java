@@ -40,10 +40,10 @@ import java.util.prefs.*;
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.plugin.*;
 import de.sciss.meloncillo.render.*;
 import de.sciss.meloncillo.session.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -86,10 +86,12 @@ implements RenderPlugIn
 		msgPane			= new JPanel( new SpringLayout() );
 		
 		ggRaise			= new PrefCheckBox( app.getResourceString( "vectorRaise" ));
-		ggRaiseVal		= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggRaiseVal		= new PrefNumberField();
+		ggRaiseVal.setSpace( NumberSpace.genericDoubleSpace );
 		ggRaiseVal.setNumber( new Double( 1.0 ));
 		ggMultiply		= new PrefCheckBox( app.getResourceString( "vectorMultiply" ));
-		ggMultiplyVal	= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggMultiplyVal	= new PrefNumberField();
+		ggMultiplyVal.setSpace( NumberSpace.genericDoubleSpace );
 		ggMultiplyVal.setNumber( new Double( 1.0 ));
 
 		msgPane.add( ggRaise );
@@ -98,7 +100,7 @@ implements RenderPlugIn
 		msgPane.add( ggMultiplyVal );
 		
 		GUIUtil.makeCompactSpringGrid( msgPane, 2, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
-        HelpGlassPane.setHelp( msgPane, "VectorTransformRaiseMultiply" );
+//        HelpGlassPane.setHelp( msgPane, "VectorTransformRaiseMultiply" );	// EEE
 	}
 
 	public void setPreferences( Preferences prefs )

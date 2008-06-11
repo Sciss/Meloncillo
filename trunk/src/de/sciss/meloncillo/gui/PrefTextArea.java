@@ -32,11 +32,19 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.util.prefs.*;
-import javax.swing.*;
-import javax.swing.event.*;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
+import java.util.prefs.Preferences;
 
-import de.sciss.app.*;
+import javax.swing.JTextArea;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.EventManager;
+import de.sciss.app.LaterInvocationManager;
+import de.sciss.app.PreferenceEntrySync;
 
 /**
  *  Equips a normal JTextArea with
@@ -57,6 +65,9 @@ implements  DynamicListening, PreferenceChangeListener,
 	private DocumentListener listener;
 	
 	private String defaultValue				= null;
+
+	private boolean					readPrefs		= true;
+	protected boolean				writePrefs		= true;
 
 	/**
 	 *  Creates a new empty <code>PrefTextArea</code>
@@ -143,9 +154,109 @@ implements  DynamicListening, PreferenceChangeListener,
 		}
 	}
 
+	public void setReadPrefs( boolean b )
+	{
+		if( b != readPrefs ) {
+			readPrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( readPrefs ) {
+					prefs.addPreferenceChangeListener( this );
+				} else {
+					prefs.removePreferenceChangeListener( this );
+				}
+			}
+		}
+	}
+	
+	public boolean getReadPrefs()
+	{
+		return readPrefs;
+	}
+	
+	public void setWritePrefs( boolean b )
+	{
+		if( b != writePrefs ) {
+			writePrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( writePrefs ) {
+//					this.addActionListener( listener );
+					this.getDocument().addDocumentListener( listener );
+				} else {
+//					this.removeActionListener( listener );
+					this.getDocument().removeDocumentListener( listener );
+				}
+			}
+		}
+	}
+	
+	public boolean getWritePrefs()
+	{
+		return writePrefs;
+	}
+
+	public void writePrefs()
+	{
+		if( (prefs != null) && (key != null) ) {
+			final String prefsValue = prefs.get( key, null );
+			final String guiValue = getText();
+			if( EventManager.DEBUG_EVENTS ) System.err.println( "@text updatePrefs : "+this.key+"; old = "+prefsValue+" --> "+guiValue );
+			if( (prefsValue == null && guiValue != null) ||
+				(prefsValue != null && guiValue == null) ||
+				(prefsValue != null && guiValue != null && !prefsValue.equals( guiValue ))) {
+
+				prefs.put( key, guiValue );
+			}
+		}
+	}
+
+	public void readPrefs()
+	{
+		if( (prefs != null) && (key != null) ) readPrefsFromString( prefs.get( key, null ));
+	}
+
+	private void readPrefsFromString( String prefsValue )
+	{
+		if( prefsValue == null ) {
+			if( defaultValue != null ) {
+//				if( listening && writePrefs ) this.removeActionListener( listener );
+//				guiValue = defaultValue;
+				setText( defaultValue );
+				if( writePrefs ) writePrefs();
+//				if( listening && writePrefs ) this.addActionListener( listener );
+			}
+			return;
+		}
+		final String guiValue		= getText();
+
+		if( (guiValue == null) || !prefsValue.equals( guiValue )) {
+
+			// though we filter out events when preferences effectively
+			// remain unchanged, it's more clean and produces less
+			// overhead to temporarily remove our ActionListener
+			// so we don't produce potential loops
+//			if( listening && writePrefs ) this.removeActionListener( listener );
+			if( listening && writePrefs ) this.getDocument().removeDocumentListener( listener );
+			if( EventManager.DEBUG_EVENTS ) System.err.println( "@area setText" );
+			setText( prefsValue );
+//			fireActionPerformed();
+//			if( listening && writePrefs ) this.addActionListener( listener );
+			if( listening && writePrefs ) this.getDocument().addDocumentListener( listener );
+		}
+	}
+
+	public void setPreferenceNode( Preferences prefs )
+	{
+		setPreferences( prefs, this.key );
+	}
+
+	public void setPreferenceKey( String key )
+	{
+		setPreferences( this.prefs, key );
+	}
+
 	public void setPreferences( Preferences prefs, String key )
 	{
-		if( this.prefs == null ) {
+		if( (this.prefs == null) || (this.key == null) ) {
 			defaultValue = getText();
 		}
 		if( listening ) {
@@ -165,44 +276,35 @@ implements  DynamicListening, PreferenceChangeListener,
 	public void startListening()
 	{
 		if( prefs != null ) {
-			prefs.addPreferenceChangeListener( this );
 			listening	= true;
-			laterInvocation( new PreferenceChangeEvent( prefs, key, prefs.get( key, null )));
+//			if( writePrefs ) this.addActionListener( listener );
+			if( writePrefs ) this.getDocument().addDocumentListener( listener );
+			if( readPrefs ) {
+				prefs.addPreferenceChangeListener( this );
+				readPrefs();
+			}
 		}
 	}
 
 	public void stopListening()
 	{
 		if( prefs != null ) {
-			prefs.removePreferenceChangeListener( this );
+			if( readPrefs ) prefs.removePreferenceChangeListener( this );
+//			if( writePrefs ) this.removeActionListener( listener );
+			if( writePrefs ) this.getDocument().removeDocumentListener( listener );
 			listening = false;
 		}
 	}
-	
+
+	////
+
 	// o instanceof PreferenceChangeEvent
 	public void laterInvocation( Object o )
 	{
 		String prefsValue   = ((PreferenceChangeEvent) o).getNewValue();
-		if( prefsValue == null ) {
-			if( defaultValue != null ) updatePrefs( defaultValue );
-			return;
-		}
-		String guiValue		= getText();
-
-		if( guiValue == null || (guiValue != null && !prefsValue.equals( guiValue ))) {
-
-			// though we filter out events when preferences effectively
-			// remain unchanged, it's more clean and produces less
-			// overhead to temporarily remove our ActionListener
-			// so we don't produce potential loops
-			this.getDocument().removeDocumentListener( listener );
-			if( EventManager.DEBUG_EVENTS ) System.err.println( "@area setText" );
-			setText( prefsValue );
-//			fireActionPerformed();
-			this.getDocument().addDocumentListener( listener );
-		}
+		readPrefsFromString( prefsValue );
 	}
-	
+
 	public void preferenceChange( PreferenceChangeEvent e )
 	{
 		if( e.getKey().equals( key )) {

@@ -44,7 +44,6 @@ import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.plugin.*;
 import de.sciss.meloncillo.session.*;
 
-import de.sciss.gui.*;
 import de.sciss.io.*;
 
 /**
@@ -123,7 +122,7 @@ implements RenderPlugIn, TopPainter
 		this.add( vtb, BorderLayout.NORTH );
 		this.add( warpEditor, BorderLayout.CENTER );
 		vtb.addToolActionListener( warpEditor );
-        HelpGlassPane.setHelp( this, "FilterTimeWarp" );
+//        HelpGlassPane.setHelp( this, "FilterTimeWarp" );	// EEE
 	}
 
 	// --- GUI Presentation ---

@@ -8,11 +8,17 @@
 
 package de.sciss.meloncillo.session;
 
+import de.sciss.app.AbstractDocumentHandler;
+
 /**
  *  @author		Hanns Holger Rutz
  *  @version	0.75, 10-Jun-08
  */
 public class DocumentHandler
-implements de.sciss.app.DocumentHandler
+extends AbstractDocumentHandler
 {
+	public DocumentHandler()
+	{
+		super( false );
+	}
 }

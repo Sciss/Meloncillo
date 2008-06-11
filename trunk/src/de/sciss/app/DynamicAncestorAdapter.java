@@ -2,7 +2,7 @@
  *  DynamicAncestorAdapter.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -25,14 +25,21 @@
  *
  *  Changelog:
  *		20-May-05	created from de.sciss.meloncillo.gui.DynamicAncestorAdapter
+ *		21-Sep-06	added remove(), isListening(), getComponent()
  */
 
 package de.sciss.app;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.event.*;
+import java.awt.Container;
+import java.awt.Window;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import javax.swing.JComponent;
+import javax.swing.event.AncestorEvent;
 
 import de.sciss.app.AncestorAdapter;
 
@@ -49,10 +56,9 @@ import de.sciss.app.AncestorAdapter;
  *  <code>DynamicAncestorAdapter</code>.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.12, 25-Feb-08
  *
  *  @see		DynamicListening
- *  @see		de.sciss.meloncillo.surface.SurfacePane
  */
 public class DynamicAncestorAdapter
 extends AncestorAdapter
@@ -61,7 +67,8 @@ extends AncestorAdapter
 	private final WindowListener	winL;
 	private final ComponentListener	cmpL;
 	private Window					win			= null;
-	private boolean					listening   = false;
+	private JComponent				cmp			= null;
+	protected boolean				listening   = false;
     
 	/**
 	 *  Constructs a new <code>DynamicAncestorAdapter</code>
@@ -81,7 +88,7 @@ extends AncestorAdapter
 	 */
     public DynamicAncestorAdapter( DynamicListening listener )
     {
-        this.dynL = listener;
+        dynL = listener;
 		winL = new WindowAdapter() {
 			public void windowOpened( WindowEvent e )
 			{
@@ -128,14 +135,36 @@ extends AncestorAdapter
 	 *  attached to a window when you register the
 	 *  listener.
 	 *
-	 *  @param  cmp		the <code>JComponent</code> who will be tracked for
+	 *  @param  c		the <code>JComponent</code> who will be tracked for
 	 *					ancestor changes.
 	 *  @see	javax.swing.JComponent#addAncestorListener( AncestorListener )
 	 */
-	public void addTo( JComponent cmp )
+	public void addTo( JComponent c )
 	{
-		cmp.addAncestorListener( this );
-		learnWindow( cmp.getTopLevelAncestor() );
+		if( cmp != null ) throw new IllegalStateException( "Already added" );
+	
+		cmp = c;
+		c.addAncestorListener( this );
+		learnWindow( c.getTopLevelAncestor() );
+	}
+	
+	public void remove()
+	{
+		if( cmp == null ) throw new IllegalStateException( "Was not added" );
+		
+		cmp.removeAncestorListener( this );
+		forgetWindow();
+		cmp = null;
+	}
+	
+	public JComponent getComponent()
+	{
+		return cmp;
+	}
+
+	public boolean isListening()
+	{
+		return listening;
 	}
 
 	/**
@@ -151,7 +180,7 @@ extends AncestorAdapter
 	public void ancestorAdded( AncestorEvent e )
 	{
 		if( EventManager.DEBUG_EVENTS ) {
-			System.err.println( "ancestorAdded.   cmp = "+(e.getComponent() != null ? e.getComponent().getClass().getName() + (e.getComponent() instanceof PreferenceEntrySync ? " / key " + ((PreferenceEntrySync) e.getComponent()).getPreferenceKey() : "")  : null)+
+			System.err.println( "ancestorAdded.   cmp = "+(e.getComponent() != null ? e.getComponent().getClass().getName() : null)+
 							  "\n                 anc = "+(e.getAncestor() != null ? e.getAncestor().getClass().getName() : null)+
 							  "\n                 par = "+(e.getAncestorParent() != null ? e.getAncestorParent().getClass().getName() : null) );
 		}
@@ -171,7 +200,7 @@ extends AncestorAdapter
 	public void ancestorRemoved( AncestorEvent e )
 	{
 		if( EventManager.DEBUG_EVENTS ) {
-			System.err.println( "ancestorRemoved. cmp = "+(e.getComponent() != null ? e.getComponent().getClass().getName() + (e.getComponent() instanceof PreferenceEntrySync ? " / key " + ((PreferenceEntrySync) e.getComponent()).getPreferenceKey() : "")  : null)+
+			System.err.println( "ancestorRemoved. cmp = "+(e.getComponent() != null ? e.getComponent().getClass().getName() : null) +
 							  "\n                 anc = "+(e.getAncestor() != null ? e.getAncestor().getClass().getName() : null)+
 							  "\n                 par = "+(e.getAncestorParent() != null ? e.getAncestorParent().getClass().getName() : null) );
 		}
@@ -206,13 +235,13 @@ extends AncestorAdapter
 		}
 	}
 
-	private void startListening()
+	protected void startListening()
 	{
 		dynL.startListening();
 		listening = true;
 	}
 
-	private void stopListening()
+	protected void stopListening()
 	{
 		dynL.stopListening();
 		listening = false;

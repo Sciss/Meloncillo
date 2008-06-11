@@ -41,11 +41,11 @@ import javax.swing.text.*;
 
 import org.jatha.dynatype.*;
 
-import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.common.AppWindow;
 import de.sciss.gui.*;
 
 /**
@@ -64,7 +64,7 @@ import de.sciss.gui.*;
  *  @see		de.sciss.meloncillo.lisp.AdvancedJatha
  */
 public class JathaDiddler
-extends BasicPalette
+extends AppWindow
 {
 	private final AdvancedJatha jatha;
 	private final JTextArea	prompt;
@@ -76,9 +76,9 @@ extends BasicPalette
 	 *  @param  root	application root
 	 *  @param  doc		session object
 	 */
-	public JathaDiddler( Main root )
+	public JathaDiddler()
 	{
-		super( AbstractApplication.getApplication().getResourceString( "frameJatha" ));
+		super( PALETTE );
 	
 		jatha			= new AdvancedJatha();
 		jatha.addPrimitive( new TempFileMakePrimitive( jatha ) {
@@ -92,6 +92,8 @@ extends BasicPalette
 		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
 		final JScrollPane				scroll;
 		final Box						box		= Box.createHorizontalBox();
+
+		setTitle( app.getResourceString( "frameJatha" ));
 
 		prompt			= new JTextArea( app.getResourceString( "jathaDiddlerIntro" ), 4, 0 ); //, 16, 40
 // key location ignored ;-(
@@ -121,11 +123,11 @@ extends BasicPalette
 
 		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
 
-        HelpGlassPane.setHelp( prompt, "JathaPrompt" );
+//        HelpGlassPane.setHelp( prompt, "JathaPrompt" );	// EEE
 	
-        init( root );
-//		pack();
-		show();
+        init();
+        setVisible( true );
+        toFront();
 	}
 	
 	/**
@@ -138,13 +140,13 @@ extends BasicPalette
 	 *					action will create and open a new
 	 *					instance of <code>JathaDiddler</code>.
 	 */
-	public static Action getMenuAction( final Main root )
+	public static Action getMenuAction()
 	{
 		return new AbstractAction( AbstractApplication.getApplication().getResourceString( "frameJatha" ))
 		{
 			public void actionPerformed( ActionEvent e )
 			{
-				root.addComponent( new Integer( -1 ), new JathaDiddler( root ));
+				AbstractApplication.getApplication().addComponent( new Integer( -1 ), new JathaDiddler());
 			}
 		};
 	}

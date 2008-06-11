@@ -1,8 +1,8 @@
 /*
  *  ProgressComponent.java
- *  Meloncillo
+ *  (de.sciss.gui package)
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -24,13 +24,13 @@
  *
  *
  *  Changelog:
- *		23-May-04   created
- *		31-Jul-04   commented
+ *		25-Jan-05	created from de.sciss.meloncillo.gui.ProgressComponent
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.gui;
 
-import java.awt.*;
+import java.awt.Component;
+import java.awt.event.ActionListener;
 
 /**
  *  An interface for classes
@@ -38,10 +38,14 @@ import java.awt.*;
  *  progression information to the user
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.6, 31-Jul-04
+ *  @version	0.61, 12-Oct-06
  */
 public interface ProgressComponent
 {
+	public static final int	DONE		= 0;
+	public static final int	FAILED		= 1;
+	public static final int	CANCELLED	= 2;
+	
 	/**
 	 *  Gets the component responsible
 	 *  for displaying progression,
@@ -67,7 +71,7 @@ public interface ProgressComponent
 	 *
 	 *  @param  success		whether the process was successful or not
 	 */
-	public void finishProgression( boolean success );
+	public void finishProgression( int result );
 	/**
 	 *  Asks the component to display a custom
 	 *  string describing the current process stage
@@ -94,4 +98,7 @@ public interface ProgressComponent
 	 *						occured. this is usually used as a dialog's title string
 	 */
 	public void displayError( Exception e, String processName );
+
+	public void addCancelListener( ActionListener l );
+	public void removeCancelListener( ActionListener l );
 }

@@ -1,8 +1,8 @@
 /*
  *  NumberSpace.java
- *  Meloncillo
+ *  de.sciss.util package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -24,12 +24,11 @@
  *
  *
  *  Changelog:
- *		07-Jun-04	created
- *		04-Aug-04   commented
- *		04-Feb-05	added equals()
+ *		25-Jan-05	created from de.sciss.meloncillo.math.NumberSpace
+ *		17-Sep-05	modified to work with new NumberField (fracDigits added, inc dropped)
  */
 
-package de.sciss.meloncillo.math;
+package de.sciss.util;
 
 /**
  *  A number space
@@ -42,7 +41,7 @@ package de.sciss.meloncillo.math;
  *  limit the numeric resolution.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.6, 04-Aug-04
+ *  @version	0.25, 17-Sep-05
  */
 public class NumberSpace
 {
@@ -67,23 +66,24 @@ public class NumberSpace
 	 */
 	public final double reset;
 	/**
-	 *  Default increment.
-	 *  Decrement is likewise -inc.
 	 */
-	public final double inc;
+	public final int minFracDigits;
+	/**
+	 */
+	public final int maxFracDigits;
 	
 	/**
 	 *  Ready-made NumberField for
 	 *  double values, without boundaries.
 	 */
 	public static NumberSpace   genericDoubleSpace  = new NumberSpace(
-		Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 0.0, 0.0, 1.0 );
+		Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 0.0 );
 	/**
 	 *  Ready-made NumberField for
 	 *  integer values, without boundaries.
 	 */
 	public static NumberSpace   genericIntSpace  = new NumberSpace(
-		Integer.MIN_VALUE, Integer.MAX_VALUE, 1.0, 0.0, 1.0 );
+		Integer.MIN_VALUE, Integer.MAX_VALUE, 1.0 );
 
 	private final boolean isInteger;
 
@@ -100,17 +100,28 @@ public class NumberSpace
 	 *					no quantization is used. If quant is integer, the number space is
 	 *					marked integer and calling isInteger returns true.
 	 *  @param  reset   central value for initializations of unknown values. Usually zero.
-	 *  @param  inc		default increment in GUI elements.
 	 */
-	public NumberSpace( double min, double max, double quant, double reset, double inc )
+	public NumberSpace( double min, double max, double quant, int minFracDigits, int maxFracDigits, double reset )
 	{
-		this.min	= min;
-		this.max	= max;
-		this.quant	= quant;
-		this.reset	= reset;
-		this.inc	= inc;
+		this.min			= min;
+		this.max			= max;
+		this.quant			= quant;
+		this.reset			= reset;
+		this.minFracDigits	= minFracDigits;
+		this.maxFracDigits	= maxFracDigits;
 		
-		isInteger   = quant > 0.0 && (quant % 1.0) == 0.0;
+		isInteger			= quant > 0.0 && (quant % 1.0) == 0.0;
+	}
+
+	/**
+	 *  Creates a new NumberSpace
+	 *  with the given values. Reset is
+	 *  zero or on of min/max, 
+	 *  increment is max( 1, quant )
+	 */
+	public NumberSpace( double min, double max, double quant, int minFracDigits, int maxFracDigits )
+	{
+		this( min, max, quant, minFracDigits, maxFracDigits, NumberSpace.fitValue( 0.0, min, max, quant ));
 	}
 
 	/**
@@ -121,8 +132,22 @@ public class NumberSpace
 	 */
 	public NumberSpace( double min, double max, double quant )
 	{
-		this( min, max, quant, NumberSpace.fitValue( 0.0, min, max, quant ),
-			  NumberSpace.fitValue( Math.max( 1.0, quant ), min, max, quant ));
+		this( min, max, quant, Math.max( 1, NumberSpace.fracDigitsFromQuant( quant )),
+							   Math.min( 2, NumberSpace.fracDigitsFromQuant( quant )));
+	}
+	
+	public static int fracDigitsFromQuant( double quant )
+	{
+		if( quant > 0.0 ) {
+			int maxFracDigits = 0;
+			while( (quant % 1.0) != 0.0 ) {
+				maxFracDigits++;
+				quant *= 10;
+			}
+			return maxFracDigits;
+		} else {
+			return Integer.MAX_VALUE;
+		}
 	}
 	
 	/**
@@ -135,17 +160,6 @@ public class NumberSpace
 	public boolean isInteger()
 	{
 		return isInteger;
-	}
-	
-	public boolean equals( Object o )
-	{
-		if( o instanceof NumberSpace ) {
-			NumberSpace space2 = (NumberSpace) o;
-			return( (this.min == space2.min) && (this.max == space2.max) &&
-					(this.quant == space2.quant) && (this.reset == space2.reset) &&
-					(this.inc == space2.inc) );
-		}
-		return false;
 	}
 	
 	/**

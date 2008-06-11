@@ -34,6 +34,8 @@ import java.awt.*;
 import java.io.*;
 import java.util.prefs.*;
 
+import de.sciss.util.NumberSpace;
+
 /**
  *  Smoothes out abrupt changes in the vector
  *  data by applying a moving average filter.

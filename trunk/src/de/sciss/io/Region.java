@@ -2,7 +2,7 @@
  *  Region.java
  *  de.sciss.io package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -25,10 +25,12 @@
  *
  *  Changelog:
  *		21-May-05	created from de.sciss.eisenkraut.util.Region
+ *		15-Aug-05	implements Serializable, Clonable
  */
 
 package de.sciss.io;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,11 +39,12 @@ import java.util.List;
  *  an audio file. (copied from FScape).
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 21-May-05
+ *  @version	0.22, 05-May-06
  *
- *  @see	de.sciss.meloncillo.io.AudioFileDescr#KEY_REGIONS
+ *  @see	de.sciss.io.AudioFileDescr#KEY_REGIONS
  */
 public class Region
+implements Serializable, Cloneable
 {
 // -------- public Variablen --------
 	/**
@@ -79,9 +82,18 @@ public class Region
 		this.span	= new Span( orig.span );
 	}		
 
+	/**
+	 *	Returns a new region which is
+	 *	equal to this one. <code>CloneNotSupportedException</code>
+	 *	is never thrown.
+	 *
+	 *	@return		a new region with the same name and span
+	 *				as this region
+	 */
 	public Object clone()
+	throws CloneNotSupportedException
 	{
-		return new Region( this );
+		return super.clone();	// field by field copy
 	}
 	
 	/**
@@ -95,9 +107,9 @@ public class Region
 	 *			is guaranteed to have a time span's begin (byBegin==true)
 	 *			or end (byBegin==false) less or equal its successor
 	 */
-	public static java.util.List sort( java.util.List regions, boolean byBegin )
+	public static List sort( List regions, boolean byBegin )
 	{
-		java.util.List sorted = new ArrayList( regions.size() );
+		List sorted = new ArrayList( regions.size() );
 		for( int i = 0; i < regions.size(); i++ ) {
 			add( sorted, (Region) regions.get( i ), byBegin );
 		}
@@ -121,7 +133,7 @@ public class Region
 	 *					<code>false</code> to sort by region end points
 	 *	@return	region index in vector at which it was inserted
 	 */
-	public static int add( java.util.List regions, Region region, boolean byBegin )
+	public static int add( List regions, Region region, boolean byBegin )
 	{
 		int i;
 		if( byBegin ) {
@@ -148,7 +160,7 @@ public class Region
 	 *			at <code>startIndex</code>) of a region whose name equals
 	 *			the given name.
 	 */	
-	public static int find( java.util.List regions, String name, int startIndex )
+	public static int find( List regions, String name, int startIndex )
 	{
 		for( int i = startIndex; i < regions.size(); i++ ) {
 			if( ((Region) regions.get( i )).name.equals( name )) return i;

@@ -37,7 +37,7 @@ import java.io.*;
 import java.util.prefs.*;
 import javax.swing.*;
 
-import de.sciss.meloncillo.gui.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -67,13 +67,14 @@ extends VectorTransformer
 	{
 		msgPane			= new JPanel( new SpringLayout() );
 
-		ggMeanVal		= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggMeanVal		= new PrefNumberField();
+		ggMeanVal.setSpace( NumberSpace.genericDoubleSpace );
 
 		msgPane.add( new JLabel( AbstractApplication.getApplication().getResourceString( "vectorMean" )));
 		msgPane.add( ggMeanVal );
 
 		GUIUtil.makeCompactSpringGrid( msgPane, 1, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
-        HelpGlassPane.setHelp( msgPane, "VectorTransformSetMean" );
+//        HelpGlassPane.setHelp( msgPane, "VectorTransformSetMean" );	// EEE
 	}
 
 	public boolean query( Component parent )

@@ -37,13 +37,13 @@ import java.awt.event.*;
 import java.util.prefs.*;
 import javax.swing.*;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.timeline.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
 import de.sciss.gui.*;
 import de.sciss.io.IOUtil;
 
@@ -56,7 +56,7 @@ import de.sciss.io.IOUtil;
  *  @version	0.75, 10-Jun-08
  */
 public class PrefsFrame
-extends BasicFrame
+extends AppWindow
 implements TimelineListener, DynamicListening
 {
 	private final PrefNumberField ggRate;
@@ -69,9 +69,9 @@ implements TimelineListener, DynamicListening
 	 *  @param  root	application root
 	 *  @param  doc		session document
 	 */
-    public PrefsFrame( final Main root, final Session doc )
+    public PrefsFrame( final Session doc ) // final Main root, final Session doc )
     {
-		super( AbstractApplication.getApplication().getResourceString( "framePrefs" ));
+    	super( SUPPORT );
 
 		this.doc	= doc;
 
@@ -99,7 +99,9 @@ implements TimelineListener, DynamicListening
 
 		ggTabPane			= new JTabbedPane();
 
-		// ---------- global pane ----------
+    	setTitle( app.getResourceString( "framePrefs" ));
+
+    	// ---------- global pane ----------
 
 		tab		= new JPanel();
 		lay		= new SpringLayout();
@@ -113,7 +115,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggPath = new PrefPathField( PathField.TYPE_FOLDER, app.getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggPath, key2 );
+//        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
 		tab.add( ggPath );
 		lb.setLabelFor( ggPath );
 		rows++;
@@ -125,7 +127,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggCheckBox  = new PrefCheckBox();
 		ggCheckBox.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggCheckBox, key2 );
+//        HelpGlassPane.setHelp( ggCheckBox, key2 );	// EEE
 		tab.add( ggCheckBox );
 		lb.setLabelFor( ggCheckBox );
 		rows++;
@@ -140,7 +142,7 @@ implements TimelineListener, DynamicListening
             ggChoice.addItem( new StringItem( lafInfos[i].getClassName(), lafInfos[i].getName() ));
         }
 		ggChoice.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggChoice, key2 );
+//        HelpGlassPane.setHelp( ggChoice, key2 );	// EEE
 		tab.add( ggChoice );
 		lb.setLabelFor( ggChoice );
 		rows++;
@@ -151,19 +153,19 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggCheckBox  = new PrefCheckBox();
 		ggCheckBox.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggCheckBox, key2 );
+//        HelpGlassPane.setHelp( ggCheckBox, key2 );	// EEE
 		tab.add( ggCheckBox );
 		lb.setLabelFor( ggCheckBox );
 		rows++;
 
 		prefs   = GUIUtil.getUserPrefs();
-       	key		= HelpGlassPane.KEY_KEYSTROKE_HELP;
+//       	key		= HelpGlassPane.KEY_KEYSTROKE_HELP;	// EEE
 		key2	= "prefsKeyStrokeHelp";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
 		ggKeyStroke = new KeyStrokeTextField();
 		ggKeyStroke.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggKeyStroke, key2 );
+//        HelpGlassPane.setHelp( ggKeyStroke, key2 );	// EEE
 		tab.add( ggKeyStroke );
 		lb.setLabelFor( ggKeyStroke );
 		rows++;
@@ -173,7 +175,7 @@ implements TimelineListener, DynamicListening
 		GUIUtil.makeCompactSpringGrid( tab, rows, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
 		tabWrap = new JPanel( new BorderLayout() );
 		tabWrap.add( tab, BorderLayout.NORTH );
-        HelpGlassPane.setHelp( tabWrap, key2 );
+//        HelpGlassPane.setHelp( tabWrap, key2 );	// EEE
 		ggTabPane.addTab( app.getResourceString( key2 ), null, tabWrap, null );
 
 		// ---------- plug-ins pane ----------
@@ -190,7 +192,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggPath	= new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggPath, key2 );
+//        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
 		tab.add( ggPath );
 		lb.setLabelFor( ggPath );
 		rows++;
@@ -201,7 +203,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggPath	= new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggPath, key2 );
+//        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
 		tab.add( ggPath );
 		lb.setLabelFor( ggPath );
 		rows++;
@@ -212,7 +214,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggPath, key2 );
+//        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
 		tab.add( ggPath );
 		lb.setLabelFor( ggPath );
 		rows++;
@@ -223,7 +225,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggText  = new PrefTextField( 32 );
 		ggText.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggText, key2 );
+//        HelpGlassPane.setHelp( ggText, key2 );	// EEE
 		tab.add( ggText );
 		lb.setLabelFor( ggText );
 		rows++;
@@ -234,7 +236,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggPath, key2 );
+//        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
 		tab.add( ggPath );
 		lb.setLabelFor( ggPath );
 		rows++;
@@ -245,7 +247,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggPath, key2 );
+//        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
 		tab.add( ggPath );
 		lb.setLabelFor( ggPath );
 		rows++;
@@ -254,10 +256,11 @@ implements TimelineListener, DynamicListening
 		key2	= "prefsAudioInputChannels";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
-		ggNumber  = new PrefNumberField( 0, NumberSpace.createIntSpace( 0, 16384 ),
-										 app.getResourceString( "labelUnitChannels" ));
+		ggNumber  = new PrefNumberField();
+		ggNumber.setSpace( NumberSpace.createIntSpace( 0, 16384 ));
+//		ggNumber.setUnit( app.getResourceString( "labelUnitChannels" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggNumber, key2 );
+//        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
 		tab.add( ggNumber );
 		lb.setLabelFor( ggNumber );
 		rows++;
@@ -266,10 +269,11 @@ implements TimelineListener, DynamicListening
 		key2	= "prefsAudioOutputChannels";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
-		ggNumber  = new PrefNumberField( 0, NumberSpace.createIntSpace( 0, 16384 ),
-										 app.getResourceString( "labelUnitChannels" ));
+		ggNumber  = new PrefNumberField();
+		ggNumber.setSpace( NumberSpace.createIntSpace( 0, 16384 ));
+//		ggNumber.setUnit( app.getResourceString( "labelUnitChannels" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggNumber, key2 );
+//        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
 		tab.add( ggNumber );
 		lb.setLabelFor( ggNumber );
 		rows++;
@@ -278,10 +282,11 @@ implements TimelineListener, DynamicListening
 		key2	= "prefsAudioRate";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
-		ggNumber  = new PrefNumberField( 0, NumberSpace.createIntSpace( 1, 768000 ),
-										 app.getResourceString( "labelUnitHertz" ));
+		ggNumber  = new PrefNumberField();
+		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 768000 ));
+//		ggNumber.setUnit( app.getResourceString( "labelUnitHertz" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggNumber, key2 );
+//        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
 		tab.add( ggNumber );
 		lb.setLabelFor( ggNumber );
 		rows++;
@@ -290,10 +295,11 @@ implements TimelineListener, DynamicListening
 		key2	= "prefsRTSenseBufSize";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
-		ggNumber  = new PrefNumberField( 0, NumberSpace.createIntSpace( 1, 60000 ),
-										 app.getResourceString( "labelUnitMillisec" ));
+		ggNumber  = new PrefNumberField();
+		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 60000 ));
+//		ggNumber.setUnit( app.getResourceString( "labelUnitMillisec" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggNumber, key2 );
+//        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
 		tab.add( ggNumber );
 		lb.setLabelFor( ggNumber );
 		rows++;
@@ -302,10 +308,11 @@ implements TimelineListener, DynamicListening
 		key2	= "prefsRTMaxSenseRate";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
-		ggNumber  = new PrefNumberField( 0, NumberSpace.createIntSpace( 1, 768000 ),
-										 app.getResourceString( "labelUnitHertz" ));
+		ggNumber  = new PrefNumberField();
+		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 768000 ));
+//		ggNumber.setUnit( app.getResourceString( "labelUnitHertz" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggNumber, key2 );
+//        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
 		tab.add( ggNumber );
 		lb.setLabelFor( ggNumber );
 		rows++;
@@ -314,10 +321,11 @@ implements TimelineListener, DynamicListening
 		key2	= "prefsOLSenseBufSize";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
-		ggNumber  = new PrefNumberField( 0, NumberSpace.createIntSpace( 1, 60000 ),
-										 app.getResourceString( "labelUnitMillisec" ));
+		ggNumber  = new PrefNumberField();
+		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 60000 ));
+//		ggNumber.setUnit( app.getResourceString( "labelUnitMillisec" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggNumber, key2 );
+//        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
 		tab.add( ggNumber );
 		lb.setLabelFor( ggNumber );
 		rows++;
@@ -326,7 +334,7 @@ implements TimelineListener, DynamicListening
 		GUIUtil.makeCompactSpringGrid( tab, rows, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
 		tabWrap = new JPanel( new BorderLayout() );
 		tabWrap.add( tab, BorderLayout.NORTH );
-        HelpGlassPane.setHelp( tabWrap, key2 );
+//        HelpGlassPane.setHelp( tabWrap, key2 );	// EEE
 		ggTabPane.addTab( app.getResourceString( key2 ), null, tabWrap, null );
 
        // ---------- session pane ----------
@@ -343,7 +351,7 @@ implements TimelineListener, DynamicListening
 		tab.add( lb );
 		ggArea  = new PrefTextArea( 6, 32 );
 		ggArea.setPreferences( prefs, key );
-        HelpGlassPane.setHelp( ggArea, key2 );
+//        HelpGlassPane.setHelp( ggArea, key2 );	// EEE
 		tab.add( ggArea );
 		lb.setLabelFor( ggArea );
 		rows++;
@@ -351,12 +359,13 @@ implements TimelineListener, DynamicListening
 		key2	= "prefsSenseRate";
 		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
 		tab.add( lb );
-		ggRate  = new PrefNumberField( 0, NumberSpace.createIntSpace( 1, 768000 ),
-										 app.getResourceString( "labelUnitHertz" ));
+		ggRate  = new PrefNumberField();
+		ggRate.setSpace( NumberSpace.createIntSpace( 1, 768000 ));
+//		ggRate.setUnit( app.getResourceString( "labelUnitHertz" ));	// EEE
 //		ggNumber.setPreferences( prefs, key );
 		tab.add( ggRate );
 		lb.setLabelFor( ggRate );
-		ggRate.addNumberListener( new NumberListener() {
+		ggRate.addListener( new NumberListener() {
 			public void numberChanged( NumberEvent e )
 			{
 				if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) {
@@ -374,7 +383,7 @@ implements TimelineListener, DynamicListening
 				}
 			}
 		});
-        HelpGlassPane.setHelp( ggRate, key2 );
+//        HelpGlassPane.setHelp( ggRate, key2 );	// EEE
 		tab.add( ggRate );
 		lb.setLabelFor( ggRate );
 		rows++;
@@ -383,7 +392,7 @@ implements TimelineListener, DynamicListening
 		GUIUtil.makeCompactSpringGrid( tab, rows, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
 		tabWrap = new JPanel( new BorderLayout() );
 		tabWrap.add( tab, BorderLayout.NORTH );
-        HelpGlassPane.setHelp( tabWrap, key2 );
+//        HelpGlassPane.setHelp( tabWrap, key2 );	// EEE
 		ggTabPane.addTab( app.getResourceString( key2 ), null, tabWrap, null );
 
 		// ---------- generic gadgets ----------
@@ -405,9 +414,9 @@ implements TimelineListener, DynamicListening
 		GUIUtil.setDeepFont( cp, fnt );
 
 		// ---------- listeners ----------
-        new DynamicAncestorAdapter( this ).addTo( getRootPane() );
-
-		init( root );
+		addDynamicListening( this );
+		
+		init();
 		pack();
     }
 

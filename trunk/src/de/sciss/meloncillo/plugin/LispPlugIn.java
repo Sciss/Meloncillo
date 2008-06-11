@@ -40,6 +40,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 import javax.xml.parsers.*;
 import org.w3c.dom.*;
@@ -79,7 +80,7 @@ import de.sciss.io.IOUtil;
  */
 public abstract class LispPlugIn
 extends JPanel
-implements PlugIn, LaterInvocationManager.Listener
+implements PlugIn, PreferenceChangeListener
 {
 	/**
 	 *	The class preference are located as a separate
@@ -656,9 +657,10 @@ implements PlugIn, LaterInvocationManager.Listener
 				(lispSourceName != null && oldSourceName != null && !lispSourceName.equals( oldSourceName )) ) {
 				
 				fillLispGUI();
-				HelpGlassPane.setHelp( panelLispGUI,
-					node == null || node.getAttribute( "help" ).length() == 0 ?
-					null : node.getAttribute( "help" ));
+//				HelpGlassPane.setHelp( panelLispGUI,
+//					node == null || node.getAttribute( "help" ).length() == 0 ?
+//					null : node.getAttribute( "help" ));
+// EEE
 			}
 			// register new plug-in
 			if( lispSourceName != null ) {
@@ -837,10 +839,10 @@ implements PlugIn, LaterInvocationManager.Listener
 	/**
 	 *	Handles preference changes
 	 */
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
-		final String					key		= ((PreferenceChangeEvent) o).getKey();
-		final String					value	= ((PreferenceChangeEvent) o).getNewValue();
+		final String					key		= pce.getKey();
+		final String					value	= pce.getNewValue();
 		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
 
 		if( EventManager.DEBUG_EVENTS ) System.err.println( "@LispPlugIn li. key = "+key+"; value = "+value );

@@ -33,15 +33,13 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.event.*;
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.session.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
+import de.sciss.common.AppWindow;
 
 /**
  *  A simple implementation of the <code>ReceiverEditor</code>
@@ -55,7 +53,7 @@ import de.sciss.gui.*;
  *  @version	0.75, 10-Jun-08
  */
 public abstract class AbstractReceiverEditor
-extends BasicFrame
+extends AppWindow
 implements ReceiverEditor, SessionCollection.Listener
 {
 	protected   Receiver	rcv		= null;
@@ -70,18 +68,18 @@ implements ReceiverEditor, SessionCollection.Listener
 	 */
 	protected AbstractReceiverEditor()
 	{
-		super( null );
+		super( PALETTE );
 
-		setDefaultCloseOperation( DO_NOTHING_ON_CLOSE );
+		setDefaultCloseOperation( JFrame.DO_NOTHING_ON_CLOSE );
 
-		addWindowListener( new WindowAdapter() {
-			public void windowClosing( WindowEvent e )
+		addListener( new AbstractWindow.Adapter() {
+			public void windowClosing( AbstractWindow.Event e )
 			{
 				hideAndDispose();
 			}
 		});
 
-        HelpGlassPane.setHelp( this.getRootPane(), "ReceiverEditor" );
+//  	HelpGlassPane.setHelp( this.getRootPane(), "ReceiverEditor" );	// EEE
     }
 
 	// update frame title which displays the receiver's name
@@ -96,7 +94,7 @@ implements ReceiverEditor, SessionCollection.Listener
 	// receiver reference.
 	private void hideAndDispose()
 	{
-		hide();
+		setVisible( false );
 		dispose();
 		doc.receivers.removeListener( this );
 		receiverDied();
@@ -148,7 +146,7 @@ implements ReceiverEditor, SessionCollection.Listener
 			this.rcv	= rcv;
 			this.root   = root;
 			this.doc	= doc;
-			super.init( root );
+			init();
 			doc.receivers.addListener( this );
 			updateTitle();
 		} else {
@@ -162,7 +160,7 @@ implements ReceiverEditor, SessionCollection.Listener
 	 *  of <code>JFrame</code>, it simply returns
 	 *  this object itself.
 	 */
-	public JFrame getView()
+	public AbstractWindow getView()
 	{
 		return this;
 	}

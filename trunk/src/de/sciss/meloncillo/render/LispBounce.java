@@ -35,8 +35,6 @@ import java.io.*;
 
 import de.sciss.meloncillo.util.*;
 
-import de.sciss.gui.*;
-
 /**
  *  A lightweight subclass
  *  of LispRenderPlugIn used
@@ -55,7 +53,7 @@ extends LispRenderPlugIn
 	public LispBounce()
 	{
 		super();
-        HelpGlassPane.setHelp( this, "BounceLisp" );
+//        HelpGlassPane.setHelp( this, "BounceLisp" );	// EEE
 	}
 	
 	/**

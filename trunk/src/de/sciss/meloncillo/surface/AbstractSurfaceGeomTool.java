@@ -45,6 +45,7 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.transmitter.*;
 
 import de.sciss.app.*;
+import de.sciss.common.BasicApplication;
 import de.sciss.io.*;
 
 /**
@@ -150,7 +151,7 @@ implements RunnableProcessing
 				renderThread.sync();
 				renderThread = null;
 			}
-			root.menuFactory.actionSelectionForward.perform();
+			((MenuFactory) ((BasicApplication) AbstractApplication.getApplication()).getMenuFactory()).actionSelectionForward.perform();
 		}
 		return success;
 	}

@@ -2,7 +2,7 @@
  *  ColouredTextField.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -48,7 +48,7 @@ import javax.swing.JTextField;
  *  which is what <code>PathField</code> does.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.16, 05-May-06
  *
  *  @see	PathField
  */

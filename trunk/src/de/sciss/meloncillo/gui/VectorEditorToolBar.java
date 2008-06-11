@@ -60,14 +60,14 @@ extends ToolBar
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F1, 0 ));
-        HelpGlassPane.setHelp( toggle, "VectorEditorToolPointer" );
+//        HelpGlassPane.setHelp( toggle, "VectorEditorToolPointer" );	// EEE
   		this.addToggleButton( toggle, 0 );
         
 		toolAction		= new ToolAction( ToolAction.LINE );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F2, 0 ));
-        HelpGlassPane.setHelp( toggle, "VectorEditorToolLine" );
+//        HelpGlassPane.setHelp( toggle, "VectorEditorToolLine" );	// EEE
 toolAction.setEnabled( false );	// XXX not yet implemented
   		this.addToggleButton( toggle, 0 );
 
@@ -75,7 +75,7 @@ toolAction.setEnabled( false );	// XXX not yet implemented
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F3, 0 ));
-        HelpGlassPane.setHelp( toggle, "VectorEditorToolPencil" );
+//        HelpGlassPane.setHelp( toggle, "VectorEditorToolPencil" );	// EEE
   		this.addToggleButton( toggle, 0 );
 	}
 }

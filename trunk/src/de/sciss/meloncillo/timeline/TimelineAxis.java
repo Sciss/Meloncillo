@@ -45,7 +45,6 @@ import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.session.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
 import de.sciss.io.*;
 
 /**
@@ -89,7 +88,7 @@ implements TimelineListener, MouseListener, MouseMotionListener, DynamicListenin
 		this.addMouseMotionListener( this );
 
 		// ------
-        HelpGlassPane.setHelp( this, "TimelineAxis" );
+//        HelpGlassPane.setHelp( this, "TimelineAxis" );	// EEE
 	}
   
 	private void recalcSpace()

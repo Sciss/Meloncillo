@@ -41,12 +41,13 @@ import javax.swing.undo.*;
 
 import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.timeline.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
 import de.sciss.gui.*;
 import de.sciss.io.*;
 
@@ -69,7 +70,7 @@ import de.sciss.io.*;
  *  @version	0.75, 10-Jun-08
  */
 public class ObserverPalette
-extends BasicPalette
+extends AppWindow
 implements NumberListener, TimelineListener, DynamicListening
 {
 	private final Session	doc;
@@ -79,7 +80,7 @@ implements NumberListener, TimelineListener, DynamicListening
 	private final JTabbedPane	ggTabPane;
 
 	private final String[] TAB_NAMES	= { "observerReceiver", "observerTransmitter", "observerGroup" };
-	private final String[] HELP_NAMES	= { "ObserverReceiver", "ObserverTransmitter", "ObserverGroup" };
+//	private final String[] HELP_NAMES	= { "ObserverReceiver", "ObserverTransmitter", "ObserverGroup" };
 	private final int[] DOORS			= { Session.DOOR_RCV, Session.DOOR_TRNS, Session.DOOR_GRP };
 	
 	public static final int CURSOR_TAB		= 0;
@@ -98,7 +99,8 @@ implements NumberListener, TimelineListener, DynamicListening
 	 */
 	public ObserverPalette( Main root, final Session doc )
 	{
-		super( AbstractApplication.getApplication().getResourceString( "paletteObserver" ));
+		super( PALETTE );
+		setTitle( AbstractApplication.getApplication().getResourceString( "paletteObserver" ));
 		
 		this.doc	= doc;
 
@@ -108,14 +110,15 @@ implements NumberListener, TimelineListener, DynamicListening
 		JLabel							lb;
 		GridBagLayout					lay;
 		GridBagConstraints				con;
-		final NumberSpace				spcTime = new NumberSpace( 0.0, Double.POSITIVE_INFINITY, 0.001, 0.0, 1.0 );
+//		final NumberSpace				spcTime = new NumberSpace( 0.0, Double.POSITIVE_INFINITY, 0.001, 0.0, 1.0 );
+		final NumberSpace				spcTime = new NumberSpace( 0.0, Double.POSITIVE_INFINITY, 0.0, 3, 3, 0.0 ); 
 		JTextField						ggName;
 		SessionObjectTable				ggTable;
 		SessionCollection				scSel, scAll;
-		final JRootPane					rp		= getRootPane();
+//		final JRootPane					rp		= getRootPane();
 
 		ggTabPane = new JTabbedPane();
-        HelpGlassPane.setHelp( ggTabPane, "ObserverPalette" );
+//		HelpGlassPane.setHelp( ggTabPane, "ObserverPalette" );	// EEE
         ggTabPane.setTabLayoutPolicy( JTabbedPane.WRAP_TAB_LAYOUT );
 
 		// ----- cursor tab ------
@@ -134,7 +137,7 @@ implements NumberListener, TimelineListener, DynamicListening
 			lbCursorInfo[i] = lb;
 		}
 		ggTabPane.addTab( app.getResourceString( "observerCursor" ), null, c, null );
-        HelpGlassPane.setHelp( c, "ObserverCursor" );
+//        HelpGlassPane.setHelp( c, "ObserverCursor" );	// EEE
         
 		// ----- session objects tab ------
 		for( int i = 0; i < 3; i++ ) {
@@ -160,7 +163,7 @@ implements NumberListener, TimelineListener, DynamicListening
 			lay.setConstraints( ggTable, con );
 			c.add( ggTable );
 			ggTabPane.addTab( app.getResourceString( TAB_NAMES[ i ]), null, c, null );
-			HelpGlassPane.setHelp( c, HELP_NAMES[ i ]);
+//			HelpGlassPane.setHelp( c, HELP_NAMES[ i ]);	// EEE
 			
 			switch( i ) {
 			case 0:
@@ -180,8 +183,10 @@ implements NumberListener, TimelineListener, DynamicListening
 				scSel	= null;
 				scAll	= null;
 				break;
-			}			
-			new sessionCollectionListener( scSel, scAll, doc.bird, DOORS[ i ], i + 1, ggName, ggTable, rp );
+			}
+			
+//			new sessionCollectionListener( scSel, scAll, doc.bird, DOORS[ i ], i + 1, ggName, ggTable, rp );
+			new sessionCollectionListener( scSel, scAll, doc.bird, DOORS[ i ], i + 1, ggName, ggTable, getMyRooty() );
 		}
 		
 		// ----- timeline tab ------
@@ -195,8 +200,9 @@ implements NumberListener, TimelineListener, DynamicListening
 		con.gridwidth   = 1;
 		lay.setConstraints( lb, con );
 		c.add( lb );
-		ggTimelineStart	= new NumberField( NumberField.FLAG_MINSEC, spcTime, null );
-		ggTimelineStart.addNumberListener( this );
+		ggTimelineStart	= new NumberField( spcTime );
+		ggTimelineStart.setFlags( NumberField.HHMMSS );
+		ggTimelineStart.addListener( this );
 		con.weightx		= 0.5;
 		con.gridwidth   = GridBagConstraints.REMAINDER;
 		lay.setConstraints( ggTimelineStart, con );
@@ -207,15 +213,16 @@ implements NumberListener, TimelineListener, DynamicListening
 		con.gridwidth   = 1;
 		lay.setConstraints( lb, con );
 		c.add( lb );
-		ggTimelineStop	= new NumberField( NumberField.FLAG_MINSEC, spcTime, null );
-		ggTimelineStop.addNumberListener( this );
+		ggTimelineStop	= new NumberField( spcTime );
+		ggTimelineStop.setFlags( NumberField.HHMMSS );
+		ggTimelineStop.addListener( this );
 		con.weightx		= 0.5;
 		con.gridwidth   = GridBagConstraints.REMAINDER;
 		lay.setConstraints( ggTimelineStop, con );
 		c.add( ggTimelineStop );
 		lb.setLabelFor( ggTimelineStop );
 		ggTabPane.addTab( app.getResourceString( "observerTimeline" ), null, c, null );
-        HelpGlassPane.setHelp( c, "ObserverTimeline" );
+//        HelpGlassPane.setHelp( c, "ObserverTimeline" );	// EEE
         
 		cp.setLayout( new BorderLayout() );
 		cp.add( BorderLayout.CENTER, ggTabPane );
@@ -223,9 +230,21 @@ implements NumberListener, TimelineListener, DynamicListening
 		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
 		
 		// --- Listener ---
-        new DynamicAncestorAdapter( this ).addTo( rp );
+		addDynamicListening( this );
 		
-		init( root );
+		init();
+	}
+	
+	// XXX EEE XXX
+	private JComponent getMyRooty()
+	{
+		if( getWindow() instanceof RootPaneContainer ) {
+			return ((RootPaneContainer) getWindow()).getRootPane();
+		} else if( getWindow() instanceof JComponent ) {
+			return (JComponent) getWindow();
+		} else {
+			return null;
+		}
 	}
 	
 	/**

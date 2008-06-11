@@ -2,7 +2,7 @@
  *  AudioFileDescr.java
  *  de.sciss.io package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -25,15 +25,26 @@
  *
  *  Changelog:
  *		21-May-05	created from de.sciss.eisenkraut.io.AudioFileDescr
+ *		15-Jul-05	KEY_APPCODE
+ *		08-Sep-05	added getFormatSuffix
+ *		21-Feb-06	added KEY_COMMENT ; added PropertyChangeListener facility ; property keys must be strings now!
+ *		25-Feb-06	moved to double precision rate
+ *		27-Mar-07	added appCode field
  */
 
 package de.sciss.io;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import de.sciss.gui.StringItem;
 
@@ -53,10 +64,10 @@ import de.sciss.gui.StringItem;
  *  which presents the common fields to the user.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 21-May-05
+ *  @version	0.28, 07-Dec-07
  *
  *  @see		AudioFile
- *  @see		de.sciss.meloncillo.gui.AudioFileFormatPane
+ *  @see		AudioFileFormatPane
  *
  *  @todo		all files are considered big endian at the
  *				moment which might be inconvenient on non
@@ -93,6 +104,7 @@ public class AudioFileDescr
 	 *  type value : raw (headerless) file format
 	 */
 	public static final int TYPE_RAW		= 4;
+	private static final int NUM_TYPES		= 5;
 
 	/**
 	 *  sampleFormat type : linear pcm integer
@@ -122,7 +134,7 @@ public class AudioFileDescr
 	/**
 	 *  sampling rate in hertz
 	 */
-	public float	rate;
+	public double	rate;
 	/**
 	 *  bits per sample
 	 */
@@ -135,41 +147,54 @@ public class AudioFileDescr
 	 *  sound file length in sample frames
 	 */
 	public long		length;			// in sampleframes
+	/**
+	 *	application (creator) code
+	 */
+	public String	appCode;
 	
 	/**
 	 *  property key : loop region. value class = Region
 	 *
-	 *  @see	de.sciss.fscape.util.Region
+	 *  @see	de.sciss.io.Region
 	 */
-	public static final Object KEY_LOOP		=   new Integer( 0 );
+	public static final String KEY_LOOP		=   "loop";
 	/**
-	 *  property key : marker list. value class = java.util.List whose elements are of class Marker
+	 *  property key : marker list. value class = (java.util.)List whose elements are of class Marker
 	 *
-	 *  @see	de.sciss.fscape.util.Marker
+	 *  @see	de.sciss.io.Marker
 	 */
-	public static final Object KEY_MARKERS  =   new Integer( 1 );
+	public static final String KEY_MARKERS  =   "markers";
 	/**
-	 *  property key : region list. value class = java.util.List whose elements are of class Region
+	 *  property key : region list. value class = (java.util.)List whose elements are of class Region
 	 *
-	 *  @see	de.sciss.fscape.util.Region
+	 *  @see	de.sciss.io.Region
 	 */
-	public static final Object KEY_REGIONS  =   new Integer( 2 );
+	public static final String KEY_REGIONS  =   "regions";
 	/**
 	 *  property key : playback gain (multiplier). value class = Float
 	 */
-	public static final Object KEY_GAIN		=   new Integer( 3 );
+	public static final String KEY_GAIN		=   "gain";
+	/**
+	 *  property key : application specific code. value class = byte[];
+	 *	note that AbstractApplication.getApplication().getMacOSCreator()
+	 *	is used to <B>write</B> the app chunk, and when reading
+	 *	anything but app-code from the current application is skipped!
+	 */
+	public static final String KEY_APPCODE	=   "app";
+	/**
+	 *  property key : comment text. value class = String;
+	 */
+	public static final String KEY_COMMENT	=   "comment";
 
 // -------- protected Variablen --------
 
-	private final java.util.Map properties;
+	private final Map properties;
 	
-	private static final boolean[][] supports = {
-		{ true, false, false, false, false },	// Loop for AIFF, SND, IRCAM, WAVE, Raw
-		{ true, false, false, false, false },	// Markers
-		{ false, false, true, false, false },	// Regions
-		{ true, false, false, false, false }	// Gain
-	};
-												
+	private static final Set[] supports;
+	
+//	private SwingPropertyChangeSupport	pcs	= null;
+	private List	pcs	= null;
+	
 	private static final StringItem[] FORMAT_ITEMS  = {
 		new StringItem( "aiff", "AIFF" ),
 		new StringItem( "au", "NeXT/Sun AU" ),
@@ -177,10 +202,41 @@ public class AudioFileDescr
 		new StringItem( "wave", "WAVE" ),
 		new StringItem( "raw", "Raw" )
 	};
+	private static final String[] FORMAT_SUFFICES	= { "aif", "au", "irc", "wav", "raw" };
 
-	private static final String			msgPtrn		= "{0,choice,0#AIFF|1#NeXT/Sun AU|2#IRCAM|3#WAVE|4#Raw} audio, {1,choice,1#mono|2#stereo|2<{1,number,integer}-ch} {2,number,integer}-bit {3,choice,0#int|1#float} {4,number,0.000} kHz, {5,number,integer}:{6,number,00.000}";
+	private static final String			msgPtrn		= "{0,choice,0#AIFF|1#NeXT/Sun AU|2#IRCAM|3#WAVE|4#Raw} audio, {1,choice,0#no channels|1#mono|2#stereo|2<{1,number,integer}-ch} {2,number,integer}-bit {3,choice,0#int|1#float} {4,number,0.###} kHz, {5,number,integer}:{6,number,00.000}";
 	private static final MessageFormat	msgForm		= new MessageFormat( msgPtrn, Locale.US );  // XXX US locale to allow parsing via Double.parseDouble()
 											
+	static {
+		Set	set;
+
+		supports				= new Set[ NUM_TYPES ];
+		set						= new HashSet();
+		set.add( KEY_LOOP );
+		set.add( KEY_MARKERS );
+		set.add( KEY_GAIN );
+		set.add( KEY_APPCODE );
+		set.add( KEY_COMMENT );
+		supports[ TYPE_AIFF ]	= set;
+
+		set						= new HashSet();
+		set.add( KEY_COMMENT );
+		supports[ TYPE_SND ]	= set;
+
+		set						= new HashSet();
+		set.add( KEY_REGIONS );
+		set.add( KEY_COMMENT );
+		supports[ TYPE_IRCAM ]	= set;
+
+		set						= new HashSet();
+		set.add( KEY_MARKERS );
+		set.add( KEY_GAIN );
+		supports[ TYPE_WAVE ]	= set;
+
+		set						= new HashSet();
+		supports[ TYPE_RAW ]	= set;
+	}
+
 // -------- public Methoden --------
 
 	/**
@@ -201,6 +257,9 @@ public class AudioFileDescr
 	 *  @param  orig	a preexisting description whose
 	 *					values will be copied to the newly
 	 *					constructed description
+	 *
+	 *	@warning	things like the marker list are not duplicated,
+	 *				they refer to the same instance
 	 */
 	public AudioFileDescr( AudioFileDescr orig )
 	{
@@ -211,6 +270,7 @@ public class AudioFileDescr
 		this.bitsPerSample  = orig.bitsPerSample;
 		this.sampleFormat   = orig.sampleFormat;
 		this.length			= orig.length;
+		this.appCode		= orig.appCode;
 		synchronized( orig.properties ) {
 			this.properties		= new HashMap( orig.properties );
 		}
@@ -257,12 +317,60 @@ public class AudioFileDescr
 	 *					callers responsibility to ensure the value's
 	 *					class is the one specified for the particular key.
 	 *
-	 *  @see	#isPropertySupported( Object )
+	 *  @see	#isPropertySupported( String )
 	 */
-	public void setProperty( Object key, Object value )
+	public void setProperty( String key, Object value )
 	{
 		synchronized( properties ) {
 			properties.put( key, value );
+		}
+	}
+
+	/**
+	 *  Sets a specific property and dispatches
+	 *	a <code>PropertyChangeEvent</code> to registered listeners
+	 *
+	 *  @param  key		the key of the property to set
+	 *  @param  value   the properties value.
+	 *
+	 *  @see	#addPropertyChangeListener( PropertyChangeListener )
+	 *
+	 *	@synchronization	must be called in the event thread
+	 */
+	public void setProperty( Object source, String key, Object value )
+	{
+		synchronized( properties ) {
+			final Object oldValue = properties.put( key, value );
+			if( (source != null) && (pcs != null) ) {
+//				pcs.firePropertyChange( source, key, oldValue, value );
+				final PropertyChangeEvent e = new PropertyChangeEvent( source, key, oldValue, value );
+				// the rude way
+				for( int i = 0; i < pcs.size(); i++ ) {
+					((PropertyChangeListener) pcs.get( i )).propertyChange( e );
+				}
+			}
+		}
+	}
+	
+	public void addPropertyChangeListener( PropertyChangeListener l )
+	{
+		synchronized( properties ) {
+			if( pcs == null ) {
+//				pcs = new SwingPropertyChangeSupport( this );
+				pcs = new ArrayList();
+			}
+//			pcs.addPropertyChangeListener( l );
+			pcs.add( l );
+		}
+	}
+
+	public void removePropertyChangeListener( PropertyChangeListener l )
+	{
+		synchronized( properties ) {
+			if( pcs == null ) {
+//				pcs.removePropertyChangeListener( l );
+				pcs.remove( l );
+			}
 		}
 	}
 
@@ -278,17 +386,13 @@ public class AudioFileDescr
 	 *					it is no harm to set it using <code>setProperty</code>,
 	 *					it just won't be written to the sound file's header.
 	 */
-	public boolean isPropertySupported( Object key )
+	public boolean isPropertySupported( String key )
 	{
-		if( key instanceof Integer ) {
-			int idx = ((Integer) key).intValue();
-			if( idx >= 0 && idx < supports.length ) {
-				if( type >= 0 && type < supports[idx].length ) {
-					return supports[idx][type];
-				}
-			}
+		if( type >= 0 && type < supports.length ) {
+			return supports[ type ].contains( key );
+		} else {
+			return false;
 		}
-		return false;
 	}
 	
 	/**
@@ -309,7 +413,7 @@ public class AudioFileDescr
 		msgArgs[1]  = new Integer( channels );
 		msgArgs[2]  = new Integer( bitsPerSample );
 		msgArgs[3]  = new Integer( sampleFormat );
-		msgArgs[4]  = new Float( rate / 1000 );
+		msgArgs[4]  = new Float( (float) (rate / 1000) );
 		millis		= (int) (AudioFileDescr.samplesToMillis( this, length ) + 0.5);
 		msgArgs[5]  = new Integer( millis / 60000 );
 		msgArgs[6]  = new Double( (double) (millis % 60000) / 1000 );
@@ -325,11 +429,30 @@ public class AudioFileDescr
 	 *  @return a list of items for a PrefComboBox which
 	 *			list all supported audio file formats.
 	 *  
-	 *  @see	de.sciss.meloncillo.gui.PrefComboBox	PrefComboBox to learn about the use of StringItems
+	 *  @see	de.sciss.gui.PrefComboBox	PrefComboBox to learn about the use of StringItems
 	 */
 	public static StringItem[] getFormatItems()
 	{
 		return FORMAT_ITEMS;
+	}
+
+	/**
+	 *  Gets the suffix commonly
+	 *	used for attaching to a file name of
+	 *	the given format.
+	 *
+	 *	@param	type	format such as TYPE_AIFF, TYPE_RAW etc.
+	 *
+	 *  @return the suffix string such as "aif", "raw"
+	 *			or <code>null</code> if the type was invalid.
+	 */
+	public static String getFormatSuffix( int type )
+	{
+		if( (type >= 0) && (type < FORMAT_SUFFICES.length) ) {
+			return FORMAT_SUFFICES[ type ];
+		} else {
+			return null;
+		}
 	}
 
 	/**
@@ -346,7 +469,7 @@ public class AudioFileDescr
 	 */
 	public static double millisToSamples( AudioFileDescr afd, double ms )
 	{
-		return( (ms / 1000) * ((double) afd.rate ));
+		return( (ms / 1000) * afd.rate );
 	}
 
 	/**
@@ -363,7 +486,7 @@ public class AudioFileDescr
 	 */
 	public static double samplesToMillis( AudioFileDescr afd, long samples )
 	{
-		return( (double) samples / afd.rate * 1000 );
+		return( samples / afd.rate * 1000 );
 	}
 }
 // class AudioFileDescr

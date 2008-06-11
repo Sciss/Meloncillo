@@ -55,6 +55,7 @@ import de.sciss.meloncillo.transmitter.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
 import de.sciss.gui.*;
 import de.sciss.io.*;
 
@@ -113,7 +114,7 @@ import de.sciss.io.*;
  *	@todo	pointer tool : ctrl+drag doesn't work.
  */
 public class TimelineFrame
-extends BasicFrame
+extends AppWindow
 implements  TimelineListener, ToolActionListener,
             DynamicListening, EditMenuListener, ClipboardOwner,
 			RealtimeConsumer
@@ -183,19 +184,21 @@ implements  TimelineListener, ToolActionListener,
 	 */
 	public TimelineFrame( Main root, final Session doc )
 	{
-		super( AbstractApplication.getApplication().getResourceString( "frameTimeline" ));
+		super( REGULAR );
 
 		this.root   = root;
 		this.doc	= doc;
 		transport   = root.transport;
 
 		final Container					cp		= getContentPane();
-		final JRootPane					rp		= getRootPane();
-		final InputMap					imap	= rp.getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW );
-		final ActionMap					amap	= rp.getActionMap();
+//		final JRootPane					rp		= getRootPane();
+		final InputMap					imap	= getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW );
+		final ActionMap					amap	= getActionMap();
 //		final JSplitPane				split	= new JSplitPane( JSplitPane.HORIZONTAL_SPLIT );
 		final Box						box		= Box.createHorizontalBox();
 		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+
+		setTitle( app.getResourceString( "frameTimeline" ));
 
 		ttb			= new TimelineToolBar( root );
 
@@ -208,10 +211,11 @@ implements  TimelineListener, ToolActionListener,
 		});
 
 		cp.setLayout( new BorderLayout() );
-		rp.setPreferredSize( new Dimension( 640, 640 )); // XXX
+//		rp.setPreferredSize( new Dimension( 640, 640 )); // XXX
 		
         axis        = new TimelineAxis( root, doc );
 		ggTrackPanel= new TrackPanel();
+ggTrackPanel.setPreferredSize( new Dimension( 640, 640 ));
 		ggTrackPanel.setOpaque( false );	// crucial for correct TimelineViewport() paint update calls!
 		ggTrackPanel.setLayout( new SpringLayout() );
 		ggTrackRowHeaderPanel = new JPanel();
@@ -246,7 +250,7 @@ implements  TimelineListener, ToolActionListener,
 		tools.put( new Integer( ToolAction.ZOOM ),		new TimelineZoomTool() );
 
 		// --- Listener ---
-		new DynamicAncestorAdapter( this ).addTo( getRootPane() );
+		addDynamicListening( this );
 
 //		this.addMouseListener( new MouseAdapter() {
 //			public void mousePressed( MouseEvent e )
@@ -372,9 +376,9 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 		// -------
 
-        HelpGlassPane.setHelp( getRootPane(), "TimelineFrame" );
+//	    HelpGlassPane.setHelp( getRootPane(), "TimelineFrame" );	// EEE
 		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
-		init( root );
+		init();
 	}
 
 	protected boolean alwaysPackSize()

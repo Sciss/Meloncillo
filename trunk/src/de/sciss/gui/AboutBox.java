@@ -2,7 +2,7 @@
  *  AboutBox.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -31,12 +31,11 @@
 package de.sciss.gui;
 
 import java.io.File;
-import javax.swing.Icon;
+import java.text.DateFormat;
+import java.util.Date;
 import javax.swing.ImageIcon;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
-import java.text.*;
-import java.util.*;
 
 import net.roydesign.mac.MRJAdapter;
 import net.roydesign.ui.StandardMacAboutFrame;
@@ -47,7 +46,9 @@ import de.sciss.app.AbstractApplication;
  *  About, Copyright + Credits Frame
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.6, 31-Jul-04
+ *  @version	0.31, 02-Sep-06
+ *
+ *	@todo		integrate with new AbstractWindow concept
  */
 public class AboutBox
 extends StandardMacAboutFrame
@@ -57,9 +58,8 @@ implements HyperlinkListener
 	 *  Value for add/getComponent(): the about box
 	 *
 	 *  @see	#getComponent( Object )
-	 *  @see	de.sciss.meloncillo.gui.AboutBox
 	 */
-	public static final Object COMP_ABOUTBOX		= AboutBox.class;
+	public static final Object					COMP_ABOUTBOX	= AboutBox.class.getName();
 
 	private static final String CREDITS_START   =
 		"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" "+
@@ -77,9 +77,10 @@ implements HyperlinkListener
 
 		final StringBuffer				credits	= new StringBuffer( CREDITS_START );
 		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
-		final char						sep		= File.separatorChar;
+//		final char						sep		= File.separatorChar;
 
-		setApplicationIcon( new ImageIcon( "images/application.png" ));
+		setApplicationIcon( new ImageIcon( app.getClass().getResource( "application.png" )));
+//		setApplicationIcon( new ImageIcon( "images" + File.separator + "application.png" ));
 		setCopyright( app.getResourceString( "copyright" ));
 		setHyperlinkListener( this );
 		credits.append( app.getResourceString( "credits" ));
@@ -91,6 +92,14 @@ implements HyperlinkListener
 //System.err.println( credits.toString() );
 
 //		pack();
+
+		app.addComponent( COMP_ABOUTBOX, this );
+	}
+	
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( COMP_ABOUTBOX );
+		super.dispose();
 	}
 	
 	public void setBuildVersion( File f )

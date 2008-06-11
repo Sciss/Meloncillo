@@ -36,6 +36,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -46,6 +47,7 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
 import de.sciss.gui.*;
 
 /**
@@ -62,8 +64,8 @@ import de.sciss.gui.*;
  *	@todo		settings menu actions not yet implemented
  */
 public abstract class AbstractPlugInFrame
-extends BasicPalette
-implements LaterInvocationManager.Listener
+extends AppWindow
+implements PreferenceChangeListener
 {
 	/**
 	 *  Application reference
@@ -94,9 +96,9 @@ implements LaterInvocationManager.Listener
 	 */
 	protected final Preferences			classPrefs;
 
-	private final JComponent			glassPane;
-	private final FocusTraversalPolicy	focusAlive;
-	private final FocusTraversalPolicy	focusFrozen;
+//	private final JComponent			glassPane;
+//	private final FocusTraversalPolicy	focusAlive;
+//	private final FocusTraversalPolicy	focusFrozen;
 
 	private JComponent			ggSettingsMenu;
 	private JPanel				topPanel;
@@ -150,7 +152,8 @@ implements LaterInvocationManager.Listener
 	 */
 	protected AbstractPlugInFrame( Main root, Session doc, String title, int flags )
 	{
-		super( title );
+		super( SUPPORT );
+		setTitle( title );
 		
 		this.root   = root;
 		this.doc	= doc;
@@ -178,10 +181,11 @@ implements LaterInvocationManager.Listener
 		createSettingsMenu();
 		createGadgets( flags );
 		
-		glassPane   = new HibernationGlassPane( ggSettingsPane, getContentPane() );
-		setGlassPane( glassPane );
-		focusAlive  = getFocusTraversalPolicy();
-		focusFrozen = new NoFocusTraversalPolicy();
+//		glassPane   = new HibernationGlassPane( ggSettingsPane, getContentPane() );
+//		setGlassPane( glassPane );
+//		focusAlive  = getFocusTraversalPolicy();
+//		focusFrozen = new NoFocusTraversalPolicy();
+		// EEE
 
 		JPanel toptopPanel = new JPanel( new BorderLayout() );
 		toptopPanel.add( topPanel, BorderLayout.CENTER );
@@ -194,10 +198,10 @@ implements LaterInvocationManager.Listener
 		GUIUtil.setDeepFont( cp, fnt );
 		
 		// --- Listener ---
-        new DynamicAncestorAdapter( new DynamicPrefChangeManager( classPrefs,
-			new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this )).addTo( getRootPane() );
+        addDynamicListening( new DynamicPrefChangeManager( classPrefs,
+			new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this ));
 
-		init( root );
+		init();
 	}
 
 	/**
@@ -242,9 +246,10 @@ implements LaterInvocationManager.Listener
 	 */
 	protected void hibernation( boolean freeze )
 	{
-		glassPane.setVisible( freeze );
-		setFocusTraversalPolicy( freeze ? focusFrozen : focusAlive );
-		if( freeze ) glassPane.requestFocus();
+//		glassPane.setVisible( freeze );
+//		setFocusTraversalPolicy( freeze ? focusFrozen : focusAlive );
+//		if( freeze ) glassPane.requestFocus();
+// EEE
 	}
 
 	private void settingsStoreSession()
@@ -378,10 +383,10 @@ implements LaterInvocationManager.Listener
 	/**
 	 *	Handles preference changes
 	 */
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
-		String  key		= ((PreferenceChangeEvent) o).getKey();
-		String  value	= ((PreferenceChangeEvent) o).getNewValue();
+		String  key		= pce.getKey();
+		String  value	= pce.getNewValue();
 
 		if( key.equals( KEY_PLUGIN )) {
 			switchPlugIn( value );

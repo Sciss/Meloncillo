@@ -41,7 +41,6 @@ import java.util.*;
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.io.*;
 import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.plugin.*;
@@ -96,7 +95,7 @@ implements  RenderHost, RunnableProcessing,
 
 		pc	= (ProgressComponent) root.getComponent( Main.COMP_MAIN );
 
-        new DynamicAncestorAdapter( this ).addTo( getRootPane() );
+		addDynamicListening( this );
 	}
 
 	/**
@@ -137,13 +136,13 @@ implements  RenderHost, RunnableProcessing,
 					plugIn.init( root, doc );
 				}
 				catch( InstantiationException e1 ) {
-					GUIUtil.displayError( this, e1, app.getResourceString( "errInitPlugIn" ));
+					GUIUtil.displayError( getWindow(), e1, app.getResourceString( "errInitPlugIn" ));
 				}
 				catch( IllegalAccessException e2 ) {
-					GUIUtil.displayError( this, e2, app.getResourceString( "errInitPlugIn" ));
+					GUIUtil.displayError( getWindow(), e2, app.getResourceString( "errInitPlugIn" ));
 				}
 				catch( ClassNotFoundException e3 ) {
-					GUIUtil.displayError( this, e3, app.getResourceString( "errInitPlugIn" ));
+					GUIUtil.displayError( getWindow(), e3, app.getResourceString( "errInitPlugIn" ));
 				}
 			}
 			success = reContext();
@@ -697,7 +696,7 @@ implements  RenderHost, RunnableProcessing,
 
 		public void actionPerformed( ActionEvent e )
 		{
-			hide();		// setVisbile( false ) doesn't fire componentHidden event!
+			setVisible( false );		// EEE setVisbile( false ) doesn't fire componentHidden event!
 			dispose();
 		}
 	}

@@ -44,8 +44,8 @@ import javax.swing.undo.*;
 import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.edit.*;
 import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -413,8 +413,8 @@ implements DynamicListening
 		private void prepareNumberField()
 		{
 			if( ggNumberField == null ) {
-				ggNumberField = new NumberField( 0, NumberSpace.genericDoubleSpace, null );
-				ggNumberField.addNumberListener( this );
+				ggNumberField = new NumberField( NumberSpace.genericDoubleSpace );
+				ggNumberField.addListener( this );
 				GUIUtil.setDeepFont( ggNumberField, GraphicsUtil.smallGUIFont );
 			}
 		}
@@ -461,7 +461,7 @@ implements DynamicListening
 							ns = (c.type == MapManager.Context.TYPE_INTEGER) || (c.type == MapManager.Context.TYPE_LONG) ?
 								 NumberSpace.genericIntSpace : NumberSpace.genericDoubleSpace;
 						}
-						if( !ns.equals( ggNumberField.getSpace() )) ggNumberField.setSpace( 0, ns );
+						if( !ns.equals( ggNumberField.getSpace() )) ggNumberField.setSpace( ns );
 
 						ggNumberField.setNumber( (value == null) || !(value instanceof Number) ?
 												 new Double( Double.NaN ) : (Number) value );

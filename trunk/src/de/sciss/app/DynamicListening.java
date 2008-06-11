@@ -2,7 +2,7 @@
  *  DynamicListening.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,9 +29,6 @@
 
 package de.sciss.app;
 
-import java.awt.*;
-import java.awt.event.*;
-
 /**
  *  This interface is used by Components that
  *  need to register and unregister listeners
@@ -44,9 +41,8 @@ import java.awt.event.*;
  *  do the work.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.13, 15-Sep-05
  *
- *  @see	ObserverPalette
  *  @see	DynamicAncestorAdapter
  */
 public interface DynamicListening

@@ -39,22 +39,47 @@
 
 package de.sciss.meloncillo;
 
-import java.awt.*;
-import java.util.*;
-import java.util.prefs.*;
+import java.awt.Component;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
+import java.util.prefs.Preferences;
 
-import javax.swing.*;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.realtime.*;
-import de.sciss.meloncillo.render.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.surface.*;
-import de.sciss.meloncillo.timeline.*;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.gui.*;
+import de.sciss.app.DocumentHandler;
+import de.sciss.common.BasicApplication;
+import de.sciss.common.BasicDocument;
+import de.sciss.common.BasicMenuFactory;
+import de.sciss.common.BasicWindowHandler;
+import de.sciss.common.ProcessingThread;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.HelpFrame;
+import de.sciss.gui.ProgressComponent;
+import de.sciss.gui.StringItem;
+import de.sciss.meloncillo.gui.MainFrame;
+import de.sciss.meloncillo.gui.MenuFactory;
+import de.sciss.meloncillo.gui.MeterFrame;
+import de.sciss.meloncillo.gui.ObserverPalette;
+import de.sciss.meloncillo.gui.PrefsFrame;
+import de.sciss.meloncillo.io.BlendContext;
+import de.sciss.meloncillo.realtime.RealtimeFrame;
+import de.sciss.meloncillo.realtime.Transport;
+import de.sciss.meloncillo.realtime.TransportPalette;
+import de.sciss.meloncillo.render.BounceDialog;
+import de.sciss.meloncillo.render.FilterDialog;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.surface.SurfaceFrame;
+import de.sciss.meloncillo.timeline.TimelineEvent;
+import de.sciss.meloncillo.timeline.TimelineFrame;
+import de.sciss.meloncillo.timeline.TimelineListener;
+import de.sciss.meloncillo.util.MapManager;
+import de.sciss.meloncillo.util.PrefsUtil;
+import de.sciss.util.Flag;
 
 /**
  *  The <code>Main</code> class contains the java VM
@@ -92,7 +117,7 @@ import de.sciss.gui.*;
  *  @version	0.75, 10-Jun-08
  */
 public class Main
-extends de.sciss.app.AbstractApplication
+extends BasicApplication
 implements PreferenceChangeListener, TimelineListener, ProgressComponent
 {
 //	/**
@@ -122,8 +147,8 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	 */
 	private static final String CREATOR  = "IchG";
 
-	private final de.sciss.app.DocumentHandler	docHandler	= new de.sciss.meloncillo.session.DocumentHandler();
-	private final de.sciss.app.WindowHandler	winHandler	= new de.sciss.meloncillo.gui.WindowHandler();
+//	private final de.sciss.app.DocumentHandler	docHandler	= new de.sciss.meloncillo.session.DocumentHandler();
+//	private final de.sciss.app.WindowHandler	winHandler	= new de.sciss.meloncillo.gui.WindowHandler( this );
 
 //	/**
 //	 *  The main preferences. subclasses can add listeners etc.
@@ -149,7 +174,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	/**
 	 *  Instance for getting copies of the global menu
 	 */
-	public final MenuFactory menuFactory;
+//	public final MenuFactory menuFactory;
 	/**
 	 *  Global transport object
 	 */
@@ -273,6 +298,8 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	
 	private final MainFrame mainFrame;
 
+	private final ProcessingThread.Listener		quitAfterSaveListener;
+
 	private static final String[] ANNA_BLUME = {
 		"Ich lege mich m\u00FCde ins k\u00FChlende Grab",
 		"Ferne Du",
@@ -364,13 +391,25 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 
 		doc			= new Session();
         transport	= new Transport( this, doc );
-		menuFactory	= new MenuFactory( this, doc );
+//		menuFactory	= new MenuFactory( this, doc );
 
 		// ---- listeners ----
 
 		doc.timeline.addTimelineListener( this );
 		prefs.addPreferenceChangeListener( this );
 		prefs.node( PrefsUtil.NODE_SHARED ).addPreferenceChangeListener( this );
+
+		quitAfterSaveListener = new ProcessingThread.Listener() {
+			public void processStarted( ProcessingThread.Event e ) { /* empty */ }
+
+			// if the saving was successfull, we will call closeAll again
+			public void processStopped( ProcessingThread.Event e )
+			{
+				if( e.isDone() ) {
+					quit();
+				}
+			}
+		};
 
 		// ---- component views ----
 
@@ -402,8 +441,9 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		addComponent( COMP_MAIN, mainFrame );
 
 		// ----
-		BasicFrame.layoutWindows( this, getStandardLayout(), true );
-
+//		BasicFrame.layoutWindows( this, getStandardLayout(), true );
+// EEE
+		
 		if( prefsVersion == 0.0 ) { // means no preferences found, so display splash screen
     		new de.sciss.meloncillo.debug.WelcomeScreen( this );
 		}
@@ -434,57 +474,57 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	 *  @see		de.sciss.meloncillo.gui.SpringDescr
 	 *  @see		de.sciss.meloncillo.gui.BasicFrame:layoutWindows( Main, Map, boolean )
 	 */
-	private Map getStandardLayout()
-	{
-		final HashMap	compMap		= new HashMap( 10 );
-		HashMap			springMap;
-		
-		springMap = new HashMap( 6 );
-		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, null ));
-		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.WEST, null ));
-		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
-		compMap.put( COMP_MAIN, springMap );
-
-		springMap = new HashMap( 6 );
-		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.SOUTH, COMP_MAIN ));
-		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.WEST, null ));
-//		springMap.put( SOUTH, new SpringDescr( SOUTH, null, -150 ));
-		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
-		compMap.put( COMP_SURFACE, springMap );
-
-		springMap = new HashMap( 6 );
-		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, COMP_SURFACE ));
-		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_SURFACE ));
-		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
-		compMap.put( COMP_OBSERVER, springMap );
-
-		springMap = new HashMap( 6 );
-		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.SOUTH, COMP_OBSERVER ));
-		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_SURFACE ));
-//		springMap.put( EAST, new SpringDescr( EAST, null, -150 ));
-		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
-		compMap.put( COMP_TIMELINE, springMap );
-
-		springMap = new HashMap( 6 );
-		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, null ));
-		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_MAIN ));
-		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
-		compMap.put( COMP_TRANSPORT, springMap );
-
-		springMap = new HashMap( 6 );
-		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, null ));
-		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_TRANSPORT ));
-		springMap.put( SpringDescr.VISIBLE, Boolean.FALSE );
-		compMap.put( COMP_REALTIME, springMap );
-		
-		springMap = new HashMap( 6 );
-		springMap.put( SpringDescr.SOUTH, new SpringDescr( SpringDescr.NORTH, COMP_TIMELINE ));
-		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.WEST, COMP_TRANSPORT ));
-		springMap.put( SpringDescr.VISIBLE, Boolean.FALSE );
-		compMap.put( COMP_METER, springMap );
-
-		return compMap;
-	}
+//	private Map getStandardLayout()
+//	{
+//		final HashMap	compMap		= new HashMap( 10 );
+//		HashMap			springMap;
+//		
+//		springMap = new HashMap( 6 );
+//		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, null ));
+//		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.WEST, null ));
+//		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
+//		compMap.put( COMP_MAIN, springMap );
+//
+//		springMap = new HashMap( 6 );
+//		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.SOUTH, COMP_MAIN ));
+//		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.WEST, null ));
+////		springMap.put( SOUTH, new SpringDescr( SOUTH, null, -150 ));
+//		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
+//		compMap.put( COMP_SURFACE, springMap );
+//
+//		springMap = new HashMap( 6 );
+//		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, COMP_SURFACE ));
+//		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_SURFACE ));
+//		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
+//		compMap.put( COMP_OBSERVER, springMap );
+//
+//		springMap = new HashMap( 6 );
+//		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.SOUTH, COMP_OBSERVER ));
+//		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_SURFACE ));
+////		springMap.put( EAST, new SpringDescr( EAST, null, -150 ));
+//		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
+//		compMap.put( COMP_TIMELINE, springMap );
+//
+//		springMap = new HashMap( 6 );
+//		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, null ));
+//		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_MAIN ));
+//		springMap.put( SpringDescr.VISIBLE, Boolean.TRUE );
+//		compMap.put( COMP_TRANSPORT, springMap );
+//
+//		springMap = new HashMap( 6 );
+//		springMap.put( SpringDescr.NORTH, new SpringDescr( SpringDescr.NORTH, null ));
+//		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.EAST, COMP_TRANSPORT ));
+//		springMap.put( SpringDescr.VISIBLE, Boolean.FALSE );
+//		compMap.put( COMP_REALTIME, springMap );
+//		
+//		springMap = new HashMap( 6 );
+//		springMap.put( SpringDescr.SOUTH, new SpringDescr( SpringDescr.NORTH, COMP_TIMELINE ));
+//		springMap.put( SpringDescr.WEST, new SpringDescr( SpringDescr.WEST, COMP_TRANSPORT ));
+//		springMap.put( SpringDescr.VISIBLE, Boolean.FALSE );
+//		compMap.put( COMP_METER, springMap );
+//
+//		return compMap;
+//	}
 
 //	/**
 //	 *  Retrieves a specific frame of the application
@@ -558,22 +598,37 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 
 	public synchronized void quit()
 	{
-		if( !forcedQuit && !menuFactory.confirmUnsaved( null, getResourceString( "menuQuit" ))) return;
+		final Flag				confirmed	= new Flag( false );
+		final ProcessingThread	pt			= getMenuFactory().closeAll( forcedQuit, confirmed );
 
-		try {
-			transport.quit();
-			// clear session prefs
-			PrefsUtil.removeAll( getUserPrefs().node( PrefsUtil.NODE_SESSION ), true );
-			// XXX disconnect OSC ...
-		}
-		catch( BackingStoreException e1 ) {
-			GUIUtil.displayError( null, e1,
-				getResourceString( "errSavePrefs" ));
-		}
-		finally {
+		if( pt != null ) {
+			pt.addListener( quitAfterSaveListener );
+			((BasicDocument) pt.getClientArg( "doc" )).start( pt );
+		} else if( confirmed.isSet() ) {
+//			OSCRoot.getInstance().quit();
+//			SuperColliderClient.getInstance().quit();
 			super.quit();
 		}
 	}
+
+//	public synchronized void quit()
+//	{
+//		if( !forcedQuit && !getMenuFactory().confirmUnsaved( null, getResourceString( "menuQuit" ))) return;
+//
+//		try {
+//			transport.quit();
+//			// clear session prefs
+//			PrefsUtil.removeAll( getUserPrefs().node( PrefsUtil.NODE_SESSION ), true );
+//			// XXX disconnect OSC ...
+//		}
+//		catch( BackingStoreException e1 ) {
+//			GUIUtil.displayError( null, e1,
+//				getResourceString( "errSavePrefs" ));
+//		}
+//		finally {
+//			super.quit();
+//		}
+//	}
 	
 	public void forceQuit()
 	{
@@ -624,11 +679,11 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		if( className != null ) {
 			try {
 				UIManager.setLookAndFeel( className );
-				BasicFrame.lookAndFeelUpdate();
+//				BasicFrame.lookAndFeelUpdate();	// EEE
 			}
 			catch( Exception e1 ) {
 				if( mainFrame != null ) {
-					GUIUtil.displayError( mainFrame, e1, null );
+					GUIUtil.displayError( mainFrame.getWindow(), e1, null );
 				} else {
 					System.err.println( e1.getLocalizedMessage() );
 				}
@@ -648,14 +703,29 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		return APP_VERSION;
 	}
 	
-	public de.sciss.app.WindowHandler getWindowHandler()
+//	public de.sciss.app.WindowHandler getWindowHandler()
+//	{
+//		return winHandler;
+//	}
+
+	public BasicWindowHandler createWindowHandler()
 	{
-		return winHandler;
+		return new de.sciss.meloncillo.gui.WindowHandler( this );
 	}
 
-	public de.sciss.app.DocumentHandler getDocumentHandler()
+//	public de.sciss.app.DocumentHandler getDocumentHandler()
+//	{
+//		return docHandler;
+//	}
+	
+	public DocumentHandler createDocumentHandler()
 	{
-		return docHandler;
+		return new de.sciss.meloncillo.session.DocumentHandler();
+	}
+	
+	public BasicMenuFactory createMenuFactory()
+	{
+		return new MenuFactory( this, doc );
 	}
    
 // ---------------- ProgressComponent interface ---------------- 
@@ -675,9 +745,9 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		mainFrame.setProgression( p );
 	}
 	
-	public void	finishProgression( boolean success )
+	public void	finishProgression( int type)
 	{
-		mainFrame.finishProgression( success );
+		mainFrame.finishProgression( type );
 	}
 	
 	public void setProgressionText( String text )
@@ -693,6 +763,16 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	public void displayError( Exception e, String processName )
 	{
 		mainFrame.displayError( e, processName );
+	}
+	
+	public void addCancelListener( ActionListener al )
+	{
+		mainFrame.addCancelListener( al );
+	}
+
+	public void removeCancelListener( ActionListener al )
+	{
+		mainFrame.removeCancelListener( al );
 	}
 
 // ---------------- TimelineListener interface ---------------- 

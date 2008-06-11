@@ -2,7 +2,7 @@
  *  DoClickAction.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -46,7 +46,7 @@ import javax.swing.KeyStroke;
  *  necessarily in the focussed window.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.16, 05-May-05
  *
  *  @see	javax.swing.AbstractButton#doClick()
  */
@@ -94,8 +94,6 @@ extends KeyedAction
 	 *  @param  b   a button whose <code>doClick</code>
 	 *				method is called when the action
 	 *				is performed.
-	 *  @see	ToolPalette#ToolPalette( Main, Session )
-	 *  @see	MenuFactory#addGlobalKeyCommand( Action )
 	 */
 	public DoClickAction( AbstractButton b, KeyStroke stroke )
 	{

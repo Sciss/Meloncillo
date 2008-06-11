@@ -36,7 +36,6 @@ import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.session.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
 
 /**
  *  A simple implementation of the <code>TransmitterEditor</code>
@@ -64,7 +63,7 @@ implements TransmitterEditor
 	protected AbstractTransmitterEditor()
 	{
 		super();
-        HelpGlassPane.setHelp( this, "TransmitterEditor" );
+//        HelpGlassPane.setHelp( this, "TransmitterEditor" );	// EEE
     }
 
 	/**

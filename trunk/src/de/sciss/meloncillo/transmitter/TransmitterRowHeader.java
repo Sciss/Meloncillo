@@ -45,7 +45,6 @@ import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.session.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
 
 /**
  *	A row header in Swing's table 'ideology'
@@ -136,7 +135,7 @@ implements MouseListener, DynamicListening
 			public void sessionObjectMapChanged( SessionCollection.Event e ) {}
 		};
 	
-        HelpGlassPane.setHelp( this, "TransmitterTrack" );
+//        HelpGlassPane.setHelp( this, "TransmitterTrack" );	// EEE
     }
 	
 	/**

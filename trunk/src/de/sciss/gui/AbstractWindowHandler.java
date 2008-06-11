@@ -2,7 +2,7 @@
  *  AbstractWindowHandler.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -33,24 +33,26 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Font;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import javax.swing.JFrame;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
+import de.sciss.app.GraphicsHandler;
 
 /**
  *  A rudimentary implementation of the <code>de.sciss.app.WindowHandler</code>
  *	interface.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.17, 09-Jul-06
  */
 public abstract class AbstractWindowHandler
 implements de.sciss.app.WindowHandler
 {
-	private final java.util.List	collWindows	= new ArrayList();
+	private final List	collWindows	= new ArrayList();
 
 	protected AbstractWindowHandler()
 	{
@@ -58,26 +60,26 @@ implements de.sciss.app.WindowHandler
 	}
 
 	/**
-	 *	@sync	this method is synchronized
+	 *	@synchronization	this method is synchronized
 	 */
-	public void addWindow( JFrame f, java.util.Map options )
+	public void addWindow( AbstractWindow w, Map options )
 	{
 		synchronized( collWindows ) {
-			if( collWindows.contains( f )) {
-				throw new RuntimeException( "duplicate window registration : "+f.getTitle() );
+			if( collWindows.contains( w )) {
+				throw new IllegalArgumentException( "Duplicate window registration" );
 			}
-			collWindows.add( f );
+			collWindows.add( w );
 		}
 	}
 
 	/**
-	 *	@sync	this method is synchronized
+	 *	@synchronization	this method is synchronized
 	 */
-	public void removeWindow( JFrame f, java.util.Map options )
+	public void removeWindow( AbstractWindow w, Map options )
 	{
 		synchronized( collWindows ) {
-			if( !collWindows.remove( f )) {
-				throw new RuntimeException( "tried to remove unknown window : "+f.getTitle() );
+			if( !collWindows.remove( w )) {
+				throw new IllegalArgumentException( "Tried to remove unknown window" );
 			}
 		}
 	}
@@ -85,17 +87,22 @@ implements de.sciss.app.WindowHandler
 	public Iterator getWindows()
 	{
 		synchronized( collWindows ) {
-			return collWindows.iterator();	// XXX or a copy?
+			return Collections.unmodifiableList( collWindows ).iterator();
 		}
 	}
 
-	public static void setDeepFont( Container c, java.util.List exclude )
+	public static void setDeepFont( Container c )
 	{
-		AbstractWindowHandler.setDeepFont( c,
-			AbstractApplication.getApplication().getWindowHandler().getDefaultFont(), exclude );
+		setDeepFont( c, null );
+	}
+	
+	public static void setDeepFont( Container c, List exclude )
+	{
+		setDeepFont( c,
+			AbstractApplication.getApplication().getGraphicsHandler().getFont( GraphicsHandler.FONT_SYSTEM | GraphicsHandler.FONT_SMALL ), exclude );
 	}
 
-	private static void setDeepFont( Container c, Font fnt, java.util.List exclude )
+	private static void setDeepFont( Container c, Font fnt, List exclude )
 	{
 		final Component[] comp = c.getComponents();
 		

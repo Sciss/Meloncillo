@@ -35,8 +35,6 @@ import java.io.*;
 
 import de.sciss.meloncillo.util.*;
 
-import de.sciss.gui.*;
-
 /**
  *  A lightweight subclass
  *  of LispRenderPlugIn used
@@ -55,7 +53,7 @@ extends LispRenderPlugIn
 	public LispFilter()
 	{
 		super();
-        HelpGlassPane.setHelp( this, "FilterLisp" );
+//        HelpGlassPane.setHelp( this, "FilterLisp" );	// EEE
 	}
 
 	/**

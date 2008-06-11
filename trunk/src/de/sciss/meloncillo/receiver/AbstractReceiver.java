@@ -35,9 +35,9 @@ import java.io.*;
 import java.util.*;
 import org.w3c.dom.*;
 
-import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 /**
  *  A simple implementation of the <code>Receiver</code>
@@ -74,7 +74,8 @@ implements Receiver
 	{
 		super.init();
 		
-		final NumberSpace		spcCoord	= new NumberSpace( 0.0, 1.0, 0.0001, 0.5, 0.1 );
+//		final NumberSpace		spcCoord	= new NumberSpace( 0.0, 1.0, 0.0001, 0.5, 0.1 );
+		final NumberSpace		spcCoord	= new NumberSpace( 0.0, 1.0, 0.0, 0, 4, 0.5 );
 		final MapManager		map			= getMap();
 		
 		map.putContext( null, MAP_KEY_X, new MapManager.Context( MapManager.Context.FLAG_OBSERVER_DISPLAY |

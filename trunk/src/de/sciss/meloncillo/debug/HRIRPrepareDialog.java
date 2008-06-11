@@ -40,6 +40,7 @@ import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
+import de.sciss.app.AbstractApplication;
 import de.sciss.gui.*;
 import de.sciss.io.*;
 
@@ -60,18 +61,15 @@ implements RunnableProcessing, ActionListener
 	private static final int	IR_LENGTH	= 1024;		// truncation length of the original IRs
 
 	private final PathField	ggInputDir, ggOutputDir;
-
-	private final Main root;
-	private final Session doc;
 	
 	private static final String TITLE = "HRIR Preparation";
+	
+	private final Session doc;
 
-	public HRIRPrepareDialog( Main root, Session doc )
+	public HRIRPrepareDialog( Session doc )
 	{
 		super( TITLE );
-		
-		this.root = root;
-		this.doc  = doc;
+		this.doc	= doc;
 		
 		Container cp = getContentPane();
 		cp.setLayout( new SpringLayout() );
@@ -112,12 +110,12 @@ implements RunnableProcessing, ActionListener
 	 *					action will create and open a new
 	 *					instance of <code>HRIRPrepareDialog</code>.
 	 */
-	public static Action getMenuAction( final Main root, final Session doc )
+	public static Action getMenuAction( final Session doc )
 	{
 		return new AbstractAction( TITLE ) {
 			public void actionPerformed( ActionEvent e )
 			{
-				root.addComponent( new Integer( -1 ), new HRIRPrepareDialog( root, doc ));
+				AbstractApplication.getApplication().addComponent( new Integer( -1 ), new HRIRPrepareDialog( doc ));
 			}
 		};
 	}
@@ -128,7 +126,10 @@ implements RunnableProcessing, ActionListener
 			ggInputDir.getPath(),
 			ggOutputDir.getPath()
 		};
-		
+				
+		final Main root = (Main) AbstractApplication.getApplication();
+//		public ProcessingThread( final RunnableProcessing rp, final ProgressComponent pc, final Application root,
+//			 Session doc, String procName, final Object rpArgument, int requiredDoors )
 		new ProcessingThread( this, root, root, doc, getTitle(), fileArgs, 0 );
 	}
 	

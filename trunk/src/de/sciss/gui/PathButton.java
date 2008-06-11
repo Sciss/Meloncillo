@@ -2,7 +2,7 @@
  *  PathButton.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -26,32 +26,29 @@
  *  Changelog:
  *		20-May-05	created from de.sciss.meloncillo.gui.PathButton
  *		29-May-05	supports drag export
+ *		03-Aug-05	extends ModificationButton
+ *		15-Aug-05	getTransferData checks for file being null
  */
 
 package de.sciss.gui;
 
 import java.awt.Component;
+import java.awt.Dialog;
 import java.awt.FileDialog;
 import java.awt.Frame;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.Icon;
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.event.MouseInputAdapter;
-import javax.swing.filechooser.FileSystemView;
 
-import de.sciss.app.AbstractApplication;
 import de.sciss.app.BasicEvent;
 import de.sciss.app.EventManager;
 
@@ -68,39 +65,32 @@ import net.roydesign.ui.FolderDialog;
  *  path.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 29-May-05
+ *  @version	0.17, 26-Mar-07
  *
  *  @see		java.awt.FileDialog
  *  @see		net.roydesign.ui.FolderDialog
  */
 public class PathButton
-extends JButton
+extends ModificationButton
 implements EventManager.Processor
 {
 	private File						path	= null;
 	private final int					type;
-	private final String				dlgTxt;
+	private String						dlgTxt;
 	private final EventManager	elm		= new EventManager( this );
 
-	private static final DataFlavor[] supportedFlavors = {
+	protected static final DataFlavor[] supportedFlavors = {
 		DataFlavor.javaFileListFlavor, DataFlavor.stringFlavor
 	};
 	
-	/**
-	 *  Constructs a new <code>PathButton</code> for
-	 *  given type of file chooser and optional dialog text
-	 *
-	 *  @param  type	the type of file chooser to display. the values
-	 *					are those from <code>PathField</code>, e.g.
-	 *					<code>PathField.TYPE_INPUT</code>
-	 *  @param  dlgTxt  text to display in the file chooser dialog or <code>null</code>
-	 */
-	public PathButton( int type, String dlgTxt )
+	public PathButton()
 	{
-//		super( new TiledImageIcon( GraphicsUtil.imgToolIcons, GraphicsUtil.ICON_CHOOSEPATH, 0 ));
-		super( FileSystemView.getFileSystemView().getSystemIcon( new File( System.getProperty( "user.home" ))));
+		this( PathField.TYPE_INPUTFILE );
+	}
 	
-		this.dlgTxt = dlgTxt;
+	public PathButton( int type )
+	{
+		super( SHAPE_LIST );
 		this.type   = type;
 
 		setToolTipText( GUIUtil.getResourceString( "buttonChoosePathTT" ));
@@ -118,7 +108,7 @@ implements EventManager.Processor
 			
 			public void mouseReleased( MouseEvent e )
 			{
-				if( !dndStarted ) showFileChooser();
+				if( !dndStarted && contains( e.getPoint() )) showFileChooser();
 				dndInit		= null;
 				dndStarted	= false;
 			}
@@ -139,6 +129,26 @@ implements EventManager.Processor
 		addMouseListener( mia );
 		addMouseMotionListener( mia );
 	}
+
+	/**
+	 *  Constructs a new <code>PathButton</code> for
+	 *  given type of file chooser and optional dialog text
+	 *
+	 *  @param  type	the type of file chooser to display. the values
+	 *					are those from <code>PathField</code>, e.g.
+	 *					<code>PathField.TYPE_INPUT</code>
+	 *  @param  dlgTxt  text to display in the file chooser dialog or <code>null</code>
+	 */
+	public PathButton( int type, String dlgTxt )
+	{
+		this( type );
+		setDialogText( dlgTxt );
+	}
+	
+	public void setDialogText( String dlgTxt )
+	{
+		this.dlgTxt = dlgTxt;
+	}
 	
 	/**
 	 *  Sets the button's path. This is path will be
@@ -157,7 +167,7 @@ implements EventManager.Processor
 	 *
 	 *  @param  path	the new path for the button and the event
 	 */
-	private void setPathAndDispatchEvent( File path )
+	protected void setPathAndDispatchEvent( File path )
 	{
 		setPath( path );
 		elm.dispatchEvent( new PathEvent( this, PathEvent.CHANGED, System.currentTimeMillis(), path ));
@@ -185,7 +195,7 @@ implements EventManager.Processor
 	 *  file chooser).
 	 *
 	 *  @param  listener	the <code>PathListener</code> to register
-	 *  @see	de.sciss.meloncillo.util.EventManager#addListener( Object )
+	 *  @see	de.sciss.app.EventManager#addListener( Object )
 	 */
 	public void addPathListener( PathListener listener )
 	{
@@ -197,7 +207,7 @@ implements EventManager.Processor
 	 *  from receiving path change events.
 	 *
 	 *  @param  listener	the <code>PathListener</code> to unregister
-	 *  @see	de.sciss.meloncillo.util.EventManager#removeListener( Object )
+	 *  @see	de.sciss.app.EventManager#removeListener( Object )
 	 */
 	public void removePathListener( PathListener listener )
 	{
@@ -221,12 +231,17 @@ implements EventManager.Processor
 		} // for( i = 0; i < elm.countListeners(); i++ )
 	}
 
-	private void showFileChooser()
+	protected void showDialog( Dialog dlg )
 	{
-		File		path;
+		dlg.setVisible( true );
+	}
+	
+	protected void showFileChooser()
+	{
+		File		p;
 		FileDialog	fDlg;
-		String		fPath, fDir, fFile;
-		int			i;
+		String		fDir, fFile; // , fPath;
+//		int			i;
 		Component	win;
 
 		for( win = this; !(win instanceof Frame); ) { 
@@ -234,7 +249,7 @@ implements EventManager.Processor
 			if( win == null ) return;
 		}
 
-		path = getPath();
+		p = getPath();
 		switch( type & PathField.TYPE_BASICMASK ) {
 		case PathField.TYPE_INPUTFILE:
 			fDlg = new FileDialog( (Frame) win, dlgTxt, FileDialog.LOAD );
@@ -250,11 +265,11 @@ implements EventManager.Processor
 			assert false : (type & PathField.TYPE_BASICMASK);
 			break;
 		}
-		if( path != null ) {
-			fDlg.setFile( path.getName() );
-			fDlg.setDirectory( path.getParent() );
+		if( p != null ) {
+			fDlg.setFile( p.getName() );
+			fDlg.setDirectory( p.getParent() );
 		}
-		fDlg.setVisible( true );
+		showDialog( fDlg );
 		fDir	= fDlg.getDirectory();
 		fFile	= fDlg.getFile();
 					
@@ -265,11 +280,11 @@ implements EventManager.Processor
 		if( (fFile != null) && (fDir != null) ) {
 
 			if( (type & PathField.TYPE_BASICMASK) == PathField.TYPE_FOLDER ) {
-				path = new File( fDir );
+				p = new File( fDir );
 			} else {
-				path = new File( fDir + fFile );
+				p = new File( fDir + fFile );
 			}
-			setPathAndDispatchEvent( path );
+			setPathAndDispatchEvent( p );
 		}
 
 		fDlg.dispose();
@@ -280,41 +295,41 @@ implements EventManager.Processor
 	private class PathTransferHandler
 	extends TransferHandler
 	{
-		private PathTransferHandler() {}
+		protected PathTransferHandler() { /* empty */ }
 
 		/**
 		 * Overridden to import a Pathname (Fileliste or String) if it is available.
 		 */
 		public boolean importData( JComponent c, Transferable t )
 		{
-			Object			o;
-			java.util.List  fileList;
-			File			path	= null;
+			Object		o;
+			List		fileList;
+			File		newPath	= null;
 		
 			try {
 				if( t.isDataFlavorSupported( DataFlavor.javaFileListFlavor )) {
 					o =  t.getTransferData( DataFlavor.javaFileListFlavor );
-					if( o instanceof java.util.List ) {
-						fileList = (java.util.List) o;
+					if( o instanceof List ) {
+						fileList = (List) o;
 						if( !fileList.isEmpty() ) {
 							o  =  fileList.get( 0 );
 							if( o instanceof File ) {
-								path = (File) o;
+								newPath = (File) o;
 							} else {
-								path = new File( o.toString() );
+								newPath = new File( o.toString() );
 							}
 						}
 					}
 				} else if( t.isDataFlavorSupported( DataFlavor.stringFlavor )) {
-					path = new File( (String) t.getTransferData( DataFlavor.stringFlavor ));
+					newPath = new File( (String) t.getTransferData( DataFlavor.stringFlavor ));
 				}
-				if( path != null ) {
-					setPathAndDispatchEvent( path );
+				if( newPath != null ) {
+					setPathAndDispatchEvent( newPath );
 					return true;
 				}
 			}
-			catch( UnsupportedFlavorException e1 ) {}
-			catch( IOException e2 ) {}
+			catch( UnsupportedFlavorException e1 ) { e1.printStackTrace(); }
+			catch( IOException e2 ) { e2.printStackTrace(); }
 
 			return false;
 		}
@@ -359,7 +374,7 @@ implements EventManager.Processor
 	{
 		private final File f;
 		
-		private PathTransferable( File f )
+		protected PathTransferable( File f )
 		{
 			this.f	= f;
 		}
@@ -380,8 +395,9 @@ implements EventManager.Processor
 		public Object getTransferData( DataFlavor flavor )
 		throws UnsupportedFlavorException, IOException
 		{
+			if( f == null ) throw new IOException();
 			if( flavor.equals( DataFlavor.javaFileListFlavor )) {
-				final java.util.List coll = new ArrayList( 1 );
+				final List coll = new ArrayList( 1 );
 				coll.add( f );
 				return coll;
 			} else if( flavor.equals( DataFlavor.stringFlavor )) {

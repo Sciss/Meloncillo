@@ -1,8 +1,8 @@
 /*
- *  BasicPalette.java
- *  Meloncillo
+ *  Disposable.java
+ *  de.sciss.util package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -24,37 +24,12 @@
  *
  *
  *  Changelog:
- *      24-Dec-04   created
+ *		19-Feb-06	created
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.util;
 
-import net.roydesign.mac.MRJAdapter;
-
-/**
- *  Common functionality for all application quasi-floating palettes.
- *
- *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
- *
- *  @todo   global keyboard accelerator keys do not work on
- *          non-macos systems
- */
-public class BasicPalette
-extends BasicFrame
+public interface Disposable
 {
-	/**
-	 *  Constructs a new palette.
-	 *
-	 *  @param  title   title shown in the palette's title bar
-	 */
-	public BasicPalette( String title )
-	{
-		super( title );
-	}
-	
-	protected boolean hasMenuBar()
-	{
-		return MRJAdapter.isSwingUsingScreenMenuBar();  // false on non-mac systems
-	}
+	public void dispose();
 }

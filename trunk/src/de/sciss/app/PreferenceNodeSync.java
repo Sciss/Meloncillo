@@ -2,7 +2,7 @@
  *  PreferenceNodeSync.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@
 
 package de.sciss.app;
 
-import java.util.prefs.*;
+import java.util.prefs.Preferences;
 
 /**
  *  Objects implementing this interface

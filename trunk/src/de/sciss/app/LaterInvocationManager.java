@@ -2,7 +2,7 @@
  *  LaterInvocationManager.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,9 +29,7 @@
 
 package de.sciss.app;
 
-import java.awt.*;
-import java.lang.reflect.*;
-import java.util.prefs.*;
+import java.util.prefs.PreferenceChangeEvent;
 
 /**
  *  The LaterInvocationManager is a utility
@@ -47,7 +45,7 @@ import java.util.prefs.*;
  *  LaterInvocationManager.Listener instance...
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.13, 05-May-06
  *
  *  @todo   conduct further research on the preference dispatching thread
  *			and the necessity to invoke processing on the swing thread
@@ -71,8 +69,8 @@ implements EventManager.Processor
 	public LaterInvocationManager( LaterInvocationManager.Listener listener )
 	{
 		super();
-		this.eventProcessor = this;		// egocentric radio waves
-		this.addListener( listener );
+		eventProcessor = this;		// egocentric radio waves
+		addListener( listener );
 	}
 	
 	/**
@@ -91,8 +89,8 @@ implements EventManager.Processor
 			PreferenceChangeEvent e = (PreferenceChangeEvent) o;
 			// because addListener in the constructor may be
 			// postponed, it's possible that we don't find our client here
-			System.err.println( "queue "+(this.countListeners() == 0 ? "[client pending]: " :
-				"[client "+this.getListener(0).getClass().getName()+"]: ")+e.getKey()+" = "+e.getNewValue() );
+			System.err.println( "queue "+(countListeners() == 0 ? "[client pending]: " :
+				"[client "+getListener(0).getClass().getName()+"]: ")+e.getKey()+" = "+e.getNewValue() );
 		}
 	}
 
@@ -107,10 +105,10 @@ implements EventManager.Processor
 		LaterInvocationManager.Listener listener;
 		int i;
 		
-		for( i = 0; i < this.countListeners(); i++ ) {
-			listener = (LaterInvocationManager.Listener) this.getListener( i );
+		for( i = 0; i < countListeners(); i++ ) {
+			listener = (LaterInvocationManager.Listener) getListener( i );
 			listener.laterInvocation( e.getSource() );
-		} // for( i = 0; i < this.countListeners(); i++ )
+		} // for( i = 0; i < countListeners(); i++ )
 	}
 	
 	/**
@@ -124,7 +122,7 @@ implements EventManager.Processor
 	private static class Event
 	extends BasicEvent
 	{
-		private Event( Object o )
+		protected Event( Object o )
 		{
 			super( o, 0, System.currentTimeMillis() );
 		}

@@ -2,7 +2,7 @@
  *  AncestorAdapter.java
  *  de.sciss.app package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -29,7 +29,8 @@
 
 package de.sciss.app;
 
-import javax.swing.event.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 
 /**
  *  In analogy to <code>ComponentAdapter</code>
@@ -39,14 +40,14 @@ import javax.swing.event.*;
  *  methods they're interested in.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.11, 25-Feb-08
  *
  *  @see	java.awt.event.ComponentAdapter
  */
 public class AncestorAdapter
 implements AncestorListener
 {
-    public void ancestorAdded( AncestorEvent e ) {}
-    public void ancestorRemoved( AncestorEvent e ) {}
-    public void ancestorMoved( AncestorEvent e ) {}
+    public void ancestorAdded( AncestorEvent e ) { /* empty */ }
+    public void ancestorRemoved( AncestorEvent e ) { /* empty */ }
+    public void ancestorMoved( AncestorEvent e ) { /* empty */ }
 }

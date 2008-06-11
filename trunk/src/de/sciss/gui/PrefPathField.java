@@ -2,7 +2,7 @@
  *  PrefPathField.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -45,19 +45,22 @@ import de.sciss.app.PreferenceEntrySync;
  *  Preferences association
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.28, 17-Apr-07
  */
 public class PrefPathField
 extends PathField
 implements  DynamicListening, PreferenceChangeListener,
 			LaterInvocationManager.Listener, PreferenceEntrySync
 {
-	private boolean listening				= false;
-	private Preferences prefs				= null;
-	private String key						= null;
-	private final LaterInvocationManager lim= new LaterInvocationManager( this );
+	private boolean							listening		= false;
+	private Preferences						prefs			= null;
+	private String							key				= null;
+	private final LaterInvocationManager	lim				= new LaterInvocationManager( this );
 
-	private File defaultValue				= null;
+	private PathListener					listener;
+	private File							defaultValue	= null;
+	private boolean							readPrefs		= true;
+	protected boolean						writePrefs		= true;
 
 	/**
 	 *  Constructs a new <code>PrefPathField</code>.
@@ -73,31 +76,80 @@ implements  DynamicListening, PreferenceChangeListener,
 		super( type, dlgTxt );
 		
 		new DynamicAncestorAdapter( this ).addTo( this );
-		addPathListener( new PathListener() {
+		listener = new PathListener() {
 			public void pathChanged( PathEvent e )
 			{
-				updatePrefs( e.getPath() );
+				if( writePrefs ) writePrefs();
 			}
-		});
+		};
 	}
 	
+	public void setReadPrefs( boolean b )
+	{
+		if( b != readPrefs ) {
+			readPrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( readPrefs ) {
+					prefs.addPreferenceChangeListener( this );
+				} else {
+					prefs.removePreferenceChangeListener( this );
+				}
+			}
+		}
+	}
+	
+	public boolean getReadPrefs()
+	{
+		return readPrefs;
+	}
+	
+	public void setWritePrefs( boolean b )
+	{
+		if( b != writePrefs ) {
+			writePrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( writePrefs ) {
+					this.addPathListener( listener );
+				} else {
+					this.removePathListener( listener );
+				}
+			}
+		}
+	}
+	
+	public boolean getWritePrefs()
+	{
+		return writePrefs;
+	}
+
 	public void setPath( File f )
 	{
 		super.setPath( f );
-		updatePrefs( f );
+		if( writePrefs ) writePrefs();
 	}
 	
-	private void updatePrefs( File guiPath )
+	public void writePrefs()
 	{
-		if( prefs != null ) {
-			String oldValue	= prefs.get( key, "" );
-			File prefsPath  = new File( oldValue );
+		if( (prefs != null) && (key != null) ) {
+			String oldValue		= prefs.get( key, "" );
+			File prefsPath 		= new File( oldValue );
+			final File guiPath	= getPath();
 			if( !guiPath.equals( prefsPath )) {
 				prefs.put( key, guiPath.getPath() );
 			}
 		}
 	}
 	
+	public void setPreferenceNode( Preferences prefs )
+	{
+		setPreferences( prefs, this.key );
+	}
+
+	public void setPreferenceKey( String key )
+	{
+		setPreferences( this.prefs, key );
+	}
+
 	/**
 	 *  Enable Preferences synchronization.
 	 *  This method is not thread safe and
@@ -119,7 +171,7 @@ implements  DynamicListening, PreferenceChangeListener,
 	 */
 	public void setPreferences( Preferences prefs, String key )
 	{
-		if( this.prefs == null ) {
+		if( (this.prefs == null) || (this.key != null) ) {
 			defaultValue = getPath();
 		}
 		if( listening ) {
@@ -139,18 +191,20 @@ implements  DynamicListening, PreferenceChangeListener,
 	public void startListening()
 	{
 		if( prefs != null ) {
-//System.err.println( "startListening ("+key+"). adding listener" );				
-			prefs.addPreferenceChangeListener( this );
-			listening		= true;
-			laterInvocation( new PreferenceChangeEvent( prefs, key, prefs.get( key, null ) ));
+			listening = true;
+			if( writePrefs ) this.addPathListener( listener );
+			if( readPrefs ) {
+				prefs.addPreferenceChangeListener( this );
+				readPrefs();
+			}
 		}
 	}
 
 	public void stopListening()
 	{
 		if( prefs != null ) {
-			prefs.removePreferenceChangeListener( this );
-//System.err.println( "stopListening ("+key+"). removed listener" );				
+			if( readPrefs ) prefs.removePreferenceChangeListener( this );
+			if( writePrefs ) this.removePathListener( listener );
 			listening = false;
 		}
 	}
@@ -159,15 +213,31 @@ implements  DynamicListening, PreferenceChangeListener,
 	public void laterInvocation( Object o )
 	{
 		String prefsValue   = ((PreferenceChangeEvent) o).getNewValue();
+		readPrefsFromString( prefsValue );
+	}
+	
+	public void readPrefs()
+	{
+		if( (prefs != null) && (key != null) ) readPrefsFromString( prefs.get( key, null ));
+	}
+
+	private void readPrefsFromString( String prefsValue )
+	{
 		if( prefsValue == null ) {
-			if( defaultValue != null ) updatePrefs( defaultValue );
+			if( defaultValue != null ) {
+				setPath( defaultValue );
+				if( writePrefs ) writePrefs();
+			}
 			return;
 		}
-		File prefsPath		= new File( prefsValue );
+		
+		final File prefsPath = new File( prefsValue );
 	
 //System.err.println( "lim : "+prefsPath );
 		if( !prefsPath.equals( getPath() )) {
+			if( listening && writePrefs ) this.removePathListener( listener );
 			setPathAndDispatchEvent( prefsPath );
+			if( listening && writePrefs ) this.addPathListener( listener );
 		}
 	}
 	

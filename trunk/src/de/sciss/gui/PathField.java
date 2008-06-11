@@ -2,7 +2,7 @@
  *  PathField.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -25,6 +25,9 @@
  *
  *  Changelog:
  *		20-May-05	created from de.sciss.meloncillo.gui.PathField
+ *		08-Sep-05	write-protected icon
+ *		24-Sep-05	changed META shortcuts to work on PC (= Ctrl+Shift)
+ *		06-Nov-05	extends SpringPanel ; improved checkExists method ; escape key similar to numberfield
  */
 
 package de.sciss.gui;
@@ -32,10 +35,10 @@ package de.sciss.gui;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Paint;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -44,11 +47,14 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.InputMap;
-import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JRootPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 
-import de.sciss.app.AbstractApplication;
 import de.sciss.app.BasicEvent;
 import de.sciss.app.EventManager;
 
@@ -61,10 +67,10 @@ import de.sciss.app.EventManager;
  *  to a different file.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.32, 26-Mar-07
  */
 public class PathField
-extends JPanel
+extends SpringPanel
 implements ActionListener, PathListener, EventManager.Processor
 {
 // -------- public Variablen --------
@@ -91,42 +97,50 @@ implements ActionListener, PathListener, EventManager.Processor
 
 // -------- private Variablen --------
 
-	private static PathList		userPaths			= null;
+	protected static PathList	userPaths			= null;
 	private static final int	USERPATHS_NUM		= 9;		// userPaths capacity
 	private static final int	ABBR_LENGTH			= 12;		// constants for abbreviate
-	private static final int	DEFAULT_COLUMN_NUM  = 32;		// constants for IOTextField
+//	private static final int	DEFAULT_COLUMN_NUM  = 32;		// constants for IOTextField
 
-	private final IOTextField	ggPath;
+	protected final IOTextField	ggPath;
 	private final PathButton	ggChoose;
-	private ColouredTextField	ggFormat	= null;
+	private final JLabel		lbWarn;
+	protected ColouredTextField	ggFormat	= null;
 	
 	private static final Color  COLOR_ERR   = new Color( 0xFF, 0x00, 0x00, 0x2F );
 	private static final Color  COLOR_EXISTS= new Color( 0x00, 0x00, 0xFF, 0x2F );
-	private static final Color  COLOR_PROPSET=new Color( 0x00, 0xFF, 0x00, 0x2F );
+	protected static final Color COLOR_PROPSET=new Color( 0x00, 0xFF, 0x00, 0x2F );
 
 	private final int		type;
-	private final String	dlgTxt;
-	private String			scheme;
-	private String			protoScheme;
+//	private final String	dlgTxt;
+	protected String		scheme;
+	protected String		protoScheme;
 	private PathField		superPaths[];
 
-	private final java.util.List	collChildren	= new ArrayList();
+	private final List				collChildren	= new ArrayList();
 	private final EventManager		elm				= new EventManager( this );
 
+	private static final int		MENU_SHORTCUT	= Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+	protected static final int		myMeta			= MENU_SHORTCUT == InputEvent.CTRL_MASK ?
+		InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK : MENU_SHORTCUT;	// META on Mac, CTRL+SHIFT on PC
+
+	private static Icon				icnAlertStop	= null;
+	
+	private boolean warnWhenExists			= false;
+	private boolean errWhenExistsNot		= false;
+	private boolean errWhenWriteProtected	= false;
+	
 // -------- public Methoden --------
 
-	/**
-	 *  Create a new <code>PathField</code>
-	 *
-	 *  @param  type	one of the types covered by TYPE_BASICMASK
-	 *					bitwise-OR optional displays like TYPE_FORMATFIELD
-	 *  @param  dlgTxt  the text string to display in the filechooser or <code>null</code>
-	 */
-	public PathField( int type, String dlgTxt )
+	public PathField()
+	{
+		this( TYPE_INPUTFILE );
+	}
+	
+	public PathField( int type )
 	{
 		super();
-		this.type		= type;
-		this.dlgTxt		= dlgTxt;
+		this.type = type;
 		
 		// first instance initialized userPath list
 		if( userPaths == null ) {
@@ -146,44 +160,25 @@ implements ActionListener, PathListener, EventManager.Processor
 			}
 		}
 
-		GridBagLayout lay		= new GridBagLayout();
-		GridBagConstraints con	= new GridBagConstraints();
-
-		setLayout( lay );
+		lbWarn				= new JLabel();
+		gridAdd( lbWarn, 0, 0 );
 
 		ggPath			= new IOTextField();
 		ggPath.addActionListener( this );		// High-Level Events: Return-Hit weiterleiten
-		ggChoose		= new PathButton( type, dlgTxt );
+		ggChoose		= createPathButton( type );
 		ggChoose.addPathListener( this );
-		con.anchor		= GridBagConstraints.WEST;
-		con.gridwidth	= GridBagConstraints.RELATIVE;
-		con.fill		= GridBagConstraints.HORIZONTAL;
-		con.gridy		= 1;
-		con.weightx		= 1.0;
-		lay.setConstraints( ggPath, con );
-		add( ggPath );
+		gridAdd( ggPath, 1, 0 );
 
 		if( (type & TYPE_FORMATFIELD) != 0 ) {
-			con.gridx		= 0;
-			con.gridy		= 2;
-			con.gridwidth	= 1;
 			ggFormat		= new ColouredTextField();
 			ggFormat.setEditable( false );
 			ggFormat.setBackground( null );
-			lay.setConstraints( ggFormat, con );
-			add( ggFormat );
-			con.gridx++;
-			con.gridheight	= 3;
-			con.anchor		= GridBagConstraints.NORTHWEST;
-		} else {
-			con.gridheight	= 2;
+			gridAdd( ggFormat, 1, 1 );
 		}
 
-		con.fill		= GridBagConstraints.NONE;
-		con.gridy		= 0;
-		con.weightx		= 0.0;
-		lay.setConstraints( ggChoose, con );
-		add( ggChoose );
+		gridAdd( ggChoose, 2, 0 );
+
+		makeCompactGrid();
 
 //		deriveFrom( new PathField[0], (ggType != null) ? "$E" : "" );
 		deriveFrom( new PathField[0], "" );
@@ -202,6 +197,25 @@ implements ActionListener, PathListener, EventManager.Processor
 	}
 	
 	/**
+	 *  Create a new <code>PathField</code>
+	 *
+	 *  @param  type	one of the types covered by TYPE_BASICMASK
+	 *					bitwise-OR optional displays like TYPE_FORMATFIELD
+	 *  @param  dlgTxt  the text string to display in the filechooser or <code>null</code>
+	 */
+	public PathField( int type, String dlgTxt )
+	{
+		this( type );
+		ggChoose.setDialogText( dlgTxt );
+		if( (type & TYPE_OUTPUTFILE) != 0 ) {
+			warnWhenExists = true;
+			errWhenWriteProtected = true;
+		} else {
+			errWhenExistsNot = true;
+		}
+	}
+	
+	/**
 	 *  Sets the gadget's path. This is path will be
 	 *  used as default setting when the file chooser is shown
 	 *
@@ -212,17 +226,39 @@ implements ActionListener, PathListener, EventManager.Processor
 		setPathIgnoreScheme( path );
 		scheme = createScheme( path.getPath() );
 	}
+	
+	public void setWarnWhenExists( boolean onOff )
+	{
+		if( warnWhenExists != onOff ) {
+			warnWhenExists = onOff;
+			updateIconAndColour();
+		}
+	}
+
+	public void setErrWhenExistsOn( boolean onOff )
+	{
+		if( errWhenExistsNot != onOff ) {
+			errWhenExistsNot = onOff;
+			updateIconAndColour();
+		}
+	}
+
+	public void setErrWhenWriteProtected( boolean onOff )
+	{
+		if( errWhenWriteProtected != onOff ) {
+			errWhenWriteProtected = onOff;
+			updateIconAndColour();
+		}
+	}
 
 	private void setPathIgnoreScheme( File path )
 	{
 		ggPath.setText( path.getPath() );
 		ggChoose.setPath( path );
-		synchronized( collChildren ) {
-			for( int i = 0; i < collChildren.size(); i++ ) {
-				((PathField) collChildren.get( i )).motherSpeaks( path );
-			}
-		} // synchronized( collChildren )
-		feedback();
+		for( int i = 0; i < collChildren.size(); i++ ) {
+			((PathField) collChildren.get( i )).motherSpeaks( path );
+		}
+		updateIconAndColour();
 	}
 	
 	/**
@@ -291,6 +327,24 @@ implements ActionListener, PathListener, EventManager.Processor
 	}
 	
 	/**
+	 *	Selects the file name portion of the text contents.
+	 *
+	 *	@param	extention	whether to include the file name suffix or not
+	 */
+	public void selectFileName( boolean extention )
+	{
+		final String	s = ggPath.getText();
+		final int		i = s.lastIndexOf( File.separatorChar ) + 1;
+		final int		j = s.lastIndexOf( '.' );
+		ggPath.select( i, j >= i ? j : s.length() );
+	}
+	
+	public boolean requestFocusInWindow()
+	{
+		return ggPath.requestFocusInWindow();
+	}
+	
+	/**
 	 *  <code>PathField</code> offers a mechanism to automatically derive
 	 *  a path name from a "mother" <code>PathField</code>. This applies
 	 *  usually to output files whose names are derived from
@@ -312,26 +366,24 @@ implements ActionListener, PathListener, EventManager.Processor
 	 *  The user can abbreviate or extend filenames by pressing the appropriate
 	 *  key; in this case the $F and $B tags are exchanged in the scheme.
 	 *
-	 *  @param  superPaths  array of mother path fields to listen to
-	 *  @param  scheme		automatic formatting scheme which can incorporate
-	 *						placeholders for the mother fields' paths.
+	 *  @param  sp 		array of mother path fields to listen to
+	 *  @param  s		automatic formatting scheme which can incorporate
+	 *					placeholders for the mother fields' paths.
 	 */
-	public void deriveFrom( PathField[] superPaths, String scheme )
+	public void deriveFrom( PathField[] sp, String s )
 	{
-		this.superPaths = superPaths;
-		this.scheme		= scheme;
-		protoScheme		= scheme;
+		this.superPaths 	= sp;
+		this.scheme			= s;
+		this.protoScheme	= s;
 
-		for( int i = 0; i < superPaths.length; i++ ) {
-			superPaths[ i ].addChildPathField( this );
+		for( int i = 0; i < sp.length; i++ ) {
+			sp[ i ].addChildPathField( this );
 		}
 	}
 	
 	private void addChildPathField( PathField child )
 	{
-		synchronized( collChildren ) {
-			if( !collChildren.contains( child )) collChildren.add( child );
-		} // synchronized( collChildren )
+		if( !collChildren.contains( child )) collChildren.add( child );
 	}
 	
 	private void motherSpeaks( File superPath )
@@ -348,7 +400,7 @@ implements ActionListener, PathListener, EventManager.Processor
 	 *  file chooser or text editing).
 	 *
 	 *  @param  listener	the <code>PathListener</code> to register
-	 *  @see	de.sciss.meloncillo.util.EventManager#addListener( Object )
+	 *  @see	de.sciss.app.EventManager#addListener( Object )
 	 */
 	public void addPathListener( PathListener listener )
 	{
@@ -360,7 +412,7 @@ implements ActionListener, PathListener, EventManager.Processor
 	 *  from receiving path change events.
 	 *
 	 *  @param  listener	the <code>PathListener</code> to unregister
-	 *  @see	de.sciss.meloncillo.util.EventManager#removeListener( Object )
+	 *  @see	de.sciss.app.EventManager#removeListener( Object )
 	 */
 	public void removePathListener( PathListener listener )
 	{
@@ -386,44 +438,86 @@ implements ActionListener, PathListener, EventManager.Processor
 
 // -------- private Methoden --------
 
-	private void checkExist()
+	private static Icon getAlertStopIcon()
 	{
-		String		fPath	= getPath().getPath();
-		boolean		exists	= false;
-		Color		c;
-		
-		if( (fPath != null) && (fPath.length() > 0) ) {
-			try {
-				exists = new File( fPath ).isFile();
-			} catch( SecurityException e ) {}
+		if( icnAlertStop == null ) {
+//			icnAlertStop = new ImageIcon( ClassLoader.getSystemClassLoader().getResource( "alertstop.png" ));
+			icnAlertStop = new ImageIcon( PathField.class.getResource( "alertstop.png" ));
 		}
-		c = exists ? COLOR_EXISTS : null;
+		return icnAlertStop;
+	}
+
+	private void updateIconAndColour()
+	{
+		final File		path		= getPath();
+		final File		parent		= path.getParentFile();
+		final boolean	folder		= (type & TYPE_FOLDER) != 0;
+		boolean			parentExists= false;
+		boolean			exists		= false;
+		boolean			wp			= false;
+		final Color		c;
+		final Icon		icn;
+		final String	tt;
+		
+		if( warnWhenExists || errWhenExistsNot || errWhenWriteProtected ) {
+		try {
+			parentExists	= (parent != null) && parent.isDirectory();
+			exists			= folder? path.isDirectory() : path.isFile();
+			if( errWhenWriteProtected ) {
+				wp			= parentExists && 
+					((exists && !path.canWrite()) || (!exists && !parent.canWrite()));
+			}
+		} catch( SecurityException e ) { /* ignore */ }
+
+		if( errWhenWriteProtected && (wp || !parentExists) ) {
+			c	= COLOR_ERR;
+			icn	= GUIUtil.getNoWriteIcon();
+			tt	= GUIUtil.getResourceString( folder ? "ttWarnFolderWriteProtected" : "ttWarnFileWriteProtected" );
+		} else if( errWhenExistsNot && !exists ) {
+			c	= COLOR_ERR;
+			icn = getAlertStopIcon();
+			tt	= GUIUtil.getResourceString( folder ? "ttWarnFolderExistsNot" : "ttWarnFileExistsNot" );
+		} else if( warnWhenExists && exists ) {
+			c	= COLOR_EXISTS;
+			icn = getAlertStopIcon();
+			tt	= GUIUtil.getResourceString( folder ? "ttWarnFolderExists" : "ttWarnFileExists" );
+		} else {
+			c	= null;
+			icn	= null;
+			tt	= null;
+		}
 		if( c != ggPath.getPaint() ) {
 			ggPath.setPaint( c );
+		}
+		if( lbWarn.getIcon() != icn ) {
+			lbWarn.setIcon( icn );
+		}
+		if( lbWarn.getToolTipText() != tt )
+			lbWarn.setToolTipText( tt );
 		}
 	}
 
 	/*
 	 *	Tags: $Dx = Directory of superPath x; $Fx = Filename; $E = Extension; $Bx = Brief filename
 	 */
-	private String evalScheme( String scheme )
+	protected String evalScheme( String s )
 	{
 		String	txt2;
 		int		i, j, k;
 
-		for( i = scheme.indexOf( "$D" ); (i >= 0) && (i < scheme.length() - 2); i = scheme.indexOf( "$D", i )) {
-			j		= (int) scheme.charAt( i + 2 ) - 48;
+		for( i = s.indexOf( "$D" ); (i >= 0) && (i < s.length() - 2); i = s.indexOf( "$D", i )) {
+			j		= s.charAt( i + 2 ) - 48;
 			try {
 				txt2 = superPaths[ j ].getPath().getPath();
 			} catch( ArrayIndexOutOfBoundsException e1 ) {
 				txt2 = "";
 			}
 			// sucky java 1.1 stringbuffer is impotent
-			scheme	= scheme.substring( 0, i ) + txt2.substring( 0, txt2.lastIndexOf( File.separatorChar ) + 1 ) +
-					  scheme.substring( i + 3 );
+			s	= s.substring( 0, i ) + txt2.substring( 0, txt2.lastIndexOf( File.separatorChar ) + 1 ) +
+					  s.substring( i + 3 );
 		}
-		for( i = scheme.indexOf( "$F" ); (i >= 0) && (i < scheme.length() - 2); i = scheme.indexOf( "$F", i )) {
-			j		= (int) scheme.charAt( i + 2 ) - 48;
+		for( i = s.indexOf( "$F" ); (i >= 0) && (i < s.length() - 2); i = s.indexOf( "$F", i )) {
+			j		= s.charAt( i + 2 ) - 48;
 			try {
 				txt2 = superPaths[ j ].getPath().getPath();
 			} catch( ArrayIndexOutOfBoundsException e1 ) {
@@ -431,11 +525,11 @@ implements ActionListener, PathListener, EventManager.Processor
 			}
 			txt2	= txt2.substring( txt2.lastIndexOf( File.separatorChar ) + 1 );
 			k		= txt2.lastIndexOf( '.' );
-			scheme	= scheme.substring( 0, i ) + ((k > 0) ? txt2.substring( 0, k ) : txt2 ) +
-					  scheme.substring( i + 3 );
+			s	= s.substring( 0, i ) + ((k > 0) ? txt2.substring( 0, k ) : txt2 ) +
+					  s.substring( i + 3 );
 		}
-		for( i = scheme.indexOf( "$X" ); (i >= 0) && (i < scheme.length() - 2); i = scheme.indexOf( "$X", i )) {
-			j		= (int) scheme.charAt( i + 2 ) - 48;
+		for( i = s.indexOf( "$X" ); (i >= 0) && (i < s.length() - 2); i = s.indexOf( "$X", i )) {
+			j		= s.charAt( i + 2 ) - 48;
 			try {
 				txt2 = superPaths[ j ].getPath().getPath();
 			} catch( ArrayIndexOutOfBoundsException e1 ) {
@@ -443,11 +537,11 @@ implements ActionListener, PathListener, EventManager.Processor
 			}
 			txt2	= txt2.substring( txt2.lastIndexOf( File.separatorChar ) + 1 );
 			k		= txt2.lastIndexOf( '.' );
-			scheme	= scheme.substring( 0, i ) + ((k > 0) ? txt2.substring( k ) : "" ) +
-					  scheme.substring( i + 3 );
+			s	= s.substring( 0, i ) + ((k > 0) ? txt2.substring( k ) : "" ) +
+					  s.substring( i + 3 );
 		}
-		for( i = scheme.indexOf( "$B" ); (i >= 0) && (i < scheme.length() - 2); i = scheme.indexOf( "$B", i )) {
-			j		= (int) scheme.charAt( i + 2 ) - 48;
+		for( i = s.indexOf( "$B" ); (i >= 0) && (i < s.length() - 2); i = s.indexOf( "$B", i )) {
+			j		= s.charAt( i + 2 ) - 48;
 			try {
 				txt2 = superPaths[ j ].getPath().getPath();
 			} catch( ArrayIndexOutOfBoundsException e1 ) {
@@ -456,7 +550,7 @@ implements ActionListener, PathListener, EventManager.Processor
 			txt2	= txt2.substring( txt2.lastIndexOf( File.separatorChar ) + 1 );
 			k		= txt2.lastIndexOf( '.' );
 			txt2	= abbreviate( (k > 0) ? txt2.substring( 0, k ) : txt2 );
-			scheme 	= scheme.substring( 0, i ) + txt2 + scheme.substring( i + 3 );
+			s 	= s.substring( 0, i ) + txt2 + s.substring( i + 3 );
 		}
 // XXXX
 //		for( i = scheme.indexOf( "$E" ); i >= 0; i = scheme.indexOf( "$E", i )) {
@@ -464,7 +558,7 @@ implements ActionListener, PathListener, EventManager.Processor
 //			scheme	= scheme.substring( 0, i ) + GenericFile.getExtStr( j ) + scheme.substring( i + 2 );
 //		}
 
-		return scheme;
+		return s;
 	}
 
 	/*
@@ -577,7 +671,7 @@ implements ActionListener, PathListener, EventManager.Processor
 		return applied;
 	}
 
-	private String abbrScheme( String orig )
+	protected String abbrScheme( String orig )
 	{
 		int i = orig.lastIndexOf( "$F" );
 		if( i >= 0 ) {
@@ -587,7 +681,7 @@ implements ActionListener, PathListener, EventManager.Processor
 		}
 	}
 
-	private String expandScheme( String orig )
+	protected String expandScheme( String orig )
 	{
 		int i = orig.indexOf( "$B" );
 		if( i >= 0 ) {
@@ -597,7 +691,7 @@ implements ActionListener, PathListener, EventManager.Processor
 		}
 	}
 
-	private String udirScheme( String orig, int idx )
+	protected String udirScheme( String orig, int idx )
 	{
 		int		i;
 		File	udir = userPaths.getPath( idx );
@@ -612,21 +706,10 @@ implements ActionListener, PathListener, EventManager.Processor
 
 		return( new File( udir, orig.substring( i )).getPath() );
 	}
-
-	/*
-	 *  Whenever the pathname changes,
-	 *  update the format fild and the
-	 *  indication of file existance.
-	 */
-	private void feedback()
+	
+	protected PathButton createPathButton( int buttonType )
 	{
-// XXX
-//		if( (handledTypes != null) && ((type & TYPE_BASICMASK) == TYPE_INPUTFILE) ) {
-//			calcFormat();
-//		} else
-		if( (type & TYPE_BASICMASK) == TYPE_OUTPUTFILE ) {
-			checkExist();
-		}
+		return new PathButton( buttonType );
 	}
 	
 // -------- PathListener interface --------
@@ -653,21 +736,21 @@ implements ActionListener, PathListener, EventManager.Processor
 		setPathAndDispatchEvent( new File( str ));
 	}
 
-// -------- interne IOTextfeld-Klasse --------
+// -------- internal IOTextfeld class --------
 
 	private class IOTextField
 	extends ColouredTextField
 	{
-		private IOTextField()
+		protected IOTextField()
 		{
 			super( 32 );
 			
-			InputMap	inputMap	= getInputMap();
-			ActionMap	actionMap   = getActionMap();
-			int			i;
-			String		s;
+			final InputMap		inputMap	= getInputMap();
+			final ActionMap		actionMap   = getActionMap();
+			final IOTextField	enc_this	= this;
+			String				s;
 			
-			inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_LEFT, KeyEvent.META_MASK + KeyEvent.ALT_MASK ), "abbr" );
+			inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_LEFT, myMeta + InputEvent.ALT_MASK ), "abbr" );
 			actionMap.put( "abbr", new AbstractAction() {
 				public void actionPerformed( ActionEvent e )
 				{
@@ -675,7 +758,7 @@ implements ActionListener, PathListener, EventManager.Processor
 					setPathAndDispatchEvent( new File( evalScheme( scheme )));
 				}
 			});
-			inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_RIGHT, KeyEvent.META_MASK + KeyEvent.ALT_MASK ), "expd" );
+			inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_RIGHT, myMeta + InputEvent.ALT_MASK ), "expd" );
 			actionMap.put( "expd", new AbstractAction() {
 				public void actionPerformed( ActionEvent e )
 				{
@@ -683,7 +766,7 @@ implements ActionListener, PathListener, EventManager.Processor
 					setPathAndDispatchEvent( new File( evalScheme( scheme )));
 				}
 			});
-			inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_ESCAPE, KeyEvent.META_MASK ), "auto" );
+			inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_ESCAPE, myMeta ), "auto" );
 			actionMap.put( "auto", new AbstractAction() {
 				public void actionPerformed( ActionEvent e )
 				{
@@ -691,13 +774,20 @@ implements ActionListener, PathListener, EventManager.Processor
 					setPathAndDispatchEvent( new File( evalScheme( scheme )));
 				}
 			});
-			for( i = 0; i < USERPATHS_NUM; i++ ) {
+			inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_ESCAPE, 0 ), "lost" );
+			actionMap.put( "lost", new AbstractAction() {
+				public void actionPerformed( ActionEvent e )
+				{
+					final JRootPane rp = SwingUtilities.getRootPane( enc_this );
+					if( rp != null ) rp.requestFocus();
+				}
+			});
+			for( int i = 0; i < USERPATHS_NUM; i++ ) {
 				s = "sudir" + i;
-				inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_NUMPAD1 + i,
-													  KeyEvent.META_MASK + KeyEvent.SHIFT_MASK ), s );
+				inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_NUMPAD1 + i, myMeta + InputEvent.ALT_MASK ), s );
 				actionMap.put( s, new SetUserDirAction( i ));
 				s = "rudir" + i;
-				inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_NUMPAD1 + i, KeyEvent.META_MASK ), s );
+				inputMap.put( KeyStroke.getKeyStroke( KeyEvent.VK_NUMPAD1 + i, myMeta ), s );
 				actionMap.put( s, new RecallUserDirAction( i ));
 			}
 		}
@@ -709,7 +799,7 @@ implements ActionListener, PathListener, EventManager.Processor
 			private javax.swing.Timer visualFeedback;
 			private Paint oldPaint = null;
 		
-			private SetUserDirAction( int idx )
+			protected SetUserDirAction( int idx )
 			{
 				this.idx		= idx;
 				visualFeedback  = new javax.swing.Timer( 250, this );
@@ -741,7 +831,7 @@ implements ActionListener, PathListener, EventManager.Processor
 		{
 			private int idx;
 		
-			private RecallUserDirAction( int idx )
+			protected RecallUserDirAction( int idx )
 			{
 				this.idx = idx;
 			}

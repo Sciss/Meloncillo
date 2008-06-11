@@ -54,6 +54,7 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.timeline.*;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
 import de.sciss.gui.*;
 import de.sciss.io.*;
 
@@ -75,7 +76,7 @@ import de.sciss.io.*;
  *				idea: cue speed changes with zoom level
  */
 public class TransportPalette
-extends BasicPalette
+extends AppWindow
 implements  TimelineListener, TransportListener, RealtimeConsumer,
 			DynamicListening
 {
@@ -112,7 +113,8 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 	 */
 	public TransportPalette( final Main root, final Session doc )
 	{
-		super( AbstractApplication.getApplication().getResourceString( "paletteTransport" ));
+		super( PALETTE );
+		setTitle( AbstractApplication.getApplication().getResourceString( "paletteTransport" ));
 		
 		this.doc	= doc;
 		transport   = root.transport;
@@ -140,10 +142,11 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
         ggPlay			= new JButton( actionPlay );
 		GraphicsUtil.setToolIcons( ggPlay, GraphicsUtil.createToolIcons( GraphicsUtil.ICON_PLAY ));
 
-		root.menuFactory.addGlobalKeyCommand( new actionTogglePlayStopClass( 
-											  KeyStroke.getKeyStroke( KeyEvent.VK_SPACE, 0 )));
-		root.menuFactory.addGlobalKeyCommand( new actionTogglePlayStopClass( 
-											  KeyStroke.getKeyStroke( KeyEvent.VK_NUMPAD0, 0 )));
+//		root.menuFactory.addGlobalKeyCommand( new actionTogglePlayStopClass( 
+//											  KeyStroke.getKeyStroke( KeyEvent.VK_SPACE, 0 )));
+//		root.menuFactory.addGlobalKeyCommand( new actionTogglePlayStopClass( 
+//											  KeyStroke.getKeyStroke( KeyEvent.VK_NUMPAD0, 0 )));
+// EEE
 
         ggFFwd			= new JButton();
 		GraphicsUtil.setToolIcons( ggFFwd, GraphicsUtil.createToolIcons( GraphicsUtil.ICON_FASTFORWARD ));
@@ -154,20 +157,21 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 		actionLoop		= new actionLoopClass();
 		ggLoop			= new JToggleButton( actionLoop );
 		GraphicsUtil.setToolIcons( ggLoop, GraphicsUtil.createToolIcons( GraphicsUtil.ICON_LOOP ));
-		root.menuFactory.addGlobalKeyCommand( new DoClickAction( ggLoop, KeyStroke.getKeyStroke(
-											  KeyEvent.VK_DIVIDE, 0 )));
+//		root.menuFactory.addGlobalKeyCommand( new DoClickAction( ggLoop, KeyStroke.getKeyStroke(
+//											  KeyEvent.VK_DIVIDE, 0 )));
+// EEE
 		toolBar.addButton( ggRewind );
 		toolBar.addButton( ggStop );
 		toolBar.addButton( ggPlay );
 		toolBar.addButton( ggFFwd );
 		toolBar.addToggleButton( ggLoop, 2 );
-        HelpGlassPane.setHelp( toolBar, "TransportTools" );
+//        HelpGlassPane.setHelp( toolBar, "TransportTools" );	// EEE
         
 		actionGoToTime  = new actionGoToTimeClass( KeyStroke.getKeyStroke( KeyEvent.VK_G, 0 ));
 //		lbTime			= new JLabel( " " );	// occupy same space for the pack() call
 //		lbTime.setBorder( new EmptyBorder( 0, 8, 0, 8 ));
 		lbTime			= new TimeLabel();
-        HelpGlassPane.setHelp( lbTime, "TransportPosition" );
+//        HelpGlassPane.setHelp( lbTime, "TransportPosition" );	// EEE
         lbTime.setBorder( new EmptyBorder( 1, 24, 1, 8 ));
 		lbTime.setCursor( new Cursor( Cursor.HAND_CURSOR ));
 		lbTime.setForeground( Color.black );
@@ -188,7 +192,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 				lbTime.black();
 			}
 		});
-		root.menuFactory.addGlobalKeyCommand( actionGoToTime );
+//		root.menuFactory.addGlobalKeyCommand( actionGoToTime );	// EEE
 		b.add( lbTime );
 		b.add( Box.createRigidArea( new Dimension( 16, 16 )));
 		
@@ -197,7 +201,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 		cp.add( b, BorderLayout.SOUTH );
 		
 		// --- Listener ---
-		new DynamicAncestorAdapter( this ).addTo( getRootPane() );
+		addDynamicListening( this );
 
 		cueTimer = new javax.swing.Timer( 25, new ActionListener() {
 			public void actionPerformed( ActionEvent e )
@@ -213,7 +217,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 			}
 		});
 
-		init( root );
+		init();
 	}
 	
 	/**
@@ -435,7 +439,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 			msgArgs[0]  = new Integer( min );
 			msgArgs[1]  = new Double( (double) (defaultValue % 60000) / 1000 );
 
-			result  = JOptionPane.showInputDialog( null, getResourceString( "inputDlgGoToTime" ),
+			result  = JOptionPane.showInputDialog( null, AbstractApplication.getApplication().getResourceString( "inputDlgGoToTime" ),
 												   msgFormat.format( msgArgs ));
 
 			if( result == null || !doc.bird.attemptExclusive( Session.DOOR_TIME, 1000 )) return;
@@ -493,23 +497,23 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
         }
 	} // class actionStopClass
 	
-	private class actionTogglePlayStopClass
-	extends KeyedAction
-	{
-		private actionTogglePlayStopClass( KeyStroke stroke )
-		{
-			super( stroke );
-		}
-
-		protected void validActionPerformed( ActionEvent e )
-		{
-			if( transport.isRunning() ) {
-				ggStop.doClick();
-			} else {
-				ggPlay.doClick();
-			}
-		}
-	} // class actionTogglePlayStop
+//	private class actionTogglePlayStopClass
+//	extends KeyedAction
+//	{
+//		private actionTogglePlayStopClass( KeyStroke stroke )
+//		{
+//			super( stroke );
+//		}
+//
+//		protected void validActionPerformed( ActionEvent e )
+//		{
+//			if( transport.isRunning() ) {
+//				ggStop.doClick();
+//			} else {
+//				ggPlay.doClick();
+//			}
+//		}
+//	} // class actionTogglePlayStop
 
 	private class actionLoopClass
 	extends AbstractAction

@@ -48,7 +48,6 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
 import de.sciss.io.IOUtil;
 import de.sciss.net.*;
 
@@ -95,7 +94,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	public LispRealtimePlugIn()
 	{
 		super();
-        HelpGlassPane.setHelp( this, "RealtimeLisp" );
+//        HelpGlassPane.setHelp( this, "RealtimeLisp" );	// EEE
 	}
 
 	public void init( Main root, Session doc )

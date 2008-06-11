@@ -71,8 +71,9 @@ extends ToolBar
 
 		actionCatch		= new CatchAction( prefs.node( PrefsUtil.NODE_SHARED ));
 		toggle			= actionCatch.getButton();
-		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_V, 0 )));
-        HelpGlassPane.setHelp( toggle, "ToolCatch" );
+//		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_V, 0 )));
+// EEE
+//        HelpGlassPane.setHelp( toggle, "ToolCatch" );	// EEE
         this.addToggleButton( toggle, 2 );
 		this.addSeparator();
 
@@ -80,14 +81,14 @@ extends ToolBar
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F1, 0 ));
-        HelpGlassPane.setHelp( toggle, "TimelineToolPointer" );
+//        HelpGlassPane.setHelp( toggle, "TimelineToolPointer" );	// EEE
   		this.addToggleButton( toggle, 0 );
         
 		toolAction		= new ToolAction( ToolAction.LINE );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F2, 0 ));
-        HelpGlassPane.setHelp( toggle, "TimelineToolLine" );
+//        HelpGlassPane.setHelp( toggle, "TimelineToolLine" );	// EEE
 toolAction.setEnabled( false );	// XXX not yet implemented
   		this.addToggleButton( toggle, 0 );
 
@@ -95,21 +96,21 @@ toolAction.setEnabled( false );	// XXX not yet implemented
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F3, 0 ));
-        HelpGlassPane.setHelp( toggle, "TimelineToolPencil" );
+//        HelpGlassPane.setHelp( toggle, "TimelineToolPencil" );	// EEE
   		this.addToggleButton( toggle, 0 );
       
 		toolAction		= new ToolAction( ToolAction.ZOOM );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F4, 0 ));
-        HelpGlassPane.setHelp( toggle, "TimelineToolZoom" );
+//        HelpGlassPane.setHelp( toggle, "TimelineToolZoom" );	// EEE
   		this.addToggleButton( toggle, 0 );
       
 		this.addSeparator();
 		actionBlending  = new BlendingAction( prefs.node( PrefsUtil.NODE_SHARED ));
 		toggle			= actionBlending.getButton();
 //		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 )));
-        HelpGlassPane.setHelp( toggle, "ToolBlending" );
+//        HelpGlassPane.setHelp( toggle, "ToolBlending" );		// EEE
         this.addToggleButton( toggle, 1 );
 	}
 }

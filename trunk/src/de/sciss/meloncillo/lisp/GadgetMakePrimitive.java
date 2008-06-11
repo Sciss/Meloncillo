@@ -46,8 +46,7 @@ import org.jatha.compile.*;
 import org.jatha.dynatype.*;
 import org.jatha.machine.*;
 
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.math.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -245,17 +244,20 @@ implements PreferenceChangeListener, LaterInvocationManager.Listener, Preference
 					spc = initial.basic_integerp() ? NumberSpace.genericIntSpace : NumberSpace.genericDoubleSpace;
 				}
 
-				c = new PrefNumberField( 0, spc, s );
+				final PrefNumberField pnf = new PrefNumberField();
+				c = pnf;
+				pnf.setSpace( spc );
+//				pnf.setUnit( s );
 				if( initial.basic_floatp() ) {
 					num = new Double( ((LispNumber) initial).getDoubleValue() );
-					((PrefNumberField) c).setNumber( num );
+					pnf.setNumber( num );
 				} else if( initial.basic_integerp() ) {
 					num = new Long( ((LispNumber) initial).getLongValue() );
-					((PrefNumberField) c).setNumber( num );
+					pnf.setNumber( num );
 				}
 
 				if( prefsVal == null ) {	// set initial prefs
-					num = ((PrefNumberField) c).getNumber();
+					num = pnf.getNumber();
 					if( num instanceof Long ) {
 						prefs.putLong( prefsKey, num.longValue() );
 					} else {

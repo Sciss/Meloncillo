@@ -2,7 +2,7 @@
  *  HelpGlassPane.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -46,9 +46,9 @@ import java.awt.geom.Area;
 import java.awt.geom.RoundRectangle2D;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
+
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.ActionMap;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -57,10 +57,8 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.MouseInputAdapter;
 
-import de.sciss.app.AbstractApplication;
 import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicPrefChangeManager;
-import de.sciss.app.LaterInvocationManager;
 
 /**
  *  A component suitable for using as
@@ -71,13 +69,15 @@ import de.sciss.app.LaterInvocationManager;
  *  instead of the normal operation.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.70, 26-Dec-04
+ *  @version	0.17, 20-Mar-08
  *
  *  @see	javax.swing.JFrame#setGlassPane( Component )
+ *  
+ *  @deprecated	use HelpButton instead
  */
 public class HelpGlassPane
 extends JComponent
-implements	LaterInvocationManager.Listener
+implements PreferenceChangeListener
 {
 	/**
 	 *  Value: Prefs key string "(int) modifiers (int) keyCode" for online
@@ -172,7 +172,7 @@ implements	LaterInvocationManager.Listener
 			new String[] { KEY_KEYSTROKE_HELP }, this )).addTo( grass );
 	}
     
-    private void activateHelpMode()
+    protected void activateHelpMode()
     {
         Component recentGlassPane = f.getGlassPane();
         if( recentGlassPane == this || recentGlassPane.isVisible() ) return;
@@ -187,7 +187,7 @@ implements	LaterInvocationManager.Listener
 		this.requestFocus();
     }
 	
-    private void deactivateHelpMode()
+    protected void deactivateHelpMode()
     {
         if( f.getGlassPane() != this ) return;
 
@@ -223,7 +223,7 @@ implements	LaterInvocationManager.Listener
         g2.fill( focussedArea );
      }
 	
-	private void checkMousePressed( MouseEvent e )
+	protected void checkMousePressed( MouseEvent e )
 	{
         checkMouseMoved( e );
 		if( focussedHelpComponent != null ) {
@@ -233,7 +233,7 @@ implements	LaterInvocationManager.Listener
 		}
 	}
 
-	private void checkMouseMoved( MouseEvent e )
+	protected void checkMouseMoved( MouseEvent e )
 	{
         JComponent c = findHelpComponentAt( e.getPoint() );
 		if( c != focussedHelpComponent ) {
@@ -282,11 +282,10 @@ implements	LaterInvocationManager.Listener
 		if( helpStroke != null ) imap.put( helpStroke, HELP_PROPERTY );
 	}
 
-// ---------------- LaterInvocationManager.Listener interface ---------------- 
+// ---------------- PreferenceChangeListener interface ---------------- 
 
-	// o is PreferenceChangeEvent
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent e )
 	{
-		updateHelpStroke( KeyStrokeTextField.prefsToStroke( ((PreferenceChangeEvent) o).getNewValue() ));
+		updateHelpStroke( KeyStrokeTextField.prefsToStroke( e.getNewValue() ));
 	}
 } // class HelpGlassPane

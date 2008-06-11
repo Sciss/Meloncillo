@@ -46,6 +46,7 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
 import de.sciss.gui.*;
 
 /**
@@ -70,7 +71,7 @@ import de.sciss.gui.*;
  *  @see	javax.swing.AbstractButton#doClick()
  */
 public class MainFrame
-extends BasicFrame
+extends AppWindow
 implements ProgressComponent, EditMenuListener
 {
 	private final ProgressBar	pb;
@@ -81,7 +82,7 @@ implements ProgressComponent, EditMenuListener
 
 	public MainFrame( final Main root, final Session doc )
 	{
-		super( "" );
+		super( REGULAR );
 		
 		this.doc		= doc;
 		
@@ -91,8 +92,8 @@ implements ProgressComponent, EditMenuListener
 		Box			b	= Box.createHorizontalBox();
 		pb				= new ProgressBar();
 		lta				= new LogTextArea( 6, 40, false, null );
-        HelpGlassPane.setHelp( lta, "MainLogPane" );
-        HelpGlassPane.setHelp( pb, "MainProgressBar" );
+//		HelpGlassPane.setHelp( lta, "MainLogPane" );	// EEE
+//		HelpGlassPane.setHelp( pb, "MainProgressBar" );	// EEE
         JScrollPane ggScroll = new JScrollPane( lta, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 													 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
 		logStream		= lta.getLogStream();
@@ -109,21 +110,22 @@ implements ProgressComponent, EditMenuListener
 		
 		// ---- listeners ----
 
-		this.addWindowListener( new WindowAdapter() {
-			public void windowClosing( WindowEvent e ) {
+		this.addListener( new AbstractWindow.Adapter() {
+			public void windowClosing( AbstractWindow.Event e ) {
 				root.quit();
 			}
 		});
 		// if user cancels confirm dlg, the window has to stay open
 		// if user confirms quit, VM will close all windows anyway
-		setDefaultCloseOperation( DO_NOTHING_ON_CLOSE );
+		setDefaultCloseOperation( JFrame.DO_NOTHING_ON_CLOSE );
 		
 		// ---- layout ----
 
 //      classPrefs.putBoolean( PrefsUtil.KEY_VISIBLE, true );
-		init( root );
+		init();
 		updateTitle();
-        show();
+        setVisible( true );
+        toFront();
 	}
     
     /**
@@ -146,7 +148,7 @@ implements ProgressComponent, EditMenuListener
 	public void updateTitle()
 	{
 		final String	name	= doc.getName();		// 2022 20DF 2299 2605 2666
-		final String	title   = getResourceString( "frameMain" ) + (doc.isDirty() ? " - \u2022" : " - " ) + name;
+		final String	title   = AbstractApplication.getApplication().getResourceString( "frameMain" ) + (doc.isDirty() ? " - \u2022" : " - " ) + name;
 		setTitle( title );
 	}
 
@@ -162,7 +164,7 @@ implements ProgressComponent, EditMenuListener
 
 	public Component getComponent()
 	{
-		return this;
+		return pb;
 	}
 	
 	public void resetProgression()
@@ -175,9 +177,9 @@ implements ProgressComponent, EditMenuListener
 		pb.setProgression( p );
 	}
 	
-	public void	finishProgression( boolean success )
+	public void	finishProgression( int type)
 	{
-		pb.finish( success );
+		pb.finish( type );
 	}
 	
 	public void setProgressionText( String text )
@@ -186,6 +188,16 @@ implements ProgressComponent, EditMenuListener
 //		pb.setText( text );
 	}
 	
+	public void addCancelListener( ActionListener al )
+	{
+		// EEE NOTHING
+	}
+	
+	public void removeCancelListener( ActionListener al )
+	{
+		// EEE NOTHING
+	}
+
 	public void showMessage( int type, String text )
 	{
 		// potentially condidates of unicodes
@@ -225,7 +237,7 @@ implements ProgressComponent, EditMenuListener
 	
 	public void displayError( Exception e, String processName )
 	{
-		GUIUtil.displayError( this, e, processName );
+		GUIUtil.displayError( getWindow(), e, processName );
 	}
 
 // ---------------- EditMenuListener interface ---------------- 

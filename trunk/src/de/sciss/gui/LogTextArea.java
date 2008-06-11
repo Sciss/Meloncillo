@@ -2,7 +2,7 @@
  *  LogTextArea.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -27,16 +27,20 @@
  *		30-May-04   created
  *		31-Jul-04   commented
  *		26-May-05	moved from de.sciss.meloncillo.gui
+ *		08-Sep-05	some utility functions, empty constructor, clear action
  */
 
 package de.sciss.gui;
 
+import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
 
 /**
  *  A <code>JTextArea</code> encompassing a <code>PrintWriter</code> that
@@ -49,7 +53,7 @@ import javax.swing.JTextArea;
  *  tanksoftware.com/juk/developer/src/com/tanksoftware/util/RedirectedFrame.java</A>
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 26-May-05
+ *  @version	0.16, 05-May-06
  *
  *  @see	java.io.PrintStream
  *  @see	java.lang.System#setOut( PrintStream )
@@ -58,12 +62,13 @@ import javax.swing.JTextArea;
 public class LogTextArea
 extends JTextArea
 {
-	private final boolean		useLogFile;
-	private final File			logFile;
+	protected final boolean		useLogFile;
+	protected final File		logFile;
 	private final PrintStream	outStream;
-	private FileWriter			logFileWriter   = null;
-	private final JTextArea		textArea		= this;
+	protected FileWriter		logFileWriter   = null;
+//	private final JTextArea		textArea		= this;
 	private int					totalLength		= 0;
+	private MenuAction			actionClear		= null;
 	
  	/**
 	 *  Constructs a new text area for logging messages.
@@ -71,16 +76,16 @@ extends JTextArea
 	 *  the right margin. Alternatively messages can
 	 *  be logged in a text file.
 	 *
-	 *  @param columns		same as in JTextArea()
 	 *  @param rows			same as in JTextArea()
+	 *  @param columns		same as in JTextArea()
 	 *  @param useLogFile	<code>true</code> to have a copy of the output logged into a file
 	 *  @param logFile		if <code>useLogFile</code> is <code>true</code>, this is the file
 	 *						into which the log is written. if <code>useLogFile</code> is
 	 *						<code>false</code>, you can pass <code>null</code> here.
 	 */
-	public LogTextArea( int columns, int rows, boolean useLogFile, File logFile )
+	public LogTextArea( int rows, int columns, boolean useLogFile, File logFile )
 	{
-		super( columns, rows );
+		super( rows, columns );
 		
 		this.useLogFile = useLogFile;
 		this.logFile	= logFile;
@@ -90,6 +95,11 @@ extends JTextArea
 		setLineWrap( true );
 	}
 	
+	public LogTextArea()
+	{
+		this( 6, 40, false, null );
+	}
+
 	/*
 	 *  Returns the stream used by this
 	 *  gadget to write data to.
@@ -131,7 +141,7 @@ extends JTextArea
 		try {
 			setCaretPosition( Math.max( 0, totalLength - 1 ));
 		}
-		catch( IllegalArgumentException e1 ) {}
+		catch( IllegalArgumentException e1 ) { /* ignore */ }
 	}
 	
 	/**
@@ -156,13 +166,43 @@ extends JTextArea
 //		append( (String) o );
 //	}
 
+	public MenuAction getClearAction()
+	{
+		if( actionClear == null ) {
+			actionClear = new ActionClear();
+		}
+		return actionClear;
+	}
+	
+	public JScrollPane placeMeInAPane()
+	{
+		return( new JScrollPane( this, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, // aqua hin aqua her. VERTICAL_SCROLLBAR_ALWAYS
+		                         	   ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER ));
+	}
+	
+	public void makeSystemOutput()
+	{
+		System.setOut( getLogStream() );
+		System.setErr( getLogStream() );
+	}
+	
+// no effect (on aqua)
+//	public void paintComponent( Graphics g )
+//	{
+//		final Graphics2D g2 = (Graphics2D) g;
+//		g2.setRenderingHint( RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF );
+//		super.paintComponent( g );
+//	}
+	
+// ---------------- internal classes ----------------
+
 	private class RedirectedStream
 	extends OutputStream
 	{
 		private byte[] cheesy = new byte[1];
 //		private int totalLength = 0;
 	
-		private RedirectedStream()
+		protected RedirectedStream()
 		{
 			super();
 		}
@@ -213,5 +253,16 @@ extends JTextArea
 			cheesy[0] = (byte) b;
 			this.write( cheesy );
 		}
+	}
+	
+	private class ActionClear
+	extends MenuAction
+	{
+		protected ActionClear() { /* empty */ }
+		
+		public void actionPerformed( ActionEvent e )
+		{
+			setText( null );
+		}		
 	}
  }

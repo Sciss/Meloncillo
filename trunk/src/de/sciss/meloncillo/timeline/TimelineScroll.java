@@ -37,6 +37,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
@@ -46,7 +47,6 @@ import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
-import de.sciss.gui.*;
 import de.sciss.io.*;
 
 /**
@@ -71,7 +71,7 @@ import de.sciss.io.*;
  */
 public class TimelineScroll
 extends JScrollBar
-implements AdjustmentListener, TimelineListener, DynamicListening, LaterInvocationManager.Listener
+implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceChangeListener
 {
 	public static final int TYPE_UNKNOWN	= 0;
 	public static final int TYPE_DRAG		= 1;
@@ -135,7 +135,7 @@ implements AdjustmentListener, TimelineListener, DynamicListening, LaterInvocati
 			AbstractApplication.getApplication().getUserPrefs().node( PrefsUtil.NODE_SHARED ),
 			new String[] { PrefsUtil.KEY_CATCH }, this )).addTo( this );
         
-        HelpGlassPane.setHelp( this, "TimelineScroll" );
+//        HelpGlassPane.setHelp( this, "TimelineScroll" );	// EEE
     }
     
 	/**
@@ -287,10 +287,10 @@ implements AdjustmentListener, TimelineListener, DynamicListening, LaterInvocati
 // ---------------- LaterInvocationManager.Listener interface ---------------- 
 
 	// o instanceof PreferenceChangeEvent
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
-		final String  key	= ((PreferenceChangeEvent) o).getKey();
-		final String  value	= ((PreferenceChangeEvent) o).getNewValue();
+		final String  key	= pce.getKey();
+		final String  value	= pce.getNewValue();
 
 		if( key.equals( PrefsUtil.KEY_CATCH )) {
 			prefCatch	= Boolean.valueOf( value ).booleanValue();

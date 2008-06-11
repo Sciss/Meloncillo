@@ -41,10 +41,10 @@ import java.util.prefs.*;
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.plugin.*;
 import de.sciss.meloncillo.render.*;
 import de.sciss.meloncillo.session.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -63,7 +63,7 @@ import de.sciss.io.IOUtil;
  */
 public class VectorApplyFunction
 extends VectorTransformer
-implements RenderPlugIn, LaterInvocationManager.Listener
+implements RenderPlugIn, PreferenceChangeListener
 {
 	private final PrefComboBox		ggFunction, ggApplication;
 	private final PrefCheckBox		ggBipolar;
@@ -135,13 +135,18 @@ implements RenderPlugIn, LaterInvocationManager.Listener
 			ggFunction.addItem( new StringItem( funcNames[i], app.getResourceString( funcNames[i] )));
 		}
 		ggFunction.setSelectedIndex( FUNC_CONSTANT );
-		ggAmplitude		= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggAmplitude		= new PrefNumberField();
+		ggAmplitude.setSpace( NumberSpace.genericDoubleSpace );
 		ggAmplitude.setNumber( new Double( 1.0 ));
-		ggPeriods		= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggPeriods		= new PrefNumberField();
+		ggPeriods.setSpace( NumberSpace.genericDoubleSpace );
 		ggPeriods.setNumber( new Double( 1.0 ));
-		ggBrownish		= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, null );
+		ggBrownish		= new PrefNumberField();
+		ggBrownish.setSpace( NumberSpace.genericDoubleSpace );
 		ggBrownish.setNumber( new Double( 1.0 ));
-		ggPhase			= new PrefNumberField( 0, NumberSpace.genericDoubleSpace, "\u00B0" );
+		ggPhase			= new PrefNumberField();
+		ggPhase.setSpace( NumberSpace.genericDoubleSpace );
+//		ggPhase.setUnit( "\u00B0" );  // EEE
 		ggPhase.setNumber( new Double( 0.0 ));
 		ggBipolar		= new PrefCheckBox();
 		ggApplication	= new PrefComboBox();
@@ -216,7 +221,7 @@ implements RenderPlugIn, LaterInvocationManager.Listener
 		lay.setConstraints( ggApplication, con );
 		msgPane.add( ggApplication );
 		
-        HelpGlassPane.setHelp( msgPane, "VectorTransformApplyFunction" );
+//        HelpGlassPane.setHelp( msgPane, "VectorTransformApplyFunction" );	// EEE
 
 		// --- Listener ---
 		dpl = new DynamicPrefChangeManager( null, new String[] { KEY_FUNCTION }, this );
@@ -473,10 +478,10 @@ implements RenderPlugIn, LaterInvocationManager.Listener
 // ---------------- LaterInvocationManager.Listener interface ---------------- 
 
 	// o instanceof PreferenceChangeEvent
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
-		String		key		= ((PreferenceChangeEvent) o).getKey();
-		String		value   = ((PreferenceChangeEvent) o).getNewValue();
+		String		key		= pce.getKey();
+		String		value   = pce.getNewValue();
 //		Preferences prefs   = ((PreferenceChangeEvent) o).getNode();
 //		String		lbText;
 		boolean		pack	= false;

@@ -43,6 +43,7 @@ import java.awt.geom.*;
 import java.io.*;
 import java.util.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 import javax.swing.undo.*;
 import javax.xml.parsers.*;
@@ -52,9 +53,6 @@ import javax.xml.transform.stream.*;
 import org.w3c.dom.*;
 import org.xml.sax.*;
 
-import net.roydesign.app.AboutJMenuItem;
-import net.roydesign.app.PreferencesJMenuItem;
-import net.roydesign.app.QuitJMenuItem;
 import net.roydesign.mac.MRJAdapter;
 
 import de.sciss.meloncillo.*;
@@ -62,15 +60,18 @@ import de.sciss.meloncillo.debug.*;
 import de.sciss.meloncillo.edit.*;
 import de.sciss.meloncillo.io.*;
 import de.sciss.meloncillo.lisp.*;
-import de.sciss.meloncillo.math.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.receiver.*;
 import de.sciss.meloncillo.render.*;
 import de.sciss.meloncillo.transmitter.*;
 import de.sciss.meloncillo.util.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
+import de.sciss.common.AppWindow;
+import de.sciss.common.BasicMenuFactory;
 import de.sciss.gui.*;
+import de.sciss.gui.MenuItem;
 import de.sciss.io.*;
 
 /**
@@ -115,47 +116,25 @@ import de.sciss.io.*;
  *			item for example.
  */
 public class MenuFactory
+extends BasicMenuFactory
 {
-	/**
-	 *	<code>KeyStroke</code> modifier mask
-	 *	representing the platform's default
-	 *	menu accelerator (e.g. Apple-key on Mac,
-	 *	Ctrl on Windows).
-	 *
-	 *	@see	Toolkit#getMenuShortcutKeyMask()
-	 */
-	public static final int MENU_SHORTCUT = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
-
-	private final Main		root;
 	private final Session   doc;
-	private final JMenuBar	protoType;
-
-	private JMenu   openRecentMenu;
-
-	private actionOpenClass				actionOpen;
-	private actionOpenRecentClass		actionOpenRecent;
-	private actionSaveClass				actionSave;
-	private actionSaveAsClass			actionSaveAs;
-	private SyncedPrefsMenuAction		actionSnapToObjects, actionViewRcvSense, actionViewRcvSenseEqP,
-										actionViewTrnsTraj, actionViewUserImages, actionViewRulers;
-
-	private Action	actionClearSession, actionClearRecent,
-					actionCut, actionCopy, actionPaste, actionClear, actionSelectAll,
+	
+	private ActionOpen				actionOpen;
+	private ActionSave				actionSave;
+	private ActionSaveAs			actionSaveAs;
+	
+	private Action	actionClearSession,
 					actionInsTimeSpan, actionNewReceivers, actionNewTransmitters, actionNewGroup,
 					actionRemoveTransmitters, actionRemoveGroups, actionFilter,
 					actionBounce, actionSelectionBackwards,
 					actionShowSurface, actionShowTimeline, actionShowTransport,
-					actionShowObserver, actionShowMeter, actionShowRealtime, actionAbout,
-					actionHelpManual, actionHelpShortcuts, actionHelpWebsite, actionQuit;
+					actionShowObserver, actionShowMeter, actionShowRealtime;
 	
 	private Action  actionDebugDumpUndo, actionDebugDumpTracks, actionDebugViewTrack,
 					actionDebugDumpPrefs, actionDebugDumpRealtime, actionJathaDiddler,
 					actionDebugDumpListeners, actionHRIRPrepare;
 
-	private final Vector		collMenuHosts		= new Vector();
-	private final Hashtable		syncedItems			= new Hashtable();
-	private final Vector		collGlobalKeyCmd	= new Vector();
-	private final PathList		openRecentPaths;
 
 	// for custom JOptionPane calls (see actionNewReceiversClass )
 	private final String[]	queryOptions;
@@ -165,17 +144,17 @@ public class MenuFactory
 	 *  Action that removes all
 	 *  selected receivers.
 	 */
-	public actionRemoveSessionObjectClass	actionRemoveReceivers;
+	public ActionRemoveSessionObject	actionRemoveReceivers;
 	/**
 	 *  Action that advances the
 	 *  the timeline selection.
 	 */
-	public actionSelectionForwardClass  actionSelectionForward;
+	public ActionSelectionForward  actionSelectionForward;
 	/**
 	 *  Action that opens the
 	 *  preferences frame.
 	 */
-	public actionPreferencesClass		actionPreferences;
+	public ActionPreferences		actionPreferences;
 	
 	/**
 	 *  The constructor is called only once by
@@ -188,7 +167,9 @@ public class MenuFactory
 	 */
 	public MenuFactory( Main root, Session doc )
 	{
-		this.root   = root;
+		super( root );
+		
+//		this.root   = root;
 		this.doc	= doc;
 		
 		final de.sciss.app.Application	app	= AbstractApplication.getApplication();
@@ -197,132 +178,116 @@ public class MenuFactory
 			app.getResourceString( "buttonCancel" ),
 			app.getResourceString( "buttonOk" )
 		};
-													 
-		openRecentPaths = new PathList( 8, AbstractApplication.getApplication().getUserPrefs(),
-										PrefsUtil.KEY_OPENRECENT );
-		protoType		= new JMenuBar();
 
 		createActions();
-		createProtoType();
 	}
 	
-	/**
-	 *  Requests a copy of the main menu.
-	 *  When the frame is disposed, it should
-	 *  call the <code>forgetAbout</code> method.
-	 *
-	 *  @param  who		the frame who requests the menu. The
-	 *					menu will be set for the frame by this
-	 *					method.
-	 *
-	 *  @see	#forgetAbout( JFrame )
-	 *  @see	javax.swing.JFrame#setJMenuBar( JMenuBar )
-	 *  @synchronization	must be called in the event thread
-	 */
-	public void gimmeSomethingReal( JFrame who )
+	// @todo	this should eventually read the tree from an xml file
+	protected void addMenuItems()
 	{
-		Action		a;
-		String		entry;
-		int			i;
-		JRootPane   rp  = who.getRootPane();
-	
-		JMenuBar copy = createMenuBarCopy();
-		who.setJMenuBar( copy );
-		collMenuHosts.add( who );
-		for( i = 0; i < collGlobalKeyCmd.size(); i++ ) {
-			a		= (Action) collGlobalKeyCmd.get( i );
-			entry   = (String) a.getValue( Action.NAME );
-			rp.getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW ).put( (KeyStroke) a.getValue( Action.ACCELERATOR_KEY ), entry );
-			rp.getActionMap().put( entry, a );
-		}
-	}
-	
-	/**
-	 *  Tell the <code>MenuFactory</code> that a frame
-	 *  is being disposed, therefore allowing the removal
-	 *  of the menu bar which will free resources and
-	 *  remove unnecessary synchronization.
-	 *
-	 *  @param  who		the frame which is about to be disposed
-	 *
-	 *  @see	#gimmeSomethingReal( JFrame )
-	 *  @todo   this method should remove any key actions
-	 *			attached to the input maps.
-	 *  @synchronization	must be called in the event thread
-	 */
-	public void forgetAbout( JFrame who )
-	{
-		collMenuHosts.remove( who );
-		who.setJMenuBar( null );
-	}
-
-	/**
-	 *  Sets all JMenuBars enabled or disabled.
-	 *  When time taking asynchronous processing
-	 *  is done, like loading a session or bouncing
-	 *  it to disk, the menus need to be disabled
-	 *  to prevent the user from accidentally invoking
-	 *  menu actions that can cause deadlocks if they
-	 *  try to gain access to blocked doors. This
-	 *  method traverses the list of known frames and
-	 *  sets each frame's menu bar enabled or disabled.
-	 *
-	 *  @param  enabled		<code>true</code> to enable
-	 *						all menu bars, <code>false</code>
-	 *						to disable them.
-	 *  @synchronization	must be called in the event thread
-	 */
-	public void setMenuBarsEnabled( boolean enabled )
-	{
-		JMenuBar mb;
-	
-		for( int i = 0; i < collMenuHosts.size(); i++ ) {
-			mb = ((JFrame) collMenuHosts.get( i )).getJMenuBar();
-			if( mb != null ) mb.setEnabled( enabled );
-		}
-	}
-
-	private static int uniqueNumber = 0;	// increased by addGlobalKeyCommand()
-	/**
-	 *  Adds an action object invisibly to all
-	 *  menu bars, enabling its keyboard shortcut
-	 *  to be accessed no matter what window
-	 *  has the focus.
-	 *
-	 *  @param  a   the <code>Action</code> whose
-	 *				accelerator key should be globally
-	 *				accessible. The action
-	 *				is stored in the input and action map of each
-	 *				registered frame's root pane, thus being
-	 *				independant of calls to <code>setMenuBarsEnabled/code>.
-	 *
-	 *  @throws java.lang.IllegalArgumentException  if the action does
-	 *												not have an associated
-	 *												accelerator key
-	 *
-	 *  @see  javax.swing.Action#ACCELERATOR_KEY
-	 *  @synchronization	must be called in the event thread
-	 */
-	public void addGlobalKeyCommand( Action a )
-	{
-		JFrame		frame;
-		JRootPane   rp;
-		String		entry;
-		int			i;
-		KeyStroke   acc		= (KeyStroke) a.getValue( Action.ACCELERATOR_KEY );
+		final Preferences		prefs; // = getApplication().getUserPrefs();
+		MenuGroup				mg, smg;
+		MenuCheckItem			mci;
+		BooleanPrefsMenuAction	ba;
+		int						i;
 		
-		if( acc == null ) throw new IllegalArgumentException();
-		
-		entry = "key" + String.valueOf( uniqueNumber++ );
-		a.putValue( Action.NAME, entry );
+		// Ctrl on Mac / Ctrl+Alt on PC
+//		final int myCtrl = MENU_SHORTCUT == InputEvent.CTRL_MASK ? InputEvent.CTRL_MASK | InputEvent.ALT_MASK : InputEvent.CTRL_MASK;
 
-		for( i = 0; i < collMenuHosts.size(); i++ ) {
-			frame   = (JFrame) collMenuHosts.get( i );
-			rp		= frame.getRootPane();
-			rp.getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW ).put( acc, entry );
-			rp.getActionMap().put( entry, a );
-		}
-		collGlobalKeyCmd.add( a );
+		// --- file menu ---
+
+		mg	= (MenuGroup) get( "file" );
+		mg.add( new MenuItem( "clearSession", actionClearSession ), 0 );
+		i	= mg.indexOf( "saveAs" );
+		smg = new MenuGroup( "insert", getResourceString( "menuInsert" ));
+		smg.add( new MenuItem( "newReceivers", actionNewReceivers ));
+		smg.add( new MenuItem( "newTransmitters", actionNewTransmitters ));
+		smg.add( new MenuItem( "newGroup", actionNewGroup ));
+		mg.add( smg, i + 1 );
+		smg = new MenuGroup( "remove", getResourceString( "menuRemove" ));
+		smg.add( new MenuItem( "removeReceivers", actionRemoveReceivers ));
+		smg.add( new MenuItem( "removeTransmitters", actionRemoveTransmitters ));
+		smg.add( new MenuItem( "removeGroup", actionRemoveGroups ));
+		mg.add( smg, i + 2 );
+		mg.add( new MenuSeparator(), i + 3 );
+		mg.add( new MenuItem( "bounce", actionBounce ), i + 4 );
+		
+		// --- timeline menu ---
+		i	= indexOf( "edit" );
+		mg	= new MenuGroup( "timeline", getResourceString( "menuTimeline" ));
+		mg.add( new MenuItem( "insTimeSpan", actionInsTimeSpan ));
+		mg.add( new MenuItem( "selectionForward", actionSelectionForward ));
+		mg.add( new MenuItem( "selectionBackwards", actionSelectionBackwards ));
+		mg.addSeparator();
+		mg.add( new MenuItem( "filter", actionFilter ));
+		add( mg, i + 1 );
+
+		// --- view menu ---
+		mg			= new MenuGroup( "view", getResourceString( "menuView" ));
+		prefs		= getApplication().getUserPrefs().node( PrefsUtil.NODE_SHARED );
+		ba			= new BooleanPrefsMenuAction( getResourceString( "menuSnapToObjects" ), KeyStroke.getKeyStroke(
+		  			         KeyEvent.VK_LESS, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
+		mci			= new MenuCheckItem( "snapToObjects", ba );
+		ba.setCheckItem( mci );
+		ba.setPreferences( prefs, PrefsUtil.KEY_SNAP );
+		mg.add( mci );
+
+		smg			= new MenuGroup( "viewSurface", getResourceString( "menuViewSurface" ));
+		ba			= new BooleanPrefsMenuAction( getResourceString( "menuViewRcvSense" ), null );
+		mci			= new MenuCheckItem( "viewRcvSense", ba );
+		ba.setCheckItem( mci );
+		ba.setPreferences( prefs, PrefsUtil.KEY_VIEWRCVSENSE );
+		smg.add( mci );
+		ba			= new BooleanPrefsMenuAction( getResourceString( "menuViewRcvSenseEqP" ), null );
+		mci			= new MenuCheckItem( "viewRcvSenseEqP", ba );
+		ba.setCheckItem( mci );
+		ba.setPreferences( prefs, PrefsUtil.KEY_VIEWEQPRECEIVER );
+		smg.add( mci );
+		ba			= new BooleanPrefsMenuAction( getResourceString( "menuViewTrnsTraj" ), null );
+		mci			= new MenuCheckItem( "viewTrnsTraj", ba );
+		ba.setCheckItem( mci );
+		ba.setPreferences( prefs, PrefsUtil.KEY_VIEWTRNSTRAJ );
+		smg.add( mci );
+		ba			= new BooleanPrefsMenuAction( getResourceString( "menuViewUserImages" ), null );
+		mci			= new MenuCheckItem( "viewUserImages", ba );
+		ba.setCheckItem( mci );
+		ba.setPreferences( prefs, PrefsUtil.KEY_VIEWUSERIMAGES );
+		smg.add( mci );
+		ba			= new BooleanPrefsMenuAction( getResourceString( "menuViewRulers" ), null );
+		mci			= new MenuCheckItem( "viewRulers", ba );
+		ba.setCheckItem( mci );
+		ba.setPreferences( prefs, PrefsUtil.KEY_VIEWRULERS );
+		smg.add( mci );
+		mg.add( smg );
+		add( mg, i + 2 );
+
+		// --- extras menu ---
+		mg   = new MenuGroup( "extras", getResourceString( "menuExtras" ));
+		mg.add( new MenuItem( "jathaDiddler", actionJathaDiddler ));
+		mg.add( new MenuItem( "hrirPrepare", actionHRIRPrepare ));
+		add( mg, i + 3 );
+		
+		// --- window menu ---
+		mg	= (MenuGroup) get( "window" );
+		mg.add( new MenuItem( "showSurface", actionShowSurface ), 0 );
+		mg.add( new MenuItem( "showTimeline", actionShowTimeline ), 1 );
+		mg.add( new MenuSeparator(), 2 );
+		mg.add( new MenuItem( "showTransport", actionShowTransport ), 3 );
+		mg.add( new MenuItem( "showObserver", actionShowObserver ), 4 );
+		mg.add( new MenuItem( "showMeter", actionShowMeter ), 5 );
+		mg.add( new MenuItem( "showRealtime", actionShowRealtime ), 6 );
+
+		// --- debug menu ---
+		mg   = new MenuGroup( "debug", "Debug" );
+		mg.add( new MenuItem( "debugDumpUndo", actionDebugDumpUndo ));
+		mg.add( new MenuItem( "debugDumpTracks", actionDebugDumpTracks ));
+		mg.add( new MenuItem( "debugViewTrack", actionDebugViewTrack ));
+		mg.add( new MenuItem( "debugDumpPrefs", actionDebugDumpPrefs ));
+		mg.add( new MenuItem( "debugDumpRealtime", actionDebugDumpRealtime ));
+		mg.add( new MenuItem( "debugDumpListeners", actionDebugDumpListeners ));
+		i	= indexOf( "help" );
+		add( mg, i );
+
 	}
 
 	private void createActions()
@@ -330,316 +295,97 @@ public class MenuFactory
 		final de.sciss.app.Application	app = AbstractApplication.getApplication();
 		
 		// --- file menu ---
-		actionClearSession	= new actionClearSessionClass( app.getResourceString( "menuClearSession" ),
+		actionClearSession	= new ActionClearSession( app.getResourceString( "menuClearSession" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT ));
-		actionOpen		= new actionOpenClass(  app.getResourceString( "menuOpen" ),
+		actionOpen		= new ActionOpen(  app.getResourceString( "menuOpen" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_O, MENU_SHORTCUT ));
-		actionOpenRecent = new actionOpenRecentClass( app.getResourceString( "menuOpenRecent" ));
-		actionClearRecent = new actionClearRecentClass( app.getResourceString( "menuClearRecent" ), null );
-		actionSave		= new actionSaveClass(  app.getResourceString( "menuSave" ),
+		actionSave		= new ActionSave(  app.getResourceString( "menuSave" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_S, MENU_SHORTCUT ));
-		actionSaveAs	= new actionSaveAsClass( app.getResourceString( "menuSaveAs" ), KeyStroke.getKeyStroke(
+		actionSaveAs	= new ActionSaveAs( app.getResourceString( "menuSaveAs" ), KeyStroke.getKeyStroke(
 												KeyEvent.VK_S, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
 
-		actionNewReceivers = new actionNewReceiversClass(  app.getResourceString( "menuNewReceivers" ),
+		actionNewReceivers = new ActionNewReceivers(  app.getResourceString( "menuNewReceivers" ),
 							KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT + KeyEvent.ALT_MASK ));
-		actionNewTransmitters = new actionNewTransmittersClass( app.getResourceString( "menuNewTransmitters" ),
+		actionNewTransmitters = new ActionNewTransmitters( app.getResourceString( "menuNewTransmitters" ),
 							KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
-		actionNewGroup	= new actionNewGroupClass( app.getResourceString( "menuNewGroup" ), null );
-		actionRemoveReceivers = new actionRemoveSessionObjectClass( app.getResourceString( "menuRemoveReceivers" ),
+		actionNewGroup	= new ActionNewGroup( app.getResourceString( "menuNewGroup" ), null );
+		actionRemoveReceivers = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveReceivers" ),
 											null, Session.DOOR_RCV, doc.receivers, doc.selectedReceivers, doc.groups );
-		actionRemoveTransmitters = new actionRemoveSessionObjectClass( app.getResourceString( "menuRemoveTransmitters" ),
+		actionRemoveTransmitters = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveTransmitters" ),
 											null, Session.DOOR_TRNS, doc.transmitters, doc.selectedTransmitters, doc.groups );
-		actionRemoveGroups	= new actionRemoveSessionObjectClass( app.getResourceString( "menuRemoveGroups" ),
+		actionRemoveGroups	= new ActionRemoveSessionObject( app.getResourceString( "menuRemoveGroups" ),
 											null, Session.DOOR_GRP, doc.groups, doc.selectedGroups, null );
 
-		actionBounce	= new actionBounceClass( app.getResourceString( "menuBounce" ),
+		actionBounce	= new ActionBounce( app.getResourceString( "menuBounce" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_R, MENU_SHORTCUT ));
-		actionQuit		= new actionQuitClass(  app.getResourceString( "menuQuit" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_Q, MENU_SHORTCUT ));
-
-		// --- edit menu ---
-		actionCut		= new actionCutClass(   app.getResourceString( "menuCut" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_X, MENU_SHORTCUT ));
-		actionCopy		= new actionCopyClass(  app.getResourceString( "menuCopy" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_C, MENU_SHORTCUT ));
-		actionPaste		= new actionPasteClass( app.getResourceString( "menuPaste" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_V, MENU_SHORTCUT ));
-//		actionClear		= new actionClearClass( app.getResourceString( "menuClear" ),
-//												KeyStroke.getKeyStroke( KeyEvent.VK_BACK_SPACE, MENU_SHORTCUT ));
-		actionClear		= new actionClearClass( app.getResourceString( "menuClear" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_BACK_SPACE, 0 ));
-		actionSelectAll = new actionSelectAllClass( app.getResourceString( "menuSelectAll" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_A, MENU_SHORTCUT ));
-		actionPreferences = new actionPreferencesClass( app.getResourceString( "menuPreferences" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_COMMA, MENU_SHORTCUT ));
+//		actionQuit		= new ActionQuit(  app.getResourceString( "menuQuit" ),
+//												KeyStroke.getKeyStroke( KeyEvent.VK_Q, MENU_SHORTCUT ));
 
 		// --- timeline menu ---
-		actionInsTimeSpan   = new actionInsTimeSpanClass( app.getResourceString( "menuInsTimeSpan" ),
+		actionInsTimeSpan   = new ActionInsTimeSpan( app.getResourceString( "menuInsTimeSpan" ),
 									KeyStroke.getKeyStroke( KeyEvent.VK_E, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
-		actionSelectionForward = new actionSelectionForwardClass( app.getResourceString( "menuSelectionForward" ),
+		actionSelectionForward = new ActionSelectionForward( app.getResourceString( "menuSelectionForward" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_CLOSE_BRACKET, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
-		actionSelectionBackwards = new actionSelectionBackwardsClass( app.getResourceString( "menuSelectionBackwards" ),
+		actionSelectionBackwards = new ActionSelectionBackwards( app.getResourceString( "menuSelectionBackwards" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_OPEN_BRACKET, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
-		actionFilter = new actionFilterClass( app.getResourceString( "menuFilter" ),
+		actionFilter = new ActionFilter( app.getResourceString( "menuFilter" ),
 										KeyStroke.getKeyStroke( KeyEvent.VK_F, MENU_SHORTCUT ));
 
 		// --- view menu ---
-		actionSnapToObjects		= new SyncedPrefsMenuAction( app.getResourceString( "menuSnapToObjects" ), KeyStroke.getKeyStroke( 
-										KeyEvent.VK_LESS, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
-		syncedItems.put( actionSnapToObjects, new Vector() );
-		actionViewRcvSense		= new SyncedPrefsMenuAction( app.getResourceString( "menuViewRcvSense" ), null );
-		syncedItems.put( actionViewRcvSense, new Vector() );
-		actionViewRcvSenseEqP	= new SyncedPrefsMenuAction( app.getResourceString( "menuViewRcvSenseEqP" ), null );
-		syncedItems.put( actionViewRcvSenseEqP, new Vector() );
-		actionViewTrnsTraj		= new SyncedPrefsMenuAction( app.getResourceString( "menuViewTrnsTraj" ), null );
-		syncedItems.put( actionViewTrnsTraj, new Vector() );
-		actionViewUserImages	= new SyncedPrefsMenuAction( app.getResourceString( "menuViewUserImages" ), null );
-		syncedItems.put( actionViewUserImages, new Vector() );
-		actionViewRulers		= new SyncedPrefsMenuAction( app.getResourceString( "menuViewRulers" ), null );
-		syncedItems.put( actionViewRulers, new Vector() );
 
 		// --- window menu ---
-		actionShowSurface		= new actionShowWindowClass( app.getResourceString( "frameSurface" ), KeyStroke.getKeyStroke( 
+		actionShowSurface		= new ActionShowWindow( app.getResourceString( "frameSurface" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_MULTIPLY, MENU_SHORTCUT ), Main.COMP_SURFACE );
-		actionShowTimeline		= new actionShowWindowClass( app.getResourceString( "frameTimeline" ), KeyStroke.getKeyStroke( 
+		actionShowTimeline		= new ActionShowWindow( app.getResourceString( "frameTimeline" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_EQUALS, MENU_SHORTCUT ), Main.COMP_TIMELINE );
-		actionShowTransport		= new actionShowWindowClass( app.getResourceString( "paletteTransport" ), KeyStroke.getKeyStroke( 
+		actionShowTransport		= new ActionShowWindow( app.getResourceString( "paletteTransport" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_NUMPAD1, MENU_SHORTCUT ), Main.COMP_TRANSPORT );
-		actionShowObserver		= new actionShowWindowClass( app.getResourceString( "paletteObserver" ), KeyStroke.getKeyStroke( 
+		actionShowObserver		= new ActionShowWindow( app.getResourceString( "paletteObserver" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_NUMPAD3, MENU_SHORTCUT ), Main.COMP_OBSERVER );
-		actionShowMeter			= new actionShowWindowClass( app.getResourceString( "frameMeter" ), KeyStroke.getKeyStroke( 
+		actionShowMeter			= new ActionShowWindow( app.getResourceString( "frameMeter" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_NUMPAD4, MENU_SHORTCUT ), Main.COMP_METER );
-		actionShowRealtime		= new actionShowWindowClass( app.getResourceString( "frameRealtime" ), KeyStroke.getKeyStroke( 
+		actionShowRealtime		= new ActionShowWindow( app.getResourceString( "frameRealtime" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_NUMPAD2, MENU_SHORTCUT ), Main.COMP_REALTIME );
-		actionAbout				= new actionAboutClass( app.getResourceString( "menuAbout" ), null );
 
 		// --- extras menu ---
-		actionJathaDiddler		= JathaDiddler.getMenuAction( root );
-		actionHRIRPrepare		= HRIRPrepareDialog.getMenuAction( root, doc );
+		actionJathaDiddler		= JathaDiddler.getMenuAction();
+		actionHRIRPrepare		= HRIRPrepareDialog.getMenuAction( doc );
 
 		// --- debug menu ---
 		actionDebugDumpUndo		= doc.getUndoManager().getDebugDumpAction();
-		actionDebugDumpPrefs	= PrefsUtil.getDebugDumpAction( root, doc );
-		actionDebugDumpTracks   = DebugTrackEditor.getDebugDumpAction( root, doc );
-		actionDebugViewTrack	= DebugTrackEditor.getDebugViewAction( root, doc );
-		actionDebugDumpRealtime	= root.transport.getDebugDumpAction();
-		actionDebugDumpListeners= new actionDebugDumpListenersClass();
+		actionDebugDumpPrefs	= PrefsUtil.getDebugDumpAction( doc );
+		actionDebugDumpTracks   = DebugTrackEditor.getDebugDumpAction( doc );
+		actionDebugViewTrack	= DebugTrackEditor.getDebugViewAction( doc );
+		actionDebugDumpRealtime	= ((Main) getApplication()).transport.getDebugDumpAction();
+		actionDebugDumpListeners= new ActionDebugDumpListeners();
+	}
 
-		// --- help menu ---
-// KeyStroke.getKeyStroke( KeyEvent.VK_MINUS, MENU_SHORTCUT + KeyEvent.SHIFT_MASK )
-// KeyStroke.getKeyStroke( new Character( '?' ), MENU_SHORTCUT )
-		actionHelpManual		= new actionURLViewerClass( app.getResourceString( "menuHelpManual" ), null, "index", false );
-		actionHelpShortcuts		= new actionURLViewerClass( app.getResourceString( "menuHelpShortcuts" ), null, "Shortcuts", false );
-		actionHelpWebsite		= new actionURLViewerClass( app.getResourceString( "menuHelpWebsite" ), null, app.getResourceString( "appURL" ), true );
+	public void showPreferences()
+	{
+		PrefsFrame prefsFrame = (PrefsFrame) getApplication().getComponent( Main.COMP_PREFS );
+	
+		if( prefsFrame == null ) {
+			prefsFrame = new PrefsFrame( doc );
+		}
+		prefsFrame.setVisible( true );
+		prefsFrame.toFront();
 	}
 	
-	private void createProtoType()
+	protected Action getOpenAction()
 	{
-		JMenu							mainMenu, subMenu;
-		JCheckBoxMenuItem				cbmi;
-		JMenuItem						mi;
-		Preferences						prefs;
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
-		final de.sciss.app.UndoManager	undo	= doc.getUndoManager();
-
-		mainMenu = new JMenu( app.getResourceString( "menuFile" ));
-		mainMenu.add( new JMenuItem( actionClearSession ));
-		mainMenu.add( new JMenuItem( actionOpen ));
-		openRecentMenu = new JMenu( actionOpenRecent );
-		if( openRecentPaths.getPathCount() > 0 ) {
-			for( int i = 0; i < openRecentPaths.getPathCount(); i++ ) {
-				openRecentMenu.add( new JMenuItem( new actionOpenRecentClass( openRecentPaths.getPath( i ))));
-			}
-			actionOpenRecent.setPath( openRecentPaths.getPath( 0 ));
-		}
-		openRecentMenu.addSeparator();
-		openRecentMenu.add( new JMenuItem( actionClearRecent ));
-		mainMenu.add( openRecentMenu );
-		mainMenu.addSeparator();
-		mainMenu.add( new JMenuItem( actionSave ));
-		mainMenu.add( new JMenuItem( actionSaveAs ));
-
-		mainMenu.addSeparator();
-		subMenu = new JMenu( app.getResourceString( "menuInsert" ));
-		subMenu.add( new JMenuItem( actionNewReceivers ));
-		subMenu.add( new JMenuItem( actionNewTransmitters ));
-		subMenu.add( new JMenuItem( actionNewGroup ));
-		mainMenu.add( subMenu );
-		subMenu = new JMenu( app.getResourceString( "menuRemove" ));
-		subMenu.add( new JMenuItem( actionRemoveReceivers ));
-		subMenu.add( new JMenuItem( actionRemoveTransmitters ));
-		subMenu.add( new JMenuItem( actionRemoveGroups ));
-		mainMenu.add( subMenu );
-		mainMenu.addSeparator();
-
-		mainMenu.add( new JMenuItem( actionBounce ));
-		mi		= root.getQuitJMenuItem();
-		mi.setAction( actionQuit );
-		if( !QuitJMenuItem.isAutomaticallyPresent() ) {
-			mainMenu.addSeparator();
-			mainMenu.add( mi );
-		}
-		protoType.add( mainMenu );
-
-		mainMenu = new JMenu( app.getResourceString( "menuEdit" ));
-		mainMenu.add( new JMenuItem( undo.getUndoAction() ));
-		mainMenu.add( new JMenuItem( undo.getRedoAction() ));
-		mainMenu.addSeparator();
-		mainMenu.add( new JMenuItem( actionCut ));
-		mainMenu.add( new JMenuItem( actionCopy ));
-		mainMenu.add( new JMenuItem( actionPaste ));
-		mainMenu.add( new JMenuItem( actionClear ));
-		mainMenu.addSeparator();
-		mainMenu.add( new JMenuItem( actionSelectAll ));
-		mi		= root.getPreferencesJMenuItem();
-		mi.setAction( actionPreferences );
-		if( !PreferencesJMenuItem.isAutomaticallyPresent() ) {
-			mainMenu.addSeparator();
-			mainMenu.add( mi );
-		}
-		protoType.add( mainMenu );
-
-//		surfaceMenu = new JMenu( Main.getResourceString( "menuSurface" ));
-//		protoType.add( surfaceMenu );
-
-		mainMenu = new JMenu( app.getResourceString( "menuTimeline" ));
-		mainMenu.add( new JMenuItem( actionInsTimeSpan ));
-		mainMenu.add( new JMenuItem( actionSelectionForward ));
-		mainMenu.add( new JMenuItem( actionSelectionBackwards ));
-		mainMenu.addSeparator();
-		mainMenu.add( new JMenuItem( actionFilter ));
-		protoType.add( mainMenu );
-
-		mainMenu	= new JMenu( app.getResourceString( "menuView" ));
-		prefs		= app.getUserPrefs().node( PrefsUtil.NODE_SHARED );
-		cbmi		= new JCheckBoxMenuItem( actionSnapToObjects );
-		((Vector) syncedItems.get( actionSnapToObjects )).add( cbmi );
-		actionSnapToObjects.setPreferences( prefs, PrefsUtil.KEY_SNAP );
-		mainMenu.add( cbmi );
-		subMenu		= new JMenu( app.getResourceString( "menuViewSurface" ));
-		cbmi		= new JCheckBoxMenuItem( actionViewRcvSense );
-		((Vector) syncedItems.get( actionViewRcvSense )).add( cbmi );
-		actionViewRcvSense.setPreferences( prefs, PrefsUtil.KEY_VIEWRCVSENSE );
-		subMenu.add( cbmi );
-		cbmi		= new JCheckBoxMenuItem( actionViewRcvSenseEqP );
-		((Vector) syncedItems.get( actionViewRcvSenseEqP )).add( cbmi );
-		actionViewRcvSenseEqP.setPreferences( prefs, PrefsUtil.KEY_VIEWEQPRECEIVER );
-		subMenu.add( cbmi );
-		cbmi		= new JCheckBoxMenuItem( actionViewTrnsTraj );
-		((Vector) syncedItems.get( actionViewTrnsTraj )).add( cbmi );
-		actionViewTrnsTraj.setPreferences( prefs, PrefsUtil.KEY_VIEWTRNSTRAJ );
-		subMenu.add( cbmi );
-		cbmi		= new JCheckBoxMenuItem( actionViewUserImages );
-		((Vector) syncedItems.get( actionViewUserImages )).add( cbmi );
-		actionViewUserImages.setPreferences( prefs, PrefsUtil.KEY_VIEWUSERIMAGES );
-		subMenu.add( cbmi );
-		cbmi		= new JCheckBoxMenuItem( actionViewRulers );
-		((Vector) syncedItems.get( actionViewRulers )).add( cbmi );
-		actionViewRulers.setPreferences( prefs, PrefsUtil.KEY_VIEWRULERS );
-		subMenu.add( cbmi );
-		mainMenu.add( subMenu );
-		protoType.add( mainMenu );
-
-		mainMenu	= new JMenu( app.getResourceString( "menuWindow" ));
-		mainMenu.add( new JMenuItem( actionShowSurface ));
-		mainMenu.add( new JMenuItem( actionShowTimeline ));
-		mainMenu.addSeparator();
-		mainMenu.add( new JMenuItem( actionShowTransport ));
-		mainMenu.add( new JMenuItem( actionShowObserver ));
-		mainMenu.add( new JMenuItem( actionShowMeter ));
-		mainMenu.add( new JMenuItem( actionShowRealtime ));
-		protoType.add( mainMenu );
-
-		mainMenu	= new JMenu( app.getResourceString( "menuExtras" ));
-		mainMenu.add( new JMenuItem( actionJathaDiddler ));
-		mainMenu.add( new JMenuItem( actionHRIRPrepare ));
-		protoType.add( mainMenu );
-
-		mainMenu	= new JMenu( "Debug" );
-		mainMenu.add( new JMenuItem( actionDebugDumpUndo ));
-		mainMenu.add( new JMenuItem( actionDebugDumpTracks ));
-		mainMenu.add( new JMenuItem( actionDebugViewTrack ));
-		mainMenu.add( new JMenuItem( actionDebugDumpPrefs ));
-		mainMenu.add( new JMenuItem( actionDebugDumpRealtime ));
-		mainMenu.add( new JMenuItem( actionDebugDumpListeners ));
-		protoType.add( mainMenu );
-
-		mainMenu	= new JMenu( app.getResourceString( "menuHelp" ));
-		mainMenu.add( new JMenuItem( actionHelpManual ));
-		mainMenu.add( new JMenuItem( actionHelpShortcuts ));
-		mainMenu.addSeparator();
-		mainMenu.add( new JMenuItem( actionHelpWebsite ));
-		mi			= root.getAboutJMenuItem();
-		mi.setAction( actionAbout );
-		if( !AboutJMenuItem.isAutomaticallyPresent() ) {
-			mainMenu.addSeparator();
-			mainMenu.add( mi );
-		}
-		protoType.add( mainMenu );
+		return actionOpen;
 	}
 
-	private JMenuBar createMenuBarCopy()
+	protected ActionOpenRecent createOpenRecentAction( String name, File path )
 	{
-		final JMenuBar copy	= new JMenuBar();
-		
-		for( int i = 0; i < protoType.getMenuCount(); i++ ) {
-			copy.add( createMenuCopy( protoType.getMenu( i )));
-		}
-		
-		return copy;
+		return new ActionOpenRecent( name, path );
 	}
-		
-	private JMenu createMenuCopy( JMenu pMenu )
-	{
-		final JMenu	cMenu   = new JMenu( pMenu.getText() );
-		JMenuItem   pMenuItem, cMenuItem;
-		Action		action;
-		Vector		v;
-		
-		action = pMenu.getAction();
-		if( action != null ) {
-			cMenu.setAction( action );
-		}
-		cMenu.setVisible( pMenu.isVisible() );
-		
-		for( int i = 0; i < pMenu.getItemCount(); i++ ) {
-			pMenuItem   = pMenu.getItem( i );
-			if( pMenuItem != null ) {
-				action		= pMenuItem.getAction();
-				if( pMenuItem instanceof JMenu ) {  // recursive into submenus
-					cMenuItem = createMenuCopy( (JMenu) pMenuItem );
-				} else if( pMenuItem instanceof JCheckBoxMenuItem ) {
-					cMenuItem = new JCheckBoxMenuItem( pMenuItem.getText(), ((JCheckBoxMenuItem) pMenuItem).getState() );
-					v		  = (Vector) syncedItems.get( action );
-					v.add( cMenuItem );
-				} else {
-					cMenuItem = new JMenuItem( pMenuItem.getText() );
-				}
-				if( action != null ) {
-					cMenuItem.setAction( action );
-				}
-				cMenu.add( cMenuItem );
-			} else {  // components used other that JMenuItems are separators
-				cMenu.add( new JSeparator() );
-			}
-		}
-		
-		return cMenu;
-	}
-	
-	// returns the current active window
-	private JFrame fuckINeedTheWindow( ActionEvent e )
-	{
-		JFrame host;
 
-		for( int i = 0; i < collMenuHosts.size(); i++ ) {
-			host = (JFrame) collMenuHosts.get( i );
-			if( host.isActive() ) return host;
-		}
-		return null;
+	public void openDocument( File f )
+	{
+		actionOpen.perform( f );
 	}
-	
+
 	/**
 	 *  Checks if there are unsaved changes to
 	 *  the session. If so, displays a confirmation
@@ -694,84 +440,17 @@ public class MenuFactory
 			return false;
 		}
 	}
-	
-	// adds a file to the top of
-	// the open recent menu of all menubars
-	// and the prototype. calls
-	// openRecentPaths.addPathToHead() and
-	// thus updates the preferences settings
-	// iteratively calls addRecent( JMenuBar, File, boolean )
-	private void addRecent( File path )
-	{
-		JMenuBar	mb;
-		boolean		removeTail;
-		
-		if( openRecentPaths.contains( path )) return;
-		removeTail = openRecentPaths.addPathToHead( path );
-
-		actionOpenRecent.setPath( path );
-	
-		for( int i = 0; i < collMenuHosts.size(); i++ ) {
-			mb = ((JFrame) collMenuHosts.get( i )).getJMenuBar();
-			if( mb != null ) addRecent( mb, path, removeTail );
-		}
-		addRecent( protoType, path, removeTail );
-	}
-	
-	private void addRecent( JMenuBar mb, File path, boolean removeTail )
-	{
-		JMenu m;
-
-		m = (JMenu) findMenuItem( mb, actionOpenRecent );
-		if( m != null ) {
-			m.insert( new JMenuItem( new actionOpenRecentClass( path )), 0 );
-			if( removeTail ) m.remove( openRecentPaths.getPathCount() );
-		}
-	}
-
-	// find the menuitem whose action is
-	// the action passed to the method.
-	// traverse the whole hierarchy of the given menubar.
-	// iteratively calls findMenuItem( JMenu, Action )
-	private JMenuItem findMenuItem( JMenuBar mb, Action action )
-	{
-		int			i;
-		JMenuItem   mi  = null;
-	
-		for( i = 0; mi == null && i < mb.getMenuCount(); i++ ) {
-			mi = findMenuItem( mb.getMenu( i ), action );
-		}
-		return mi;
-	}
-	
-	private JMenuItem findMenuItem( JMenu m, Action action )
-	{
-		int			i;
-		JMenuItem   mi;
-	
-		for( i = 0; i < m.getItemCount(); i++ ) {
-			mi = m.getItem( i );
-			if( mi != null ) {
-				if( mi.getAction() == action ) return mi;
-				if( mi instanceof JMenu ) {
-					mi = findMenuItem( (JMenu) mi, action );
-					if( mi != null ) return mi;
-				}
-			}
-		}
-		return null;
-	}
 
 // ---------------- Action objects for file (session) operations ---------------- 
 
 	// action for the Insert-New-Receivers menu item
-	private class actionNewReceiversClass
+	private class ActionNewReceivers
 	extends MenuAction
 	{
 		private Number		num		= new Integer( 1 );
 		private StringItem	type	= null;
 
-		private actionNewReceiversClass( String text, KeyStroke shortcut )
+		private ActionNewReceivers( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 		}
@@ -802,7 +481,7 @@ public class MenuFactory
 
 			final java.util.List	collTypes	= Main.getReceiverTypes();
 			final JPanel			msgPane		= new JPanel( new SpringLayout() );
-			final NumberField		ggNum		= new NumberField( 0, NumberSpace.createIntSpace( 1, 0x10000 ), null );
+			final NumberField		ggNum		= new NumberField( NumberSpace.createIntSpace( 1, 0x10000 ));
 			final JComboBox			ggType		= new JComboBox();
 
 			for( int i = 0; i < collTypes.size(); i++ ) {
@@ -815,7 +494,7 @@ public class MenuFactory
 			msgPane.add( ggNum );
 			msgPane.add( ggType );
 			GUIUtil.makeCompactSpringGrid( msgPane, 1, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
-			HelpGlassPane.setHelp( msgPane, getValue( NAME ).toString() );
+//			HelpGlassPane.setHelp( msgPane, getValue( NAME ).toString() );	// EEE
 		
 			result = JOptionPane.showOptionDialog( null, msgPane,
 				AbstractApplication.getApplication().getResourceString( "inputDlgNewReceivers" ),
@@ -884,10 +563,10 @@ public class MenuFactory
 	}
 	
 	// action for the Insert-New-Group menu item
-	private class actionNewGroupClass
+	private class ActionNewGroup
 	extends MenuAction
 	{
-		private actionNewGroupClass( String text, KeyStroke shortcut )
+		private ActionNewGroup( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 		}
@@ -980,12 +659,12 @@ public class MenuFactory
 	}
 	
 	// action for the Clear-Session menu item
-	private class actionClearSessionClass
+	private class ActionClearSession
 	extends MenuAction
 	{
 		private String text;
 	
-		private actionClearSessionClass( String text, KeyStroke shortcut )
+		private ActionClearSession( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 			
@@ -1004,9 +683,9 @@ public class MenuFactory
 		{
 			if( !confirmUnsaved( null, text )) return;
 
-			final MainFrame mf = (MainFrame) root.getComponent( Main.COMP_MAIN );
+			final MainFrame mf = (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
 
-			root.transport.stopAndWait();
+			((Main) getApplication()).transport.stopAndWait();
 			try {
 				doc.bird.waitExclusive( Session.DOOR_ALL );
 				doc.getUndoManager().discardAllEdits();
@@ -1022,13 +701,13 @@ public class MenuFactory
 	}
 
 	// action for the Open-Session menu item
-	private class actionOpenClass
+	private class ActionOpen
 	extends MenuAction
 	implements RunnableProcessing
 	{
 		private String text;
 	
-		private actionOpenClass( String text, KeyStroke shortcut )
+		private ActionOpen( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 			
@@ -1052,7 +731,7 @@ public class MenuFactory
 		{
 			FileDialog  fDlg;
 			String		strFile, strDir;
-			Frame		frame = (Frame) root.getComponent( Main.COMP_MAIN );
+			Frame		frame = (Frame) getApplication().getComponent( Main.COMP_MAIN );
 
 			fDlg	= new FileDialog( frame, AbstractApplication.getApplication().getResourceString(
 				"fileDlgOpen" ), FileDialog.LOAD );
@@ -1080,6 +759,7 @@ public class MenuFactory
 		 */
 		protected ProcessingThread perform( File path )
 		{
+			final Main root = (Main) AbstractApplication.getApplication();
 			root.transport.stopAndWait();
 			((MainFrame) root.getComponent( Main.COMP_MAIN )).clearLog();
 			Map options = new HashMap();
@@ -1150,18 +830,19 @@ public class MenuFactory
 		{
 			final Map		options = (Map) argument;
 			Object			warn;
-			final MainFrame mf		= (MainFrame) root.getComponent( Main.COMP_MAIN );
+			final MainFrame mf		= (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
 		
 			if( success ) {
 				addRecent( (File) options.get( "file" ));
 				if( AbstractApplication.getApplication().getUserPrefs().getBoolean(
 					PrefsUtil.KEY_RECALLFRAMES, false )) {
 
-					BasicFrame.restoreAllFromPrefs();
+//					BasicFrame.restoreAllFromPrefs();
+// EEE
 				}
 				warn = options.get( XMLRepresentation.KEY_WARNING );
 				if( warn != null ) {
-					JOptionPane.showMessageDialog( mf, warn, getValue( Action.NAME ).toString(),
+					JOptionPane.showMessageDialog( mf.getWindow(), warn, getValue( Action.NAME ).toString(),
 												   JOptionPane.WARNING_MESSAGE );
 				}
 			}
@@ -1170,104 +851,14 @@ public class MenuFactory
 		}
 	}
 	
-	// action for the Open-Recent menu
-	private class actionOpenRecentClass
-	extends MenuAction
-	{
-		private File path;
-
-		// new action with path set to null
-		private actionOpenRecentClass( String text )
-		{
-			super( text );
-			setPath( null );
-		}
-
-		// new action with given path
-		private actionOpenRecentClass( File path )
-		{
-			super( IOUtil.abbreviate( path.getParent(), 40 ));
-			setPath( path );
-		}
-		
-		// set the path of the action. this
-		// is the file that will be loaded
-		// if the action is performed
-		private void setPath( File path )
-		{
-			this.path = path;
-			setEnabled( path != null );
-		}
-		
-		/**
-		 *  If a path was set for the
-		 *  action and the user confirms
-		 *  an intermitting confirm-unsaved-changes
-		 *  dialog, the new session will be loaded
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			if( path == null ) return;
-			if( !confirmUnsaved( null,
-				AbstractApplication.getApplication().getResourceString( "menuOpenRecent" ))) return;
-			actionOpen.perform( path );
-		}
-	} // class actionOpenRecentClass
-
-	// action for clearing the Open-Recent menu
-	private class actionClearRecentClass
-	extends MenuAction
-	{
-		private actionClearRecentClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-		
-		public void actionPerformed( ActionEvent e )
-		{
-			JMenuBar	mb;
-			int			i;
-
-			openRecentPaths.clear();
-			actionOpenRecent.setPath( null );
-		
-			for( i = 0; i < collMenuHosts.size(); i++ ) {
-				mb = ((JFrame) collMenuHosts.get( i )).getJMenuBar();
-				if( mb != null ) clearRecent( mb );
-			}
-			clearRecent( protoType );
-		}
-		
-		private void clearRecent( JMenuBar mb )
-		{
-			JMenu		m;
-			JMenuItem   mi;
-			int			i;
-			Action		a;
-
-			m = (JMenu) findMenuItem( mb, actionOpenRecent );
-			if( m != null ) {
-				for( i = m.getItemCount() - 1; i >= 0; i-- ) {
-					mi  = m.getItem( i );
-					if( mi != null ) {
-						a   = mi.getAction();
-						if( a != null && a instanceof actionOpenRecentClass ) {
-							m.remove( mi );
-						}
-					}
-				}
-			}
-		}
-	} // class actionClearRecentClass
-	
 	// action for the Save-Session menu item
-	private class actionSaveClass
+	private class ActionSave
 	extends MenuAction
 	implements RunnableProcessing
 	{
 		private String text;
 
-		private actionSaveClass( String text, KeyStroke shortcut )
+		private ActionSave( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 			
@@ -1307,6 +898,7 @@ public class MenuFactory
 		 */
 		protected ProcessingThread perform( File docFile )
 		{
+			final Main root = (Main) AbstractApplication.getApplication();
 			root.transport.stopAndWait();
 			return new ProcessingThread( this, root, root, doc, text, docFile, Session.DOOR_ALL );
 		}
@@ -1397,7 +989,7 @@ public class MenuFactory
 
 		public void finished( ProcessingThread context, Object argument, boolean success )
 		{
-			final MainFrame mf = (MainFrame) root.getComponent( Main.COMP_MAIN );
+			final MainFrame mf = (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
 
 			if( success ) {
 				addRecent( (File) argument );
@@ -1405,7 +997,7 @@ public class MenuFactory
 			} else {
 				File tempDir = new File( ((File) argument).getParentFile().getAbsolutePath() + ".tmp" );
 				if( tempDir.exists() ) {
-					JOptionPane.showMessageDialog( mf,
+					JOptionPane.showMessageDialog( mf.getWindow(),
 						AbstractApplication.getApplication().getResourceString( "warnOldSessionDir" )+ " :\n"+
 						tempDir.getAbsolutePath(), getValue( Action.NAME ).toString(),
 						JOptionPane.WARNING_MESSAGE );
@@ -1416,10 +1008,10 @@ public class MenuFactory
 	}
 	
 	// action for the Save-Session-As menu item
-	private class actionSaveAsClass
+	private class ActionSaveAs
 	extends MenuAction
 	{
-		private actionSaveAsClass( String text, KeyStroke shortcut )
+		private ActionSaveAs( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 		}
@@ -1446,7 +1038,7 @@ public class MenuFactory
 			String		strFile, strDir;
 			File		f;
 			int			i;
-			Frame		frame = (Frame) root.getComponent( Main.COMP_MAIN );
+			Frame		frame = (Frame) getApplication().getComponent( Main.COMP_MAIN );
 
 			fDlg	= new FileDialog( frame,
 				AbstractApplication.getApplication().getResourceString( "fileDlgSave" ),
@@ -1473,10 +1065,10 @@ public class MenuFactory
 	}
 
 	// action for Bounce-to-Disk menu item
-	private class actionBounceClass
+	private class ActionBounce
 	extends MenuAction
 	{
-		private actionBounceClass( String text, KeyStroke shortcut )
+		private ActionBounce( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 		}
@@ -1486,316 +1078,183 @@ public class MenuFactory
 		 */
 		public void actionPerformed( ActionEvent e )
 		{
-			JFrame bounceFrame = (JFrame) root.getComponent( Main.COMP_BOUNCE );
+			AppWindow bounceFrame = (AppWindow) getApplication().getComponent( Main.COMP_BOUNCE );
 		
 			if( bounceFrame == null ) {
+				final Main root = (Main) AbstractApplication.getApplication();
 				bounceFrame = new BounceDialog( root, doc );
-				root.addComponent( Main.COMP_BOUNCE, bounceFrame );
+				getApplication().addComponent( Main.COMP_BOUNCE, bounceFrame );
 			}
 			bounceFrame.setVisible( true );
-			bounceFrame.show();
+			bounceFrame.toFront();
 		}
 	}
 
-	// action for Application-Quit menu item
-	private class actionQuitClass
-	extends MenuAction
-	{
-		private actionQuitClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-		
-		public void actionPerformed( ActionEvent e )
-		{
-			root.quit();
-		}
-	}
+//	// action for Application-Quit menu item
+//	private class ActionQuit
+//	extends MenuAction
+//	{
+//		private ActionQuit( String text, KeyStroke shortcut )
+//		{
+//			super( text, shortcut );
+//		}
+//		
+//		public void actionPerformed( ActionEvent e )
+//		{
+//			getApplication().quit();
+//		}
+//	}
 	
 // ---------------- Action objects for edit operations ---------------- 
 	
-	// action for Edit-Cut menu item
-	private class actionCutClass
-	extends MenuAction
-	{
-		private actionCutClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/**
-		 *  Tries to find the current active window
-		 *  and - if this window implements the
-		 *  <code>EditMenuListener</code> interface - calls
-		 *  <code>editCut</code> on that window.
-		 *
-		 *  @see	EditMenuListener#editCut( ActionEvent )
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			JFrame frame = fuckINeedTheWindow( e );
-			if( frame == null || !(frame instanceof EditMenuListener) ) return;
-			
-			((EditMenuListener) frame).editCut( e );
-		}
-	}
+//	// action for Edit-Cut menu item
+//	private class ActionCut
+//	extends MenuAction
+//	{
+//		private ActionCut( String text, KeyStroke shortcut )
+//		{
+//			super( text, shortcut );
+//		}
+//
+//		/**
+//		 *  Tries to find the current active window
+//		 *  and - if this window implements the
+//		 *  <code>EditMenuListener</code> interface - calls
+//		 *  <code>editCut</code> on that window.
+//		 *
+//		 *  @see	EditMenuListener#editCut( ActionEvent )
+//		 */
+//		public void actionPerformed( ActionEvent e )
+//		{
+//			JFrame frame = fuckINeedTheWindow( e );
+//			if( frame == null || !(frame instanceof EditMenuListener) ) return;
+//			
+//			((EditMenuListener) frame).editCut( e );
+//		}
+//	}
+// EEE
 	
-	// action for Edit-Copy menu item
-	private class actionCopyClass
-	extends MenuAction
-	{
-		private actionCopyClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/**
-		 *  Tries to find the current active window
-		 *  and - if this window implements the
-		 *  <code>EditMenuListener</code> interface - calls
-		 *  <code>editCopy</code> on that window.
-		 *
-		 *  @see	EditMenuListener#editCopy( ActionEvent )
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			JFrame frame = fuckINeedTheWindow( e );
-			if( frame == null || !(frame instanceof EditMenuListener) ) return;
-			
-			((EditMenuListener) frame).editCopy( e );
-		}
-	}
+//	// action for Edit-Copy menu item
+//	private class ActionCopy
+//	extends MenuAction
+//	{
+//		private ActionCopy( String text, KeyStroke shortcut )
+//		{
+//			super( text, shortcut );
+//		}
+//
+//		/**
+//		 *  Tries to find the current active window
+//		 *  and - if this window implements the
+//		 *  <code>EditMenuListener</code> interface - calls
+//		 *  <code>editCopy</code> on that window.
+//		 *
+//		 *  @see	EditMenuListener#editCopy( ActionEvent )
+//		 */
+//		public void actionPerformed( ActionEvent e )
+//		{
+//			JFrame frame = fuckINeedTheWindow( e );
+//			if( frame == null || !(frame instanceof EditMenuListener) ) return;
+//			
+//			((EditMenuListener) frame).editCopy( e );
+//		}
+//	}
+// EEE
 	
-	// action for Edit-Paste menu item
-	private class actionPasteClass
-	extends MenuAction
-	{
-		private actionPasteClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/**
-		 *  Tries to find the current active window
-		 *  and - if this window implements the
-		 *  <code>EditMenuListener</code> interface - calls
-		 *  <code>editPaste</code> on that window.
-		 *
-		 *  @see	EditMenuListener#editPaste( ActionEvent )
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			JFrame frame = fuckINeedTheWindow( e );
-			if( frame == null || !(frame instanceof EditMenuListener) ) return;
-			
-			((EditMenuListener) frame).editPaste( e );
-		}
-	}
+//	// action for Edit-Paste menu item
+//	private class ActionPaste
+//	extends MenuAction
+//	{
+//		private ActionPaste( String text, KeyStroke shortcut )
+//		{
+//			super( text, shortcut );
+//		}
+//
+//		/**
+//		 *  Tries to find the current active window
+//		 *  and - if this window implements the
+//		 *  <code>EditMenuListener</code> interface - calls
+//		 *  <code>editPaste</code> on that window.
+//		 *
+//		 *  @see	EditMenuListener#editPaste( ActionEvent )
+//		 */
+//		public void actionPerformed( ActionEvent e )
+//		{
+//			JFrame frame = fuckINeedTheWindow( e );
+//			if( frame == null || !(frame instanceof EditMenuListener) ) return;
+//			
+//			((EditMenuListener) frame).editPaste( e );
+//		}
+//	}
+// EEE
 	
-	// action for Edit-Clear/Delete menu item
-	private class actionClearClass
-	extends MenuAction
-	{
-		private actionClearClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/**
-		 *  Tries to find the current active window
-		 *  and - if this window implements the
-		 *  <code>EditMenuListener</code> interface - calls
-		 *  <code>editClear</code> on that window.
-		 *
-		 *  @see	EditMenuListener#editClear( ActionEvent )
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			JFrame frame = fuckINeedTheWindow( e );
-			if( frame == null || !(frame instanceof EditMenuListener) ) return;
-			
-			((EditMenuListener) frame).editClear( e );
-		}
-	}
+//	// action for Edit-Clear/Delete menu item
+//	private class ActionClear
+//	extends MenuAction
+//	{
+//		private ActionClear( String text, KeyStroke shortcut )
+//		{
+//			super( text, shortcut );
+//		}
+//
+//		/**
+//		 *  Tries to find the current active window
+//		 *  and - if this window implements the
+//		 *  <code>EditMenuListener</code> interface - calls
+//		 *  <code>editClear</code> on that window.
+//		 *
+//		 *  @see	EditMenuListener#editClear( ActionEvent )
+//		 */
+//		public void actionPerformed( ActionEvent e )
+//		{
+//			JFrame frame = fuckINeedTheWindow( e );
+//			if( frame == null || !(frame instanceof EditMenuListener) ) return;
+//			
+//			((EditMenuListener) frame).editClear( e );
+//		}
+//	}
+// EEE
 	
-	// action for Edit-Select-All menu item
-	private class actionSelectAllClass
-	extends MenuAction
-	{
-		private actionSelectAllClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/**
-		 *  Tries to find the current active window
-		 *  and - if this window implements the
-		 *  <code>EditMenuListener</code> interface - calls
-		 *  <code>editSelectAll</code> on that window.
-		 *
-		 *  @see	EditMenuListener#editSelectAll( ActionEvent )
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			JFrame frame = fuckINeedTheWindow( e );
-			if( frame == null || !(frame instanceof EditMenuListener) ) return;
-			
-			((EditMenuListener) frame).editSelectAll( e );
-		}
-	}
+//	// action for Edit-Select-All menu item
+//	private class ActionSelectAll
+//	extends MenuAction
+//	{
+//		private ActionSelectAll( String text, KeyStroke shortcut )
+//		{
+//			super( text, shortcut );
+//		}
+//
+//		/**
+//		 *  Tries to find the current active window
+//		 *  and - if this window implements the
+//		 *  <code>EditMenuListener</code> interface - calls
+//		 *  <code>editSelectAll</code> on that window.
+//		 *
+//		 *  @see	EditMenuListener#editSelectAll( ActionEvent )
+//		 */
+//		public void actionPerformed( ActionEvent e )
+//		{
+//			JFrame frame = fuckINeedTheWindow( e );
+//			if( frame == null || !(frame instanceof EditMenuListener) ) return;
+//			
+//			((EditMenuListener) frame).editSelectAll( e );
+//		}
+//	}
+// EEE
 	
-	/**
-	 *  Action to be attached to
-	 *  the Preference item of the Edit menu.
-	 *  Will bring up the Preferences frame
-	 *  when the action is performed.
-	 */
-	public class actionPreferencesClass
-	extends MenuAction
-	{
-		private actionPreferencesClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		public void actionPerformed( ActionEvent e )
-		{
-			perform();
-		}
-		
-		/**
-		 *  Opens the preferences frame
-		 */
-		public void perform()
-		{
-			JFrame prefsFrame = (JFrame) root.getComponent( Main.COMP_PREFS );
-		
-			if( prefsFrame == null ) {
-				prefsFrame = new PrefsFrame( root, doc );
-				root.addComponent( Main.COMP_PREFS, prefsFrame );
-			}
-			prefsFrame.setVisible( true );
-			prefsFrame.show();
-		}
-	}
-
 // ---------------- Action objects for surface operations ---------------- 
-
-	// for each SyncedMenuAction a
-	// hash map entry exists in the MenuFactory's
-	// syncedItems object. The value of
-	// that entry is a vector with a copy of the same
-	// menu item for each frame's menu. when the
-	// action of the SyncedMenuAction is performed,
-	// the source's isSelected() is queried and
-	// all other frames' synchronized menu items
-	// (i.e. JCheckBoxMenuItems) are set to the
-	// same state. Used e.g. for the Snap-to-Objects item
-	private class SyncedMenuAction
-	extends MenuAction
-	{
-		private SyncedMenuAction( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-	
-		public void actionPerformed( ActionEvent e )
-		{
-			boolean state   = ((AbstractButton) e.getSource()).isSelected();
-
-			setSelected( state );
-		}
-		
-		protected void setSelected( boolean state )
-		{
-			Vector			v   = (Vector) syncedItems.get( this );
-			AbstractButton  b;
-			int				i;
-
-			for( i = 0; i < v.size(); i++ ) {
-				b = (AbstractButton) v.get( i );
-				b.setSelected( state );
-			}
-		}
-	}
-	
-	// adds PreferenceEntrySync functionality to the superclass
-	// note that unlike PrefCheckBox and the like, it's only
-	// valid to listen to the prefs changes, not the action events
-	private class SyncedPrefsMenuAction
-	extends SyncedMenuAction
-	implements PreferenceEntrySync, PreferenceChangeListener, LaterInvocationManager.Listener
-	{
-		private Preferences prefs				= null;
-		private String key						= null;
-		private final LaterInvocationManager lim= new LaterInvocationManager( this );
-
-		private SyncedPrefsMenuAction( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/**
-		 *  Switches button state
-		 *  and updates preferences. 
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			boolean state   = ((AbstractButton) e.getSource()).isSelected();
-
-			setSelected( state );
-		
-			if( prefs != null ) {
-				prefs.putBoolean( key, state );
-			}
-		}
-
-		public void setPreferences( Preferences prefs, String key )
-		{
-			if( this.prefs != null ) {
-				this.prefs.removePreferenceChangeListener( this );
-			}
-			this.prefs  = prefs;
-			this.key	= key;
-			if( prefs != null ) {
-				prefs.addPreferenceChangeListener( this );
-				laterInvocation( new PreferenceChangeEvent( prefs, key, prefs.get( key, null )));
-			}
-		}
-
-		public Preferences getPreferenceNode() { return prefs; }
-		public String getPreferenceKey() { return key; }
-
-		// o instanceof PreferenceChangeEvent
-		public void laterInvocation( Object o )
-		{
-			String prefsValue   = ((PreferenceChangeEvent) o).getNewValue();
-			if( prefsValue == null ) return;
-			boolean prefsVal	= Boolean.valueOf( prefsValue ).booleanValue();
-
-			setSelected( prefsVal );
-		}
-
-		public void preferenceChange( PreferenceChangeEvent e )
-		{
-			if( e.getKey().equals( key )) {
-				if( EventManager.DEBUG_EVENTS ) System.err.println( "@menu preferenceChange : "+key+" --> "+e.getNewValue() );
-				lim.queue( e );
-			}
-		}
-	}
 	
 // ---------------- Action objects for timeline operations ---------------- 
 
 	// action for Insert-New-Transmitters menu item
-	private class actionNewTransmittersClass
+	private class ActionNewTransmitters
 	extends MenuAction
 	implements RunnableProcessing
 	{
 		private int		defaultValue = 1;
 		private String  text;
 	
-		private actionNewTransmittersClass( String text, KeyStroke shortcut )
+		private ActionNewTransmitters( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 			
@@ -1838,6 +1297,7 @@ public class MenuFactory
 				coll.add( collTypes.get( 0 ));
 			}
 
+			final Main root = (Main) AbstractApplication.getApplication();
 			new ProcessingThread( this, root, root, doc, text, coll, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
 		}
 
@@ -1942,7 +1402,7 @@ public class MenuFactory
 	}
 	
 	// action for Remove-Selected-Transmitters/Groups menu item
-	public class actionRemoveSessionObjectClass
+	public class ActionRemoveSessionObject
 	extends MenuAction
 	{
 		private final int				doors;
@@ -1950,7 +1410,7 @@ public class MenuFactory
 		private final SessionCollection	scSel;
 		private final SessionCollection	scGroups;
 	
-		private actionRemoveSessionObjectClass( String text, KeyStroke shortcut, int doors,
+		private ActionRemoveSessionObject( String text, KeyStroke shortcut, int doors,
 												SessionCollection scAll, SessionCollection scSel,
 												SessionCollection scGroups )
 		{
@@ -2020,14 +1480,14 @@ public class MenuFactory
 	}
 
 	// action for Insert-Time-Span menu item
-	private class actionInsTimeSpanClass
+	private class ActionInsTimeSpan
 	extends MenuAction
 	implements RunnableProcessing
 	{
 		private double defaultValue = 1.0;
 		private String text;
 	
-		private actionInsTimeSpanClass( String text, KeyStroke shortcut )
+		private ActionInsTimeSpan( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 			
@@ -2069,6 +1529,7 @@ public class MenuFactory
 				doc.bird.releaseShared( Session.DOOR_TIME );
 			}
 
+			final Main root = (Main) AbstractApplication.getApplication();
 			new ProcessingThread( this, root, root, doc, text, new Span( start, stop ), Session.DOOR_TIMETRNSMTE );
 		}
 
@@ -2205,10 +1666,10 @@ public class MenuFactory
 	 *  Action to be attached to
 	 *  the Selection-Move-Forward item of the Timeline menu.
 	 */
-	public class actionSelectionForwardClass
+	public class ActionSelectionForward
 	extends MenuAction
 	{
-		private actionSelectionForwardClass( String text, KeyStroke shortcut )
+		private ActionSelectionForward( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 		}
@@ -2250,9 +1711,9 @@ public class MenuFactory
 		}
 	}
 
-	private class actionSelectionBackwardsClass extends MenuAction
+	private class ActionSelectionBackwards extends MenuAction
 	{
-		private actionSelectionBackwardsClass( String text, KeyStroke shortcut )
+		private ActionSelectionBackwards( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 		}
@@ -2289,10 +1750,10 @@ public class MenuFactory
 	}
 
 	// action for the Filter-Trajectories menu item
-	private class actionFilterClass
+	private class ActionFilter
 	extends MenuAction
 	{
-		private actionFilterClass( String text, KeyStroke shortcut )
+		private ActionFilter( String text, KeyStroke shortcut )
 		{
 			super( text, shortcut );
 		}
@@ -2302,141 +1763,24 @@ public class MenuFactory
 		 */
 		public void actionPerformed( ActionEvent e )
 		{
-			JFrame filterFrame = (JFrame) root.getComponent( Main.COMP_FILTER );
+			AppWindow filterFrame = (AppWindow) getApplication().getComponent( Main.COMP_FILTER );
 		
 			if( filterFrame == null ) {
+				final Main root = (Main) AbstractApplication.getApplication();
 				filterFrame = new FilterDialog( root, doc );
 				root.addComponent( Main.COMP_FILTER, filterFrame );
 			}
 			filterFrame.setVisible( true );
-			filterFrame.show();
+			filterFrame.toFront();
 		}
 	}
 	
 // ---------------- Action objects for window operations ---------------- 
 
-	// action for the About menu item
-	private class actionAboutClass
+	private class ActionDebugDumpListeners
 	extends MenuAction
 	{
-		private actionAboutClass( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/**
-		 *  Brings up the About-Box
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			de.sciss.gui.AboutBox aboutBox = (de.sciss.gui.AboutBox) root.getComponent( AboutBox.COMP_ABOUTBOX );
-		
-			if( aboutBox == null ) {
-				final de.sciss.app.Application	app = AbstractApplication.getApplication();
-				final char sep = File.separatorChar;
-				aboutBox = new AboutBox();
-				aboutBox.setBuildVersion( new File( app.getName()+".app"+sep+"Contents"+sep+
-					"Resources"+ sep+"Java"+sep+app.getName()+".jar" ));
-				root.addComponent( AboutBox.COMP_ABOUTBOX, aboutBox );
-			}
-			aboutBox.setVisible( true );
-			aboutBox.show();
-		}
-	}
-
-	// generic action for bringing up
-	// a window which is identified by
-	// a component object. the frame is
-	// looked up using the Main's getComponent()
-	// method.
-	private class actionShowWindowClass extends MenuAction
-	{
-		Object component;
-	
-		// @param   component   the key for getting the
-		//						component using Main.getComponent()
-		private actionShowWindowClass( String text, KeyStroke shortcut, Object component )
-		{
-			super( text, shortcut );
-			
-			this.component = component;
-		}
-
-		/**
-		 *  Tries to find the component using
-		 *  the <code>Main</code> class' <code>getComponent</code>
-		 *  method. It does not instantiate a
-		 *  new object if the component is not found.
-		 *  If the window is already open, this
-		 *  method will bring it to the front.
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			JFrame frame = (JFrame) root.getComponent( component );
-			if( frame != null ) {
-				frame.setVisible( true );
-				frame.show();
-			}
-		}
-	}
-
-	// generic action for bringing up
-	// a html document either in the
-	// help viewer or the default web browser
-	private class actionURLViewerClass extends MenuAction
-	{
-		private final String	theURL;
-		private final boolean	openWebBrowser;
-	
-		// @param	theURL			what file to open ; when using the
-		//							help viewer, that's the relative help file name
-		//							without .html extension. when using web browser,
-		//							that's the complete URL!
-		// @param   openWebBrowser	if true, use the default web browser,
-		//							if false use internal help viewer
-		private actionURLViewerClass( String text, KeyStroke shortcut, String theURL, boolean openWebBrowser )
-		{
-			super( text, shortcut );
-			
-			this.theURL			= theURL;
-			this.openWebBrowser	= openWebBrowser;
-		}
-
-		/**
-		 *  Tries to find the component using
-		 *  the <code>Main</code> class' <code>getComponent</code>
-		 *  method. It does not instantiate a
-		 *  new object if the component is not found.
-		 *  If the window is already open, this
-		 *  method will bring it to the front.
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			if( openWebBrowser ) {
-				try {
-					MRJAdapter.openURL( theURL );
-				}
-				catch( IOException e1 ) {
-					GUIUtil.displayError( null, e1, NAME );
-				}
-			} else {
-				HelpFrame helpFrame = (HelpFrame) root.getComponent( Main.COMP_HELP );
-			
-				if( helpFrame == null ) {
-					helpFrame = new HelpFrame();
-					root.addComponent( Main.COMP_HELP, helpFrame );
-				}
-				helpFrame.loadHelpFile( theURL );
-				helpFrame.setVisible( true );
-				helpFrame.show();
-			}
-		}
-	}
-
-	private class actionDebugDumpListenersClass
-	extends MenuAction
-	{
-		private actionDebugDumpListenersClass()
+		private ActionDebugDumpListeners()
 		{
 			super( "Dump Listeners" );
 		}

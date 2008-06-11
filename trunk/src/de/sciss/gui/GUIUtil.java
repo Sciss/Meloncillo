@@ -2,7 +2,7 @@
  *  GUIUtil.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -26,40 +26,60 @@
  *  Changelog:
  *		20-May-05	created from de.sciss.meloncillo.gui.GUIUtil
  *		26-May-05	now the 'main' class of the package; getResourceString()
+ *		07-Aug-05	setDeepFont() can be called with null font
+ *		14-Apr-06	added constrainWidth / constrainHeight
+ *		11-Sep-06	added setInitialDialogFocus()
  */
 
 package de.sciss.gui;
 
+import java.applet.Applet;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
+import java.awt.IllegalComponentStateException;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Window;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 import java.util.prefs.Preferences;
 import javax.swing.AbstractButton;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
+import javax.swing.JViewport;
 import javax.swing.KeyStroke;
 import javax.swing.Spring;
 import javax.swing.SpringLayout;
+import javax.swing.SwingUtilities;
+import javax.swing.event.AncestorEvent;
 
-import de.sciss.app.AbstractApplication;
+import de.sciss.app.AncestorAdapter;
+import de.sciss.app.PreferenceEntrySync;
 
 /**
  *  This is a helper class containing utility static functions
  *  for common Swing / GUI operations
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 26-May-05
+ *  @version	0.37, 19-Mar-08
  */
 public class GUIUtil
 {
-	private static final double VERSION	= 0.1;
+	private static final double VERSION	= 0.37;
 	private static final ResourceBundle resBundle = ResourceBundle.getBundle( "GUIUtilStrings" );
 	private static final Preferences prefs = Preferences.userNodeForPackage( GUIUtil.class );
 
-    private GUIUtil() {}
+	private static Icon icnNoWrite = null;
+	
+    private GUIUtil() { /* empty */ }
 
 	public static final Preferences getUserPrefs()
 	{
@@ -99,7 +119,7 @@ public class GUIUtil
 	 */
 	public static void displayError( Component component, Exception exception, String title )
 	{
-		String							message = exception.getLocalizedMessage();
+		String							message = exception.getClass().getName() + " - " + exception.getLocalizedMessage();
 		StringTokenizer					tok;
 		final StringBuffer				strBuf  = new StringBuffer( GUIUtil.getResourceString( "errException" ));
 		int								lineLen = 0;
@@ -163,13 +183,22 @@ public class GUIUtil
 	 *
 	 *  @param  c		the container to traverse
 	 *					for children whose font is to be changed
-	 *  @param  fnt		the new font to apply
+	 *  @param  fnt		the new font to apply; if <code>null</code>
+	 *					the current application's window handler's
+	 *					default font is used
 	 *
 	 *  @see	java.awt.Component#setFont( Font )
+	 *	@see	de.sciss.app.WindowHandler#getDefaultFont()
 	 */
 	public static void setDeepFont( Container c, Font fnt )
 	{
 		final Component[] comp = c.getComponents();
+		
+//		if( fnt == null ) {
+//			final Application app = AbstractApplication.getApplication();
+//			if( app == null ) return;
+//			fnt = app.getGraphicsHandler().getFont( GraphicsHandler.FONT_SYSTEM | GraphicsHandler.FONT_SMALL );
+//		}
 		
 		c.setFont( fnt );
 		for( int i = 0; i < comp.length; i++ ) {
@@ -177,6 +206,22 @@ public class GUIUtil
 				setDeepFont( (Container) comp[i], fnt );
 			} else {
 				comp[ i ].setFont( fnt );
+			}
+		}
+	}
+
+	public static void setPreferences( Container c, Preferences prefs )
+	{
+		final Component[] comp = c.getComponents();
+
+		if( c instanceof PreferenceEntrySync ) {
+			((PreferenceEntrySync) c).setPreferenceNode( prefs );
+		}
+		for( int i = 0; i < comp.length; i++ ) {
+			if( comp[ i ] instanceof Container ) {
+				setPreferences( (Container) comp[i], prefs );
+			} else if( c instanceof PreferenceEntrySync ) {
+				((PreferenceEntrySync) c).setPreferenceNode( prefs );
 			}
 		}
 	}
@@ -222,8 +267,9 @@ public class GUIUtil
 		SpringLayout.Constraints	cons;
         SpringLayout.Constraints	lastCons		= null;
         SpringLayout.Constraints	lastRowCons		= null;
-		int							i;
 		int							max				= rows * cols;
+		
+		if( max == 0 ) return;
 		
         try {
             layout = (SpringLayout) parent.getLayout();
@@ -241,7 +287,7 @@ public class GUIUtil
         // cells have the same size.
         maxWidthSpring  = layout.getConstraints( parent.getComponent( 0 )).getWidth();
         maxHeightSpring = layout.getConstraints( parent.getComponent( 0 )).getWidth();
-        for( i = 1; i < max; i++ ) {
+        for( int i = 1; i < max; i++ ) {
             cons			= layout.getConstraints( parent.getComponent( i ));
             maxWidthSpring  = Spring.max( maxWidthSpring, cons.getWidth() );
             maxHeightSpring = Spring.max( maxHeightSpring, cons.getHeight() );
@@ -249,37 +295,37 @@ public class GUIUtil
 
         // Apply the new width/height Spring. This forces all the
         // components to have the same size.
-        for( i = 0; i < max; i++ ) {
+        for( int i = 0; i < max; i++ ) {
             cons = layout.getConstraints( parent.getComponent( i ));
             cons.setWidth( maxWidthSpring );
             cons.setHeight( maxHeightSpring );
         }
 
-        // Then adjust the x/y constraints of all the cells so that they
-        // are aligned in a grid.
-        for( i = 0; i < max; i++ ) {
-            cons = layout.getConstraints( parent.getComponent( i ));
-            if( i % cols == 0 ) {   // start of new row
-                lastRowCons = lastCons;
-                cons.setX( initialXSpring );
-            } else {				// x position depends on previous component
-                cons.setX( Spring.sum( lastCons.getConstraint( SpringLayout.EAST ), xPadSpring ));
-            }
+    	// Then adjust the x/y constraints of all the cells so that they
+    	// are aligned in a grid.
+        for( int i = 0; i < max; i++ ) {
+        	cons = layout.getConstraints( parent.getComponent( i ));
+        	if( i % cols == 0 ) {   // start of new row
+        		lastRowCons = lastCons;
+        		cons.setX( initialXSpring );
+        	} else {				// x position depends on previous component
+        		cons.setX( Spring.sum( lastCons.getConstraint( SpringLayout.EAST ), xPadSpring ));
+        	}
 
-            if( i / cols == 0 ) {   // first row
-                cons.setY( initialYSpring );
-            } else {				// y position depends on previous row
-                cons.setY( Spring.sum( lastRowCons.getConstraint( SpringLayout.SOUTH ), yPadSpring ));
-            }
-            lastCons = cons;
+        	if( i / cols == 0 ) {   // first row
+        		cons.setY( initialYSpring );
+        	} else {				// y position depends on previous row
+        		cons.setY( Spring.sum( lastRowCons.getConstraint( SpringLayout.SOUTH ), yPadSpring ));
+        	}
+        	lastCons = cons;
         }
 
-		// Set the parent's size.
-		cons = layout.getConstraints( parent );
-		cons.setConstraint( SpringLayout.SOUTH, Spring.sum( Spring.constant( yPad ),
-							lastCons.getConstraint( SpringLayout.SOUTH )));
+        // Set the parent's size.
+        cons = layout.getConstraints( parent );
+        cons.setConstraint( SpringLayout.SOUTH, Spring.sum( Spring.constant( yPad ),
+                            lastCons.getConstraint( SpringLayout.SOUTH )));
         cons.setConstraint( SpringLayout.EAST, Spring.sum( Spring.constant( xPad ),
-							lastCons.getConstraint( SpringLayout.EAST )));
+                            lastCons.getConstraint( SpringLayout.EAST )));
     }
 
     /**
@@ -370,4 +416,269 @@ public class GUIUtil
 		constraints.setConstraint( SpringLayout.SOUTH, y );
 		constraints.setConstraint( SpringLayout.EAST, x );
 	}
+
+	/**
+	 *	Returns an <code>Icon</code> for a no-write
+	 *	or write-protection indicator. The icon has
+	 *	a dimension of 16x16 pixels with transparent background.
+	 *
+	 *	@return	the write-protected icon
+	 */
+	public static Icon getNoWriteIcon()
+	{
+		if( icnNoWrite == null ) {
+//			icnNoWrite = new ImageIcon( ClassLoader.getSystemClassLoader().getResource( "nowrite.png" ));
+			icnNoWrite = new ImageIcon( GUIUtil.class.getResource( "nowrite.png" ));
+		}
+		return icnNoWrite;
+	}
+	
+	/**
+	 *	Adjusts minimum, maximum and preferred size
+	 *	of a component so as to constrain its width
+	 *	to a given value.
+	 *
+	 *	@param	c	the component to constrain
+	 *	@param	w	the width in pixels
+	 */
+	public static void constrainWidth( JComponent c, int w )
+	{
+		Dimension d;
+		
+		d = c.getMinimumSize();
+		c.setMinimumSize( new Dimension( w, d.height ));
+		d = c.getMaximumSize();
+		c.setMaximumSize( new Dimension( w, d.height ));
+		d = c.getPreferredSize();
+		c.setPreferredSize( new Dimension( w, d.height ));
+	}
+
+	/**
+	 *	Adjusts minimum, maximum and preferred size
+	 *	of a component so as to constrain its height
+	 *	to a given value.
+	 *
+	 *	@param	c	the component to constrain
+	 *	@param	h	the height in pixels
+	 */
+	public static void constrainHeight( JComponent c, int h )
+	{
+		Dimension d;
+		
+		d = c.getMinimumSize();
+		c.setMinimumSize( new Dimension( d.width, h ));
+		d = c.getMaximumSize();
+		c.setMaximumSize( new Dimension( d.width, h ));
+		d = c.getPreferredSize();
+		c.setPreferredSize( new Dimension( d.width, h ));
+	}
+
+	/**
+	 *	Sets minimum, maximum and preferred size
+	 *	to given values.
+	 *
+	 *	@param	c	the component to constrain
+	 *	@param	w	the width in pixels
+	 *	@param	h	the height in pixels
+	 */
+	public static void constrainSize( JComponent c, int w, int h )
+	{
+		final Dimension d = new Dimension( w, h );
+		
+		c.setMinimumSize( d );
+		c.setMaximumSize( d );
+		c.setPreferredSize( d );
+	}
+	
+	public static void wrapWindowBounds( Rectangle wr, Rectangle sr )
+	{
+		if( sr == null ) {
+			sr = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+		}
+//		if( i == null ) {
+//			final boolean isMacOS = System.getProperty( "os.name" ).indexOf( "Mac OS" ) >= 0;
+////			final boolean isWindows = System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0;
+//			i = new Insets( isMacOS ? 61 : 42, 42, 42, 42 );
+//			// XXX should take dock size and position into account
+//			// $ defaults read com.apple.dock tilesize
+//			// $ defaults read com.apple.dock orientation
+//		}
+//		sr.x		+= i.left;
+//		sr.y		+= i.top;
+//		sr.width	-= (i.left + i.right);
+//		sr.height	-= (i.top + i.bottom);
+		if( (wr.x < sr.x) || ((wr.x + wr.width) > (sr.x + sr.width)) ) {
+			wr.x		= sr.x;
+			if( wr.width > sr.width ) wr.width = sr.width;
+		}
+		if( (wr.y < sr.y) || ((wr.y + wr.height) > (sr.y + sr.height)) ) {
+			wr.y		= sr.y;
+			if( wr.height > sr.height ) wr.height = sr.height;
+		}
+	}
+
+	/**
+	 *	Passes keyboard focus to a given component when
+	 *	that component is to be presented in a dialog.
+	 *	This temporarily adds an <code>AncestorListener</code>
+	 *	to the component, detecting when its parent container
+	 *	is made visible. This is usefull for defining an
+	 *	initial focus owner in <code>JOptionPane</code> calls for example.
+	 *
+	 *	@param	c	the component to make focussed once its parent container is shown
+	 */
+	public static void setInitialDialogFocus( final JComponent c )
+	{
+		c.addAncestorListener( new AncestorAdapter() {
+			public void ancestorAdded( AncestorEvent e ) {
+				c.requestFocusInWindow();
+				c.removeAncestorListener( this );
+			}
+		});
+	}
+	
+	public static boolean setAlwaysOnTop( Component c, boolean b )
+	{
+		// setAlwaysOnTop doesn't exist in Java 1.4
+		try {
+			final Method m = c.getClass().getMethod( "setAlwaysOnTop", new Class[] { Boolean.TYPE });
+			m.invoke( c, new Object[] { new Boolean( b )});
+			return true;
+		}
+		catch( NoSuchMethodException e1 ) { /* ingore */ }
+		catch( NullPointerException e1 ) { /* ingore */ }
+		catch( SecurityException e1 ) { /* ingore */ }
+		catch( IllegalAccessException e1 ) { /* ingore */ }
+		catch( IllegalArgumentException e1 ) { /* ingore */ }
+		catch( InvocationTargetException e1 ) { /* ingore */ }
+		catch( ExceptionInInitializerError e1 ) { /* ingore */ }
+		return false;
+	}
+
+	public static boolean isAlwaysOnTop( Component c )
+	{
+		// setAlwaysOnTop doesn't exist in Java 1.4
+		try {
+			final Method m = c.getClass().getMethod( "isAlwaysOnTop", null );
+			final Object result = m.invoke( c, null );
+			if( result instanceof Boolean ) {
+				return ((Boolean) result).booleanValue();
+			}
+		}
+		catch( NoSuchMethodException e1 ) { /* ingore */ }
+		catch( NullPointerException e1 ) { /* ingore */ }
+		catch( SecurityException e1 ) { /* ingore */ }
+		catch( IllegalAccessException e1 ) { /* ingore */ }
+		catch( IllegalArgumentException e1 ) { /* ingore */ }
+		catch( InvocationTargetException e1 ) { /* ingore */ }
+		catch( ExceptionInInitializerError e1 ) { /* ingore */ }
+		return false;
+	}
+
+	/**
+	 *	Same as SwingUtilities.convertPoint, but handles JViewports properly
+	 */
+    public static Point convertPoint( Component source, Point aPoint, Component destination )
+    {
+    	final Point p;
+
+        if( (source == null) && (destination == null) ) return aPoint;
+        if( source == null ) {
+            source = SwingUtilities.getWindowAncestor( destination );
+            if( source == null ) {
+                throw new Error( "Source component not connected to component tree hierarchy" );
+            }
+        }
+        p = new Point( aPoint );
+        convertPointToScreen( p, source );
+        if( destination == null ) {
+            destination = SwingUtilities.getWindowAncestor( source );
+            if( destination == null ) {
+                throw new Error( "Destination component not connected to component tree hierarchy" );
+            }
+        }
+        convertPointFromScreen( p, destination );
+        return p;
+    }
+
+	/**
+	 *	Same as SwingUtilities.convertPointToScreen, but handles JViewports properly
+	 */
+    public static void convertPointToScreen( Point p, Component c )
+    {
+        int			x, y;
+        Container	parent;
+        boolean		isWindowOrApplet;
+
+        do {
+            parent				= c.getParent();
+            isWindowOrApplet	= (c instanceof Applet) || (c instanceof Window);
+            if( (parent == null) || !(parent instanceof JViewport) ) {
+	            if( c instanceof JComponent ) {
+	                x = ((JComponent) c).getX();
+	                y = ((JComponent) c).getY();
+	            } else if( isWindowOrApplet ) {
+	                try {
+	                    final Point pp = c.getLocationOnScreen();
+	                    x = pp.x;
+	                    y = pp.y;
+	                } catch( IllegalComponentStateException icse ) {
+	                	x = c.getX();
+	                	y = c.getY();
+	                }
+	            } else {
+	                x = c.getX();
+	                y = c.getY();
+	            }
+	
+// System.out.println( "toScreen. c = " + c + "; dx " + x + "; dy " + y );
+	            p.x += x;
+	            p.y += y;
+            }
+            c = parent;
+        } while( !isWindowOrApplet && (c != null) );
+    }
+
+	/**
+	 *	Same as SwingUtilities.convertPointFromScreen, but handles JViewports properly
+	 */
+    public static void convertPointFromScreen( Point p,Component c )
+    {
+        int			x, y;
+        Container	parent;
+        boolean		isWindowOrApplet;
+
+        do {
+            parent				= c.getParent();
+            isWindowOrApplet	= (c instanceof Applet) || (c instanceof Window);
+            if( (parent == null) || !(parent instanceof JViewport) ) {
+	            if( c instanceof JComponent ) {
+	                x = ((JComponent) c).getX();
+	                y = ((JComponent) c).getY();
+	            }  else if( isWindowOrApplet ) {
+	                try {
+	                	final Point pp = c.getLocationOnScreen();
+	                    x = pp.x;
+	                    y = pp.y;
+	                } catch( IllegalComponentStateException icse ) {
+	                	x = c.getX();
+	                	y = c.getY();
+	                }
+	            } else {
+	            	x = c.getX();
+	            	y = c.getY();
+	            }
+// System.out.println( "fromScreen. c = " + c + "; dx " + -x + "; dy " + -y );
+	            p.x -= x;
+	            p.y -= y;
+            }            
+            c = parent;
+        } while( !isWindowOrApplet && (c != null) );
+    }
+
+    public static Rectangle convertRectangle( Component source, Rectangle r, Component destination )
+    {
+    	final Point p = convertPoint( source, new Point( r.x, r.y ), destination );
+        return new Rectangle( p.x, p.y, r.width, r.height );
+    }
 }

@@ -2,7 +2,7 @@
  *  PathList.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -25,12 +25,14 @@
  *
  *  Changelog:
  *		20-May-05	created from de.sciss.meloncillo.io.PathList
+ *		25-Feb-06	added stuff from de.sciss.eisenkraut.io.PathList : remove( File ), indexOf, getCapacity
  */
 
 package de.sciss.gui;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.prefs.Preferences;
 
@@ -42,7 +44,7 @@ import java.util.prefs.Preferences;
  *  list of recently opened files.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.11, 25-Feb-06
  */
 public class PathList
 {
@@ -56,7 +58,7 @@ public class PathList
 	public static final String KEY_USERPATHS= "usrpaths";	// string : path list
 
 	private final int				capacity;
-	private final java.util.List	paths;
+	private final List				paths;
 	private final Preferences		prefs;
 	private final String			prefsKey;
 
@@ -92,6 +94,11 @@ public class PathList
 		this.prefs		= prefs;
 		this.prefsKey   = prefsKey;
 		fromPrefs();
+	}
+
+	public int getCapacity()
+	{
+		return capacity;
 	}
 
 	/**
@@ -149,6 +156,21 @@ public class PathList
 	{
 		synchronized( paths ) {
 			paths.remove( index );
+			toPrefs();
+		}
+	}
+
+	/**
+	 *  Removes a path
+	 *
+	 *  @param  path	path which should
+	 *					deleted. Paths following in the list
+	 *					will be shifted accordingly.
+	 */
+	public void remove( File path )
+	{
+		synchronized( paths ) {
+			paths.remove( path );
 			toPrefs();
 		}
 	}
@@ -225,6 +247,20 @@ public class PathList
 	{
 		synchronized( paths ) {
 			return paths.contains( path );
+		}
+	}
+
+	/**
+	 *  Determines whether a particular
+	 *  path is included in the list
+	 *
+	 *  @param  path	path to look for
+	 *  @return the index of the path in the list or -1 if not in the list
+	 */
+	public int indexOf( File path )
+	{
+		synchronized( paths ) {
+			return paths.indexOf( path );
 		}
 	}
 	

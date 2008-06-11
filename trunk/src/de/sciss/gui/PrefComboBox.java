@@ -2,7 +2,7 @@
  *  PrefComboBox.java
  *  de.sciss.gui package
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -66,24 +66,27 @@ import de.sciss.app.PreferenceEntrySync;
  *  mechanisms.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
+ *  @version	0.28, 17-Apr-07
  *
  *  @see		java.util.prefs.PreferenceChangeListener
- *  @see		de.sciss.meloncillo.util.StringItem
+ *  @see		StringItem
  */
 public class PrefComboBox
 extends JComboBox
 implements  DynamicListening, PreferenceChangeListener,
 			LaterInvocationManager.Listener, PreferenceEntrySync
 {
-	private boolean listening				= false;
-	private Preferences prefs				= null;
-	private String key						= null;
-	private final LaterInvocationManager lim= new LaterInvocationManager( this );
-	private java.util.List collKeys			= null;
-	private ActionListener listener;
+	private boolean							listening		= false;
+	private Preferences						prefs			= null;
+	private String							key				= null;
+	private final LaterInvocationManager	lim				= new LaterInvocationManager( this );
+//	private List							collKeys		= null;
+	private ActionListener					listener;
 
-	private Object  defaultValue			= null;
+	private Object							defaultValue	= null;
+
+	private boolean							readPrefs		= true;
+	protected boolean						writePrefs		= true;
 
 	/**
 	 *  Creates a new <code>PrefComboBox</code>
@@ -102,10 +105,47 @@ implements  DynamicListening, PreferenceChangeListener,
 			public void actionPerformed( ActionEvent e )
 			{
 				if( EventManager.DEBUG_EVENTS ) System.err.println( "@comb actionPerformed : "+key+" --> "+getSelectedItem() );
-				updatePrefs( getSelectedItem() );
+				if( writePrefs ) writePrefs();
 			}
 		};
-		this.addActionListener( listener );
+	}
+
+	public void setReadPrefs( boolean b )
+	{
+		if( b != readPrefs ) {
+			readPrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( readPrefs ) {
+					prefs.addPreferenceChangeListener( this );
+				} else {
+					prefs.removePreferenceChangeListener( this );
+				}
+			}
+		}
+	}
+	
+	public boolean getReadPrefs()
+	{
+		return readPrefs;
+	}
+	
+	public void setWritePrefs( boolean b )
+	{
+		if( b != writePrefs ) {
+			writePrefs	= b;
+			if( (prefs != null) && listening ) {
+				if( writePrefs ) {
+					this.addActionListener( listener );
+				} else {
+					this.removeActionListener( listener );
+				}
+			}
+		}
+	}
+	
+	public boolean getWritePrefs()
+	{
+		return writePrefs;
 	}
 
 	/**
@@ -119,7 +159,7 @@ implements  DynamicListening, PreferenceChangeListener,
 	 *  StringItem !
 	 *
 	 *  @param  item	the <code>StringItem</code> to add
-	 *  @see	de.sciss.meloncillo.util.StringItem
+	 *  @see	StringItem
 	 */
 	public void addItem( Object item )
 	{
@@ -132,7 +172,7 @@ implements  DynamicListening, PreferenceChangeListener,
 	 *  usage.
 	 *
 	 *  @param  item	the <code>StringItem</code> to add
-	 *  @see	de.sciss.meloncillo.util.StringItem
+	 *  @see	StringItem
 	 */
 	public void insertItemAt( Object item, int index )
 	{
@@ -147,26 +187,13 @@ implements  DynamicListening, PreferenceChangeListener,
 		return item;
 	}
 	
-//	public void setSelectedIndex( int index )
-//	{
-//		if( index < -1 || index >= getItemCount() ) throw new IllegalArgumentException( String.valueOf( index ));
-//	
-//		setSelectedItem( getItemAt( index ));
-//	}
-//	
-//	public void setSelectedItem( Object item )
-//	{
-//		if( EventManager.DEBUG_EVENTS ) System.err.println( "@comb setSelectedIndex : "+this.key+" --> "+item );
-//		super.setSelectedItem( item );	// will notify action listeners
-//		updatePrefs( item );
-//	}
-	
-	private void updatePrefs( Object item )
+	public void writePrefs()
 	{
 		String value	= null;
 		String oldValue;
 	
-		if( prefs != null ) {
+		if( (prefs != null) && (key != null) ) {
+			final Object item = getSelectedItem();
 			if( item != null && (item instanceof StringItem) ) {
 				value = ((StringItem) item).getKey();
 			}
@@ -183,9 +210,19 @@ implements  DynamicListening, PreferenceChangeListener,
 		}
 	}
 
+	public void setPreferenceNode( Preferences prefs )
+	{
+		setPreferences( prefs, this.key );
+	}
+
+	public void setPreferenceKey( String key )
+	{
+		setPreferences( this.prefs, key );
+	}
+
 	public void setPreferences( Preferences prefs, String key )
 	{
-		if( this.prefs == null ) {
+		if( (this.prefs == null) || (this.key == null) ) {
 			defaultValue = getSelectedItem();
 		}
 		if( listening ) {
@@ -205,32 +242,48 @@ implements  DynamicListening, PreferenceChangeListener,
 	public void startListening()
 	{
 		if( prefs != null ) {
-			prefs.addPreferenceChangeListener( this );
-			listening = true;
-			laterInvocation( new PreferenceChangeEvent( prefs, key, prefs.get( key, null )));
+			listening	= true;
+			if( writePrefs ) this.addActionListener( listener );
+			if( readPrefs ) {
+				prefs.addPreferenceChangeListener( this );
+				readPrefs();
+			}
 		}
 	}
 
 	public void stopListening()
 	{
 		if( prefs != null ) {
-			prefs.removePreferenceChangeListener( this );
+			if( readPrefs ) prefs.removePreferenceChangeListener( this );
+			if( writePrefs ) this.removeActionListener( listener );
 			listening = false;
 		}
 	}
-	
+
 	// o instanceof PreferenceChangeEvent
 	public void laterInvocation( Object o )
 	{
-		String  prefsValue	= ((PreferenceChangeEvent) o).getNewValue();
-		if( prefsValue == null && defaultValue != null ) {
-			updatePrefs( defaultValue );
+		final String prefsValue = ((PreferenceChangeEvent) o).getNewValue();
+		readPrefsFromString( prefsValue );
+	}
+	
+	public void readPrefs()
+	{
+		if( (prefs != null) && (key != null) ) readPrefsFromString( prefs.get( key, null ));
+	}
+		
+	private void readPrefsFromString( String prefsValue )
+	{
+		if( (prefsValue == null) && (defaultValue != null) ) {
+			if( listening && writePrefs ) this.removeActionListener( listener );
+			setSelectedItem( defaultValue );
+			if( writePrefs ) writePrefs();
+			if( listening && writePrefs ) this.addActionListener( listener );
 			return;
 		}
-		Object  guiItem		= getSelectedItem();
-		String  guiValue	= null;
-		Object  prefsItem   = null;
-		int		i;
+		Object  	guiItem		= getSelectedItem();
+		String  	guiValue	= null;
+		Object  	prefsItem   = null;
 
 		if( guiItem != null && (guiItem instanceof StringItem) ) {
 			guiValue = ((StringItem) guiItem).getKey();
@@ -241,14 +294,14 @@ implements  DynamicListening, PreferenceChangeListener,
 			// remain unchanged, it's more clean and produces less
 			// overhead to temporarily remove our ActionListener
 			// so we don't produce potential loops
-			this.removeActionListener( listener );
+			if( listening && writePrefs ) this.removeActionListener( listener );
 			super.setSelectedItem( null );			// will notify action listeners
-			this.addActionListener( listener );
+			if( listening && writePrefs ) this.addActionListener( listener );
 		
 		} else if( (prefsValue != null && guiValue == null) ||
 				   (prefsValue != null && !prefsValue.equals( guiValue ))) {
 			
-			for( i = 0; i < getItemCount(); i++ ) {
+			for( int i = 0; i < getItemCount(); i++ ) {
 				guiItem = getItemAt( i );
 				if( guiItem != null && ((StringItem) guiItem).getKey().equals( prefsValue )) {
 					prefsItem = guiItem;
@@ -261,9 +314,9 @@ implements  DynamicListening, PreferenceChangeListener,
 			// remain unchanged, it's more clean and produces less
 			// overhead to temporarily remove our ActionListener
 			// so we don't produce potential loops
-			this.removeActionListener( listener );
+			if( listening && writePrefs ) this.removeActionListener( listener );
 			super.setSelectedItem( prefsItem );	// will notify action listeners
-			this.addActionListener( listener );
+			if( listening && writePrefs ) this.addActionListener( listener );
 		}
 	}
 	

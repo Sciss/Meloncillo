@@ -41,12 +41,12 @@ package de.sciss.meloncillo.realtime;
 import java.awt.event.*;
 import java.util.*;
 import java.util.prefs.*;
+
 import javax.swing.*;
 import javax.swing.undo.*;
 
 import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.receiver.*;
 import de.sciss.meloncillo.session.*;
 import de.sciss.meloncillo.timeline.*;
@@ -54,6 +54,7 @@ import de.sciss.meloncillo.transmitter.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
+import de.sciss.gui.ProgressComponent;
 import de.sciss.io.*;
 
 /**
@@ -77,7 +78,7 @@ import de.sciss.io.*;
  */
 public class Transport
 extends Thread
-implements RealtimeHost, TimelineListener, LaterInvocationManager.Listener
+implements RealtimeHost, TimelineListener, PreferenceChangeListener
 {
 	private static final int	CMD_IGNORE	= 0;
 	private static final int	CMD_STOP	= 1;
@@ -203,7 +204,7 @@ implements RealtimeHost, TimelineListener, LaterInvocationManager.Listener
 		plugInPrefs = AbstractApplication.getApplication().getUserPrefs().node( PrefsUtil.NODE_PLUGINS );
 		// fires KEY_SENSEBUFSIZE and thus causes calcSenseBufSize() and createContext() to be invoked
 		new DynamicPrefChangeManager( plugInPrefs, new String[] { PrefsUtil.KEY_RTSENSEBUFSIZE },
-											this ).startListening();
+									  this ).startListening();
 	
         this.setDaemon( true );
         this.setPriority( getPriority() + 1 );
@@ -996,7 +997,7 @@ ourLp:		for( i = 0; i < rt_numConsumers; i++ ) {
 	/**
 	 *	Invoked through preference changes
 	 */
-	public void laterInvocation( Object o )
+	public void preferenceChange( PreferenceChangeEvent pce)
 	{
         synchronized( this ) {
 			calcSenseBufSize();

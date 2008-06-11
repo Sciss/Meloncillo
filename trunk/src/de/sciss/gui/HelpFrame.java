@@ -2,7 +2,7 @@
  *  HelpFrame.java
  *  FScape
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
  *  Changelog:
  *		20-May-05   created from de.sciss.meloncillo.gui.HelpFrame,
  *					added scrollbar info in history, added static load method
+ *		04-May-06	added ggEdit; removed HelpGlassPane
  */
 
 package de.sciss.gui;
@@ -33,21 +34,22 @@ package de.sciss.gui;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JEditorPane;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
+import javax.swing.WindowConstants;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.Document;
@@ -55,18 +57,19 @@ import javax.swing.text.Document;
 import net.roydesign.mac.MRJAdapter;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.app.AbstractWindow;
+import de.sciss.app.WindowHandler;
 
 /**
  *  A frame displaying online HTML help
  *  pages.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.10, 20-May-05
- *
- *  @see	HelpGlassPane
+ *  @version	0.19, 19-Aug-06
  */
 public class HelpFrame
-extends JFrame // BasicFrame
+// extends JFrame // BasicFrame
 implements HyperlinkListener, PropertyChangeListener
 {
 	/**
@@ -74,13 +77,17 @@ implements HyperlinkListener, PropertyChangeListener
 	 */
 	public static final Object COMP_HELP	= HelpFrame.class;
 
-    private final JEditorPane   htmlPane;
-    private final JButton       ggOpenInBrowser, ggBack;
-    private final ArrayList     history = new ArrayList();	// elements = historyEntry
-    private int	  historyIndex  = -1;
-	private final JScrollBar	ggVScroll;
-	private final String		plainTitle;
-            
+    private final JEditorPane		htmlPane;
+    protected final JButton			ggEdit;
+    private final JButton			ggOpenInBrowser;
+    protected final JButton			ggBack;
+    protected final ArrayList		history			= new ArrayList();	// elements = historyEntry
+    protected int					historyIndex	= -1;
+	private final JScrollBar		ggVScroll;
+	private final String			plainTitle;
+	
+	protected final AbstractWindow	win;
+	
 	/**
 	 *  Creates a new help frame. Use
      *  <code>loadHelpFile</code> to change the content.
@@ -91,16 +98,20 @@ implements HyperlinkListener, PropertyChangeListener
     {
         super();
         
-		Container							cp		= getContentPane();
-        JPanel								buttonPanel;
-		JButton								ggButton;
-//		Font								fnt		= GraphicsUtil.smallGUIFont;
+		final Application	app	= AbstractApplication.getApplication();
+		final WindowHandler wh	= app.getWindowHandler();
+		
+		win	= wh.createWindow( AbstractWindow.SUPPORT );
+		
+		Container							cp		= win.getContentPane();
+        Box									buttonPanel;
+		final JButton						ggClose;
         JScrollPane							ggScroll;
-		final HelpFrame						hf		= this;
+//		final HelpFrame						enc_this = this;
 		
 		plainTitle	= GUIUtil.getResourceString( "frameHelp" );
 		
-		setTitle( plainTitle );
+		win.setTitle( plainTitle );
 		
         // ---------- HTML schoko ----------
         htmlPane    = new JEditorPane();
@@ -110,13 +121,40 @@ implements HyperlinkListener, PropertyChangeListener
         htmlPane.setAutoscrolls( true );
 //      htmlPane.setContentType( "text/html" );
         htmlPane.addPropertyChangeListener( this );
-        HelpGlassPane.setHelp( htmlPane, "HelpHTMLPane" );
+//		HelpGlassPane.setHelp( htmlPane, "HelpHTMLPane" );
         ggScroll    = new JScrollPane( htmlPane );
 		ggVScroll	= ggScroll.getVerticalScrollBar();
         
         // ---------- generic gadgets ----------
 
-        buttonPanel = new JPanel( new FlowLayout( FlowLayout.RIGHT, 4, 4 ));
+        buttonPanel = Box.createHorizontalBox(); // new JPanel( new FlowLayout( FlowLayout.RIGHT, 4, 4 ));
+		ggEdit		= new JButton( GUIUtil.getResourceString( "buttonJEdit" ));
+		buttonPanel.add( ggEdit );
+		buttonPanel.add( Box.createHorizontalGlue() );
+		ggEdit.addActionListener( new ActionListener() {
+			public void actionPerformed( ActionEvent e )
+			{
+				if( historyIndex < 0 ) return;
+			
+				try {
+					final File			f	= net.roydesign.mac.MRJAdapter.findApplication( "JESP" );	// try to open with jEdit
+					final HistoryEntry	he	= (HistoryEntry) history.get( historyIndex );
+					if( f != null ) {
+						final String[] cmdArray = { "open", "-a", f.getAbsolutePath(), new File( new URI( he.url.toString() )).getAbsolutePath() };
+						java.lang.Runtime.getRuntime().exec( cmdArray );
+					}
+				}
+				catch( IOException e1 ) {
+					GUIUtil.displayError( win.getWindow(), e1, ggEdit.getText() );
+				}
+				catch( IllegalArgumentException e1 ) {
+					GUIUtil.displayError( win.getWindow(), e1, ggEdit.getText() );
+				}
+				catch( URISyntaxException e1 ) {
+					GUIUtil.displayError( win.getWindow(), e1, ggEdit.getText() );
+				}
+			}
+		});
         ggBack      = new JButton( GUIUtil.getResourceString( "buttonBack" ));
         ggBack.setEnabled( false );
         buttonPanel.add( ggBack );
@@ -136,14 +174,14 @@ implements HyperlinkListener, PropertyChangeListener
 						}
 					}
 					catch( IOException e3 ) {
-						GUIUtil.displayError( hf, e3, null );
+						GUIUtil.displayError( win.getWindow(), e3, ggBack.getText() );
 					}
 				}
             }
 		});
         ggOpenInBrowser	= new JButton( GUIUtil.getResourceString( "helpOpenBrowser" ));
         ggOpenInBrowser.setEnabled( false );
-        HelpGlassPane.setHelp( ggOpenInBrowser, "HelpOpenInBrowser" );
+//		HelpGlassPane.setHelp( ggOpenInBrowser, "HelpOpenInBrowser" );
         buttonPanel.add( ggOpenInBrowser );
         ggOpenInBrowser.addActionListener( new ActionListener() {
 			public void actionPerformed( ActionEvent newEvent )
@@ -151,28 +189,46 @@ implements HyperlinkListener, PropertyChangeListener
                 openInBrowser();
             }	
 		});
-        ggButton	= new JButton( GUIUtil.getResourceString( "buttonClose" ));
-        buttonPanel.add( ggButton );
-        ggButton.addActionListener( new ActionListener() {
+        ggClose	= new JButton( GUIUtil.getResourceString( "buttonClose" ));
+        buttonPanel.add( ggClose );
+        ggClose.addActionListener( new ActionListener() {
 			public void actionPerformed( ActionEvent newEvent )
 			{
-				setVisible( false );
                 dispose();
 			}	
 		});
 
-		cp.setLayout( new BorderLayout() );
+		win.addListener( new AbstractWindow.Adapter() {
+			public void windowClosing( AbstractWindow.Event e )
+			{
+				dispose();
+			}
+		});
+
+		buttonPanel.add( new HelpButton( "HelpHTMLPane" ));
+		buttonPanel.add( Box.createHorizontalStrut( 16 ));	// XXX check intruding size
+
         cp.add( ggScroll, BorderLayout.CENTER );
         cp.add( buttonPanel, BorderLayout.SOUTH );
 //		GUIUtil.setDeepFont( cp, fnt );
 
-//		init( root );
-		AbstractWindowHandler.setDeepFont( getContentPane(), null );
+		AbstractWindowHandler.setDeepFont( win.getContentPane(), null );
 
 		ggScroll.setPreferredSize( new Dimension( 512, 512 ));	// XXX
-		pack();
+		win.pack();
+		
+//		win.setDefaultCloseOperation( WindowConstants.DISPOSE_ON_CLOSE );
+		win.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
+		win.init();
+		app.addComponent( COMP_HELP, this );
     }
     
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( HelpFrame.COMP_HELP );
+		win.dispose();
+	}
+	
     /**
      *  Views a help document. If no help viewer
 	 *	has been opened, a new one will be created
@@ -190,11 +246,10 @@ implements HyperlinkListener, PropertyChangeListener
 	
 		if( helpFrame == null ) {
 			helpFrame = new HelpFrame();
-			AbstractApplication.getApplication().addComponent( HelpFrame.COMP_HELP, helpFrame );
 		}
 		helpFrame.loadHelpFile( fileName );
-		helpFrame.setVisible( true );
-		helpFrame.show();
+		helpFrame.win.setVisible( true );
+		helpFrame.win.toFront();
 	}
 
     /**
@@ -212,7 +267,7 @@ implements HyperlinkListener, PropertyChangeListener
             addAndLoadURL( url );
         }
         catch( IOException e1 ) {
-            GUIUtil.displayError( this, e1, null );
+            GUIUtil.displayError( win.getWindow(), e1, null );
         }
     }
 
@@ -236,7 +291,7 @@ implements HyperlinkListener, PropertyChangeListener
         }
     }
     
-    private void loadURL()
+    protected void loadURL()
     throws IOException
     {
 		try {
@@ -251,17 +306,18 @@ implements HyperlinkListener, PropertyChangeListener
     private void updateButtons()
     {
         ggOpenInBrowser.setEnabled( historyIndex >= 0 );
+		ggEdit.setEnabled( historyIndex >= 0 );
         ggBack.setEnabled( historyIndex > 0 );
     }
 
-    private void openInBrowser()
+    protected void openInBrowser()
     {
         if( historyIndex >= 0 ) {
             try {
                 MRJAdapter.openURL( ((HistoryEntry) history.get( historyIndex )).url.toString() );
             }
             catch( IOException e1 ) {
-                GUIUtil.displayError( this, e1, null );
+                GUIUtil.displayError( win.getWindow(), e1, null );
             }
         }
     }
@@ -274,7 +330,7 @@ implements HyperlinkListener, PropertyChangeListener
 
         if( doc != null ) {
             Object title = doc.getProperty( Document.TitleProperty );
-            setTitle( title == null ? plainTitle : plainTitle + (" : " + title) );
+			win.setTitle( title == null ? plainTitle : plainTitle + (" : " + title) );
 			ggVScroll.setValue( he.getVerticalScroll() );
         }
     }
@@ -287,7 +343,7 @@ implements HyperlinkListener, PropertyChangeListener
                 addAndLoadURL( e.getURL() );
             }
             catch( IOException e1 ) {
-                GUIUtil.displayError( this, e1, null );
+                GUIUtil.displayError( win.getWindow(), e1, null );
             }
         }
     }
@@ -304,7 +360,7 @@ implements HyperlinkListener, PropertyChangeListener
 
 	private static class HistoryEntry
 	{
-		private final URL	url;
+		protected final URL	url;
 		private int	verticalScroll;
 	
 		private HistoryEntry( URL url, int verticalScroll )
@@ -313,17 +369,17 @@ implements HyperlinkListener, PropertyChangeListener
 			this.verticalScroll	= verticalScroll;
 		}
 		
-		private HistoryEntry( URL url )
+		protected HistoryEntry( URL url )
 		{
 			this( url, 0 );
 		}
 		
-		private void setVerticalScroll( int verticalScroll )
+		protected void setVerticalScroll( int verticalScroll )
 		{
 			this.verticalScroll	= verticalScroll;
 		}
 
-		private int getVerticalScroll()
+		protected int getVerticalScroll()
 		{
 			return verticalScroll;
 		}

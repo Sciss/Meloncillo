@@ -30,8 +30,7 @@
 
 package de.sciss.meloncillo.receiver;
 
-import javax.swing.*;
-
+import de.sciss.app.AbstractWindow;
 import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.session.*;
 
@@ -97,5 +96,5 @@ public interface ReceiverEditor
 	 *				the caller is responsible for making the
 	 *				component visible.
 	 */
-	public JFrame getView();
+	public AbstractWindow getView();
 }

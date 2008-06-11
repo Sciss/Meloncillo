@@ -37,7 +37,7 @@ import java.awt.event.*;
 import java.util.prefs.*;
 import javax.swing.*;
 
-import de.sciss.meloncillo.math.*;
+import de.sciss.util.NumberSpace;
 
 import de.sciss.app.*;
 import de.sciss.gui.*;
@@ -200,8 +200,9 @@ implements ItemListener, PreferenceNodeSync
 			rows++;
 			cols	= 0;
 			if( (flags & GAIN) != 0 ) {
-				ggGain  = new PrefNumberField( 0, new NumberSpace(
-					Double.NEGATIVE_INFINITY, 384.0, 0.01), null );
+				ggGain  = new PrefNumberField();
+				ggGain.setSpace( new NumberSpace(
+					Double.NEGATIVE_INFINITY, 384.0, 0.01 ));
 				ggGain.setNumber( new Double( DEFAULT_GAIN ));
 				add( ggGain );
 				cols++;

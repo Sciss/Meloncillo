@@ -73,49 +73,50 @@ extends ToolBar
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F1, 0 ));
 //		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F1, 0 )));
-        HelpGlassPane.setHelp( toggle, "SurfaceToolPointer" );
+//        HelpGlassPane.setHelp( toggle, "SurfaceToolPointer" );	// EEE
   		this.addToggleButton( toggle, 0 );
         
 		toolAction		= new ToolAction( ToolAction.LINE );
         toggle		= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F2, 0 ));
-        HelpGlassPane.setHelp( toggle, "SurfaceToolLine" );
+//        HelpGlassPane.setHelp( toggle, "SurfaceToolLine" );	// EEE
   		this.addToggleButton( toggle, 0 );
         
 		toolAction		= new ToolAction( ToolAction.CURVE );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F3, 0 ));
-        HelpGlassPane.setHelp( toggle, "SurfaceToolCurve" );
+//        HelpGlassPane.setHelp( toggle, "SurfaceToolCurve" );	// EEE
    		this.addToggleButton( toggle, 0 );
        
 		toolAction		= new ToolAction( ToolAction.ARC );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F4, 0 ));
-        HelpGlassPane.setHelp( toggle, "SurfaceToolArc" );
+//        HelpGlassPane.setHelp( toggle, "SurfaceToolArc" );	// EEE
   		this.addToggleButton( toggle, 0 );
         
 		toolAction		= new ToolAction( ToolAction.PENCIL );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F5, 0 ));
-        HelpGlassPane.setHelp( toggle, "SurfaceToolPencil" );
+//        HelpGlassPane.setHelp( toggle, "SurfaceToolPencil" );	// EEE
   		this.addToggleButton( toggle, 0 );
       
 		toolAction		= new ToolAction( ToolAction.FORK );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F6, 0 ));
-        HelpGlassPane.setHelp( toggle, "SurfaceToolFork" );
+//        HelpGlassPane.setHelp( toggle, "SurfaceToolFork" );	// EEE
   		this.addToggleButton( toggle, 0 );
         
 		this.addSeparator();
 		actionBlending  = new BlendingAction( AbstractApplication.getApplication().getUserPrefs().node( PrefsUtil.NODE_SHARED ));
 		toggle			= actionBlending.getButton();
-		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 )));
-        HelpGlassPane.setHelp( toggle, "ToolBlending" );
+//		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 )));
+// EEE
+//        HelpGlassPane.setHelp( toggle, "ToolBlending" );	// EEE
         this.addToggleButton( toggle, 1 );
 	}
 }

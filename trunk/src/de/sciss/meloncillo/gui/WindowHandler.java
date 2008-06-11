@@ -10,18 +10,19 @@ package de.sciss.meloncillo.gui;
 
 import java.awt.Font;
 
-import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.common.BasicWindowHandler;
+import de.sciss.meloncillo.Main;
 
 /**
  * 	@version	0.75, 10-Jun-08
  *	@author		Hanns Holger Rutz
  */
 public class WindowHandler
-extends AbstractWindowHandler
+extends BasicWindowHandler
 {
-	public WindowHandler()
+	public WindowHandler( Main root )
 	{
-		super();
+		super( root );
 	}
 	
 	public Font getDefaultFont()
