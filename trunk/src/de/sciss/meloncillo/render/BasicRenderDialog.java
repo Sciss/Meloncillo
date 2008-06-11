@@ -96,6 +96,8 @@ implements  RenderHost, RunnableProcessing,
 		pc	= (ProgressComponent) root.getComponent( Main.COMP_MAIN );
 
 		addDynamicListening( this );
+		
+		init();
 	}
 
 	/**

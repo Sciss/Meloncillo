@@ -198,10 +198,18 @@ implements PreferenceChangeListener
 		GUIUtil.setDeepFont( cp, fnt );
 		
 		// --- Listener ---
-        addDynamicListening( new DynamicPrefChangeManager( classPrefs,
-			new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this ));
+//        addDynamicListening( new DynamicPrefChangeManager( classPrefs,
+//			new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this ));
 
-		init();
+// SUBCLASSES NEED TO DO THIS
+//		init();
+	}
+	
+	public void init()
+	{
+        addDynamicListening( new DynamicPrefChangeManager( classPrefs,
+                                               			new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this ));
+        super.init();
 	}
 
 	/**

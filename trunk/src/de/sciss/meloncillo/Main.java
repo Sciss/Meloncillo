@@ -388,10 +388,12 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
         lookAndFeelUpdate( className );
 
 		// ---- init infrastructure ----
-
+        
 		doc			= new Session();
         transport	= new Transport( this, doc );
 //		menuFactory	= new MenuFactory( this, doc );
+
+        init();
 
 		// ---- listeners ----
 
@@ -441,10 +443,10 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		addComponent( COMP_MAIN, mainFrame );
 
 		// ----
-//		BasicFrame.layoutWindows( this, getStandardLayout(), true );
 // EEE
 		
 		if( prefsVersion == 0.0 ) { // means no preferences found, so display splash screen
+//			layoutWindows( getStandardLayout(), true );
     		new de.sciss.meloncillo.debug.WelcomeScreen( this );
 		}
 
@@ -798,4 +800,203 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
             lookAndFeelUpdate( e.getNewValue() );
         }
  	}
+	
+// --------------------------------------------------------------------
+	
+//	private static final String[] edges = { SpringLayout.NORTH, SpringLayout.SOUTH,
+//		SpringLayout.WEST, SpringLayout.EAST };
+//	private LayoutContainer 			springContainer		= null;
+//	private SpringLayout				springLayout		= null;
+//	private Map							mapLayoutComponents	= null;
+//
+//	/*
+//	 *  This method is invoked by the <code>Main</code>
+//	 *  class upon application launch. It is declared
+//	 *  <code>public</code> for the mere reason that
+//	 *  <code>Main</code> belongs to a different package,
+//	 *  and should be considered private otherwise.
+//	 *  <p>
+//	 *  This method lays out all frames according
+//	 *  to a description map and using an internal
+//	 *  <code>SpringLayout</code>.
+//	 */
+//	private void layoutWindows( Map mapSpringMaps, boolean usePrefs )
+//	{
+//		int							i, j;
+//		LayoutComponent				springComp;
+//		AppWindow					bf;
+//		Point						loc, loc2;
+//		Dimension					size;
+//		SpringDescr					sd;
+//		Map							springMap;
+//		Boolean						visible;
+//		Component					refComp;
+//		SpringLayout.Constraints	cons;
+//		Spring						maxWidthSpring  = Spring.constant( 0 );
+//		Spring						maxHeightSpring = Spring.constant( 0 );
+//		
+//		springContainer		= new LayoutContainer();
+//		springLayout		= new SpringLayout();
+//		mapLayoutComponents	= new HashMap();
+//		
+////System.err.println( "--- "+springContainer.getClass().getName()+" ---" );
+////GUIUtil.printSizes( springContainer );
+//
+//		for( i = 0; i < springContainer.getComponentCount(); i++ ) {
+//			springComp	= (LayoutComponent) springContainer.getComponent( i );
+//			cons		= springLayout.getConstraints( springComp );
+//			bf			= springComp.getRealOne();
+//			loc			= null; // PrefsUtil.stringToPoint( bf.classPrefs.get( PrefsUtil.KEY_LOCATION, null ));
+//			size		= null; // PrefsUtil.stringToDimension( bf.classPrefs.get( PrefsUtil.KEY_SIZE, null ));
+//
+//			// if the caller asks us to use preferences and
+//			// the prefs contains values for either size or
+//			// location, apply those values, otherwise rely
+//			// on the spring layout descriptions
+//			if( usePrefs && (loc != null || size != null) ) {
+//				if( loc != null ) {
+//					cons.setConstraint( SpringLayout.WEST, Spring.constant( loc.x - springContainer.getX() ));
+//					cons.setConstraint( SpringLayout.NORTH, Spring.constant( loc.y - springContainer.getY() ));
+//					bf.setLocation( loc );
+//				}
+//				if( size != null ) {
+//					if( loc == null ) loc = bf.getLocation();
+//					cons.setConstraint( SpringLayout.EAST, Spring.constant( loc.x + size.width - springContainer.getX() ));
+//					cons.setConstraint( SpringLayout.SOUTH, Spring.constant( loc.y + size.height - springContainer.getY() ));
+//					bf.setSize( size );
+//				}
+//				springComp.setBounds( bf.getBounds() );
+//				springComp.setVisible( false ); // bf.classPrefs.getBoolean( PrefsUtil.KEY_VISIBLE, false ));
+//			} else {
+//				springMap   = (Map) mapSpringMaps.get( bf.getClass().getName() );
+//				springComp.setBounds( bf.getBounds() );
+//				if( springMap != null ) {
+//					for( j = 0; j < edges.length; j++ ) {
+//						sd	= (SpringDescr) springMap.get( edges[j] );
+//						if( sd != null ) {
+//							refComp = sd.ref == null ? springContainer : getLayoutComponent( (AppWindow) getComponent( sd.ref ));
+//							if( refComp != null ) {
+//								springLayout.putConstraint( edges[j], springComp, sd.pad, sd.refEdge, refComp );
+//							}
+//						}
+//					}
+//					visible = (Boolean) springMap.get( SpringDescr.VISIBLE );
+//					if( visible != null ) {
+//						springComp.setVisible( visible.booleanValue() );
+//					}
+//				}
+//			}
+//			maxWidthSpring  = Spring.max( maxWidthSpring, cons.getConstraint( SpringLayout.EAST ));
+//			maxHeightSpring = Spring.max( maxHeightSpring, cons.getConstraint( SpringLayout.SOUTH));
+//		}
+//		cons = springLayout.getConstraints( springContainer );
+//		cons.setConstraint( SpringLayout.EAST,  Spring.sum( maxWidthSpring, Spring.constant( 150 )));
+//		cons.setConstraint( SpringLayout.SOUTH, Spring.sum( maxHeightSpring, Spring.constant( 150 )));
+////		cons.setConstraint( SpringLayout.EAST,  Spring.constant( springContainer.getWidth() ));
+////		cons.setConstraint( SpringLayout.SOUTH, Spring.constant( springContainer.getHeight() ));
+//
+//		// the whole verification of the layout is very tricky
+//		// after these two calls, the virtual component's bounds
+//		// can be investigated and transferred to the real windows
+//		springLayout.invalidateLayout( springContainer );
+//		springLayout.layoutContainer( springContainer );
+//
+//		loc2 = springContainer.getLocation();
+//		for( i = 0; i < springContainer.getComponentCount(); i++ ) {
+//			springComp	= (LayoutComponent) springContainer.getComponent( i );
+//			bf			= springComp.getRealOne();
+//			loc			= null; // PrefsUtil.stringToPoint( bf.classPrefs.get( PrefsUtil.KEY_LOCATION, null ));
+//			size		= null; // PrefsUtil.stringToDimension( bf.classPrefs.get( PrefsUtil.KEY_SIZE, null ));
+//			if( usePrefs && (loc != null || size != null) ) {
+//				if( loc != null ) {
+//					bf.setLocation( loc );
+//				}
+//				if( size != null ) {
+//					bf.setSize( size );
+//				}
+//			} else {
+//				loc		= springComp.getLocation();
+//				loc.translate( loc2.x, loc2.y );
+//				bf.setLocation( loc );
+//				bf.setSize( springComp.getSize() );
+//			}
+//			bf.setVisible( springComp.isVisible() );
+//		}
+//		
+//		springContainer 	= null;
+//		springLayout		= null;
+//		mapLayoutComponents	= null;
+//	}
+//
+//	private Component getLayoutComponent( AppWindow w )
+//	{
+//		LayoutComponent cmp = (LayoutComponent ) mapLayoutComponents.get( w );
+//		if( cmp == null ) {
+//			cmp = new LayoutComponent( w);
+//			springContainer.add( cmp );
+//			mapLayoutComponents.put( w, cmp );
+//		}
+//		return cmp;
+//	}
+//	// --------------- internal classes ---------------
+//
+//	/*
+//	 *  A doppelgaenger class for representing
+//	 *  a frame in the virtual container, passing
+//	 *  minimum, maximum and preferred size directly
+//	 *  from the real component.
+//	 */  
+//	private static class LayoutComponent
+//	extends Component
+//	{
+//		private AppWindow realOne;
+//
+//		private LayoutComponent( AppWindow realOne )
+//		{
+//			this.realOne = realOne;
+//		}
+//		
+//		private AppWindow getRealOne()
+//		{
+//			return realOne;
+//		}
+//		
+//		public Dimension getMinimumSize()		{ return realOne.getWindow().getMinimumSize(); }
+//		public Dimension getMaximumSize()		{ return realOne.getWindow().getMaximumSize(); }
+//		public Dimension getPreferredSize()		{ return realOne.getWindow().getPreferredSize(); }
+//	}
+//	
+//	/*
+//	 *  A container as a simulation
+//	 *  of the screen space with the
+//	 *  BasicFrames represented as LayoutComponent
+//	 *  objects.
+//	 */
+//	private static class LayoutContainer
+//	extends Container
+//	{
+//		private Rectangle bounds;
+//		
+//		private LayoutContainer()
+//		{
+//			super();
+//			bounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+//			setBounds( bounds );
+//		}
+//		
+//		public Dimension getMaximumSize()
+//		{
+//			return bounds.getSize();
+//		}
+//
+//		public Dimension getMinimumSize()
+//		{
+//			return getMaximumSize();
+//		}
+//
+//		public Dimension getPreferredSize()
+//		{
+//			return getMaximumSize();
+//		}
+//	}
 }

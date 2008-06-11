@@ -89,6 +89,8 @@ extends AbstractPlugInFrame
 		// listeners
 //		transport.addTransportListener( this );
 //		HelpGlassPane.setHelp( this.getRootPane(), "RealtimeDialog" );	// EEE
+		
+		init();
 	}
 
 	protected void checkReContext()

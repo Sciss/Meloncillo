@@ -128,18 +128,18 @@ implements ProgressComponent, EditMenuListener
         toFront();
 	}
     
-    /**
-     *  The main frame is always visible
-     */
-    public void setVisible( boolean visibility )
-    {
-        if( visibility ) super.setVisible( visibility );
-    }
-
-	protected boolean alwaysPackSize()
-	{
-		return false;
-	}
+//    /**
+//     *  The main frame is always visible
+//     */
+//    public void setVisible( boolean visibility )
+//    {
+//        if( visibility ) super.setVisible( visibility );
+//    }
+//
+//	protected boolean alwaysPackSize()
+//	{
+//		return false;
+//	}
 
 	/**
 	 *  Recreates the main frame's title bar
