@@ -254,7 +254,7 @@ extends JTable
 					SessionObject so;
 					int i, max					= Math.min( e.getLastIndex() + 1, collAll.size() );
 				
-					for( i = e.getFirstIndex(); i < max; i++ ) {
+					for( i = Math.max( 0, e.getFirstIndex() ); i < max; i++ ) {
 						so = (SessionObject) collAll.get( i );
 						if( enc_table.isRowSelected( i ) && !(collSelected.contains( so ))) {
 							selected.add( so );
