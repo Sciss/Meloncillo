@@ -159,6 +159,7 @@ implements ProgressComponent, EditMenuListener
 		final String	name	= doc.getName();		// 2022 20DF 2299 2605 2666
 		final String	title   = AbstractApplication.getApplication().getResourceString( "frameMain" ) + (doc.isDirty() ? " - \u2022" : " - " ) + name;
 		setTitle( title );
+		setDirty( doc.isDirty() );
 	}
 
 	/**

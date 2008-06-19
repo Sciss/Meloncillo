@@ -29,28 +29,52 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.*;
-import java.awt.datatransfer.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.io.*;
-import java.text.*;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.undo.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Shape;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.ClipboardOwner;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.Locale;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.math.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.surface.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.event.MouseInputAdapter;
+import javax.swing.undo.UndoableEdit;
 
-import de.sciss.app.*;
-import de.sciss.gui.*;
-import de.sciss.io.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.TopPainter;
+import de.sciss.gui.VectorSpace;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.EditTableLookupRcvSense;
+import de.sciss.meloncillo.gui.Axis;
+import de.sciss.meloncillo.gui.EditMenuListener;
+import de.sciss.meloncillo.gui.ObserverPalette;
+import de.sciss.meloncillo.gui.PopupListener;
+import de.sciss.meloncillo.gui.ToolBar;
+import de.sciss.meloncillo.gui.VectorDisplay;
+import de.sciss.meloncillo.gui.VectorEditor;
+import de.sciss.meloncillo.gui.VectorEditorToolBar;
+import de.sciss.meloncillo.math.MathUtil;
+import de.sciss.meloncillo.math.VectorTransformer;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.surface.SurfaceFrame;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  An editor suitable for <code>TableLookupReceiver</code>s.
@@ -61,7 +85,7 @@ import de.sciss.io.*;
  *  It provides a basic copy and paste functionality.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  *
  *  @see		TableLookupReceiver
  *
@@ -75,7 +99,7 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 {
 	protected final VectorEditor	distanceEditor;
 	protected final VectorEditor	rotationEditor;
-	private final Axis			distHAxis, distVAxis, rotHAxis, rotVAxis;
+	private final Axis				distHAxis, distVAxis, rotHAxis, rotVAxis;
 
 	private final JPanel			padPanel1, padPanel2;
 
@@ -98,10 +122,10 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	{
 		super();
 		
-		final de.sciss.app.Application	app = AbstractApplication.getApplication();
-		JPopupMenu						distancePopup, rotationPopup;
-		Box								box;
-		VectorSpace						distanceSpace, rotationSpace;
+		final Application	app = AbstractApplication.getApplication();
+		JPopupMenu			distancePopup, rotationPopup;
+		Box					box;
+		VectorSpace			distanceSpace, rotationSpace;
 
 		msgCursorDist	= new MessageFormat( app.getResourceString( "rcvEditDistMsg" ), Locale.US );   // XXX
 		msgCursorRot	= new MessageFormat( app.getResourceString( "rcvEditRotMsg" ), Locale.US );   // XXX
@@ -110,9 +134,9 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 		distanceSpace	= VectorSpace.createLinSpace( 0.0, 1.0, 0.0, 2.0,
 									   app.getResourceString( "rcvEditDistance" ), null, null, null );
 
-		distHAxis		= new Axis( Axis.HORIZONTAL );
+		distHAxis		= new Axis( Axis.HORIZONTAL, Axis.FIXEDBOUNDS );
 		distHAxis.setSpace( distanceSpace );
-		distVAxis		= new Axis( Axis.VERTICAL );
+		distVAxis		= new Axis( Axis.VERTICAL, Axis.FIXEDBOUNDS );
 		distVAxis.setSpace( distanceSpace );
 		box				= Box.createHorizontalBox();
 		box.add( Box.createHorizontalStrut( distVAxis.getPreferredSize().width ));
@@ -132,9 +156,9 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 		rotationSpace	= VectorSpace.createLinSpace( 0.0, 360.0, 0.0, 2.0,
 									   app.getResourceString( "rcvEditRotation" ), null, null, null );
 
-		rotHAxis		= new Axis( Axis.HORIZONTAL );
+		rotHAxis		= new Axis( Axis.HORIZONTAL, Axis.FIXEDBOUNDS );
 		rotHAxis.setSpace( rotationSpace );
-		rotVAxis		= new Axis( Axis.VERTICAL );
+		rotVAxis		= new Axis( Axis.VERTICAL, Axis.FIXEDBOUNDS );
 		rotVAxis.setSpace( rotationSpace );
 		box				= Box.createHorizontalBox();
 		box.add( Box.createHorizontalStrut( rotVAxis.getPreferredSize().width ));
@@ -211,10 +235,16 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	{
 		super.init( root, doc, rcv );
 
-		final ToolBar	vtb			= new VectorEditorToolBar( root );
-		final Container	c			= getContentPane();
+		final ToolBar		vtb		= new VectorEditorToolBar( root );
+		final Box			b		= Box.createHorizontalBox();
+		final JPanel		gp		= GUIUtil.createGradientPanel();
+		final Container		c		= getContentPane();
 		c.setLayout( new BoxLayout( c, BoxLayout.Y_AXIS ));
-		c.add( vtb );
+		vtb.setOpaque( false );
+		b.add( vtb );
+		b.add( Box.createHorizontalGlue() );
+		gp.add( b );
+		c.add( gp );
 		c.add( padPanel1 );
 		c.add( padPanel2 );
         if( AbstractApplication.getApplication().getUserPrefs().getBoolean(
@@ -424,12 +454,12 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	 */
 	public void vectorChanged( VectorDisplay.Event e )
 	{
-		TableLookupReceiver   rcv		= (TableLookupReceiver) this.rcv;
-		float[]			distTab = null;
-		float[]			rotTab  = null;
-		Span			distSpan= null;
-		Span			rotSpan = null;
-		UndoableEdit	edit;
+		TableLookupReceiver	rcv		= (TableLookupReceiver) this.rcv;
+		float[]				distTab = null;
+		float[]				rotTab  = null;
+		Span				distSpan= null;
+		Span				rotSpan = null;
+		UndoableEdit		edit;
 		
 		if( doc == null || rcv == null ) return;
 		
