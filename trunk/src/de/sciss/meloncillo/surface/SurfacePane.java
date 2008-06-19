@@ -1487,6 +1487,11 @@ implements  VirtualSurface, TimelineListener,
 			}
 		}
 
+		protected void cancelGesture()
+		{
+			finishGesture();
+		}
+
 		public void paintOnTop( Graphics2D g2 ) {}
 
 		public void mouseEntered( MouseEvent e ) {}
@@ -2418,6 +2423,11 @@ implements  VirtualSurface, TimelineListener,
 				}
 			}
 		} // mouseDragged( MouseEvent e )
+
+		protected void cancelGesture()
+		{
+			finishGesture( false );
+		}
 
 		/**
 		 *  Write the pencil movement

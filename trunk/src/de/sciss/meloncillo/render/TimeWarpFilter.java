@@ -33,18 +33,35 @@
 
 package de.sciss.meloncillo.render;
 
-import java.awt.*;
-import java.awt.geom.*;
-import java.io.*;
-import javax.swing.*;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Stroke;
+import java.awt.geom.Line2D;
+import java.io.File;
+import java.io.IOException;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.math.*;
-import de.sciss.meloncillo.plugin.*;
-import de.sciss.meloncillo.session.*;
+import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
 
-import de.sciss.io.*;
+import de.sciss.gui.TopPainter;
+import de.sciss.gui.VectorSpace;
+import de.sciss.io.AudioFile;
+import de.sciss.io.AudioFileDescr;
+import de.sciss.io.IOUtil;
+import de.sciss.io.InterleavedStreamFile;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.gui.PopupListener;
+import de.sciss.meloncillo.gui.ToolBar;
+import de.sciss.meloncillo.gui.VectorEditor;
+import de.sciss.meloncillo.gui.VectorEditorToolBar;
+import de.sciss.meloncillo.math.VectorTransformer;
+import de.sciss.meloncillo.plugin.PlugInContext;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *	A trajectory filter plug-in

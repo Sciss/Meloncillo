@@ -1,6 +1,6 @@
 /*
  *  TopPainter.java
- *  Meloncillo
+ *  de.sciss.gui package
  *
  *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
@@ -24,13 +24,13 @@
  *
  *
  *  Changelog:
- *		14-Jun-04   created
- *		31-Jul-04   commented
+ *		28-Jan-05	copied from FScape
+ *		16-Jul-07	moved to de.sciss.gui
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.gui;
 
-import java.awt.*;
+import java.awt.Graphics2D;
 
 /**
  *  Simple as that: paint something
@@ -39,8 +39,6 @@ import java.awt.*;
  *
  *  @author		Hanns Holger Rutz
  *  @version	0.67, 02-Sep-04
- *
- *  @see	de.sciss.meloncillo.surface.SurfacePane#addTopPainter( TopPainter )
  */
 public interface TopPainter
 {

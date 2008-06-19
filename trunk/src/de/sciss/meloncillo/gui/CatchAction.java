@@ -24,19 +24,23 @@
  *
  *
  *  Changelog:
- *		27-Mar-05	created
+ *		12-May-05	created from de.sciss.meloncillo.gui.CatchAction
+ *		19-Jun-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.event.*;
-import java.util.prefs.*;
+import java.awt.event.ActionEvent;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
+import java.util.prefs.Preferences;
+import javax.swing.AbstractAction;
+import javax.swing.JToggleButton;
 
-import javax.swing.*;
+import de.sciss.meloncillo.util.PrefsUtil;
 
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicPrefChangeManager;
 
 /**
  *	A class implementing the <code>Action</code> interface
@@ -45,7 +49,7 @@ import de.sciss.app.*;
  *	this button reflects the catch preferences settings.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 20-Mar-08
  */
 public class CatchAction
 extends AbstractAction
@@ -89,8 +93,7 @@ implements PreferenceChangeListener
 		prefs.putBoolean( PrefsUtil.KEY_CATCH, b.isSelected() );
 	}
 
-	// o instanceof PreferenceChangeEvent
-	public void preferenceChange( PreferenceChangeEvent pce)
+	public void preferenceChange( PreferenceChangeEvent e )
 	{
 		updateButtonState();
 	}

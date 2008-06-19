@@ -70,6 +70,7 @@ import de.sciss.gui.PrefCheckBox;
 import de.sciss.gui.PrefComboBox;
 import de.sciss.gui.PrefNumberField;
 import de.sciss.gui.PrefPathField;
+import de.sciss.gui.PrefTextArea;
 import de.sciss.gui.PrefTextField;
 import de.sciss.gui.SpringPanel;
 import de.sciss.gui.StringItem;

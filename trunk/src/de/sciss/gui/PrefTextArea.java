@@ -1,6 +1,6 @@
 /*
  *  PrefTextArea.java
- *  Meloncillo
+ *  de.sciss.gui package
  *
  *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
@@ -28,9 +28,10 @@
  *		31-Jul-04   commented
  *		14-Aug-04   added defaultValue
  *		01-Jan-05	bugfix: removePreferenceListener() was not called
+ *		19-Jun-08	moved here from de.sciss.meloncillo.gui
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.gui;
 
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;

@@ -981,10 +981,10 @@ implements KeyListener
 			}
 			break;
 			
-		case KeyEvent.VK_ESCAPE: // abort
-			// XXX while dragging escape should return to the last stable state!
-			if( dndState != DND_NONE ) finishGesture( false );
-			break;
+//		case KeyEvent.VK_ESCAPE: // abort
+//			// XXX while dragging escape should return to the last stable state!
+//			if( dndState != DND_NONE ) finishGesture( false );
+//			break;
 			
 		default:
 			break;
@@ -1000,4 +1000,9 @@ implements KeyListener
 	 *  Does nothing since we only track keyPressed events.
 	 */
 	public void keyTyped( KeyEvent e ) {}
+	
+	protected void cancelGesture()
+	{
+		finishGesture( false );
+	}
 }

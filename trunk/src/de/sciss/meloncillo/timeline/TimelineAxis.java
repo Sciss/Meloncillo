@@ -45,6 +45,7 @@ import de.sciss.meloncillo.gui.*;
 import de.sciss.meloncillo.session.*;
 
 import de.sciss.app.*;
+import de.sciss.gui.VectorSpace;
 import de.sciss.io.*;
 
 /**

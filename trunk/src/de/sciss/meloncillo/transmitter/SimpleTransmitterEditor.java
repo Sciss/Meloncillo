@@ -32,24 +32,46 @@
 
 package de.sciss.meloncillo.transmitter;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.io.*;
-import java.text.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.Point2D;
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.Locale;
+import java.util.Vector;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.timeline.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JPanel;
 
-import de.sciss.app.*;
-import de.sciss.io.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.gui.TimeFormat;
+import de.sciss.gui.VectorSpace;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.gui.ObserverPalette;
+import de.sciss.meloncillo.gui.ToolActionEvent;
+import de.sciss.meloncillo.gui.ToolActionListener;
+import de.sciss.meloncillo.gui.VectorDisplay;
+import de.sciss.meloncillo.gui.VectorEditor;
+import de.sciss.meloncillo.gui.VirtualSurface;
+import de.sciss.meloncillo.io.BlendContext;
+import de.sciss.meloncillo.io.BlendSpan;
+import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.io.SubsampleInfo;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.timeline.TimelineEvent;
+import de.sciss.meloncillo.timeline.TimelineListener;
 
 /**
  *  An editor suitable for <code>SimpleTransmitter</code>s.
@@ -273,7 +295,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 		float[][]						interpBuf;
 		float[]							chBuf;
 		float							f1, f2, interpWeight;
-		SyncCompoundSessionObjEdit	edit;
+		SyncCompoundSessionObjEdit		edit;
 		Vector							collTrns;
 		BlendContext					bc			= root.getBlending();
 

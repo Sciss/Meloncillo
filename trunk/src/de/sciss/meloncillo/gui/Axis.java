@@ -24,18 +24,40 @@
  *
  *
  *  Changelog:
- *		14-Mar-05	created from de.sciss.fscape.gui.Axis
- *		25-Mar-05	added support for mirrored min/max labels
+ *		12-May-05	copied from de.sciss.meloncillo.gui.Axis
+ *		16-Jul-05	allows format switching (time / samples for example) ;
+ *					label calculation uses long precision now to be
+ *					compatible with sample frame display extending 32bit
+ *		18-Feb-06	implements LightComponent
+ *		14-Apr-06	added FIXEDBOUNDS ; fixed label spacing issues
+ *		19-Jun-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.geom.*;
-import java.awt.image.*;
-import java.text.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.TexturePaint;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.text.MessageFormat;
+import java.util.Locale;
+import javax.swing.JComponent;
+
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.GraphicsHandler;
+import de.sciss.meloncillo.math.MathUtil;
+import de.sciss.gui.ComponentHost;
+import de.sciss.gui.VectorSpace;
+import de.sciss.util.Disposable;
 
 /**
  *  A GUI element for displaying
@@ -46,89 +68,133 @@ import javax.swing.*;
  *  timeline.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 23-Apr-08
  *
- *	@todo		negative minimum values
- *				result in missing tick lines
+ *	@todo		FIXEDBOUNDS is ignored in logarithmic mode now
+ *	@todo		new label width calculation not performed in logarithmic mode
  */
 public class Axis
 extends JComponent
-// implements SwingConstants
+implements Disposable
 {
-	private Dimension			recentSize		= null;
+	private static final long[]	DECIMAL_RASTER	= { 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1 };
+	private static final long[]	INTEGERS_RASTER	= { 100000000, 10000000, 1000000, 100000, 10000, 1000 };
+	private static final long[]	TIME_RASTER		= { 60000000, 6000000, 600000, 60000, 10000, 1000, 100, 10, 1 };
+
+	private static final int	MIN_LABSPC		= 16;
+
+	private int					recentWidth		= 0;
+	private int					recentHeight	= 0;
+	private boolean				doRecalc		= true;
+	
 	private double				kPeriod			= 1000.0;
-	private String[]			labels			= new String[0];
-	private int[]				labelPos		= new int[0];
+	private String[]			labels			= new String[ 0 ];
+	private int[]				labelPos		= new int[ 0 ];
 	private final GeneralPath   shpTicks		= new GeneralPath();
+//	private double				minRaster		= 0.001;
+//	private int					minRasterK		= (int) (minRaster * kPeriod);
 
-	private final int	orient;
-	private VectorSpace space;
+	private final int			orient;
+	private VectorSpace			space;
 
-	private final Paint  pntBackground;
-	private static final Font	fntLabel		= new Font( "Helvetica", Font.PLAIN, 10 );
+	private final Paint			pntBackground;
+	private final BufferedImage img;
+	private final Font			fntLabel;	// = new Font( "Helvetica", Font.PLAIN, 10 );
 
 	// the following are used for Number to String conversion using MessageFormat
 	private static final String[] msgNormalPtrn = { "{0,number,0}",
-											  "{0,number,0.0}",
-											  "{0,number,0.00}",
-											  "{0,number,0.000}" };
-	private static final String[] msgTimePtrn = { "{0,number,integer}:{1,number,00}",
-											  "{0,number,integer}:{1,number,00.0}",
-											  "{0,number,integer}:{1,number,00.00}",
-											  "{0,number,integer}:{1,number,00.000}" };
-	private final String[]		msgPtrn;
+													"{0,number,0.0}",
+													"{0,number,0.00}",
+													"{0,number,0.000}" };
+	private static final String[] msgTimePtrn	= {	"{0,number,integer}:{1,number,00}",
+													"{0,number,integer}:{1,number,00.0}",
+													"{0,number,integer}:{1,number,00.00}",
+													"{0,number,integer}:{1,number,00.000}" };
 
-	private final int[]			normalRaster	= { 1000000, 100000, 10000, 1000, 100, 10 }; // , 1 };
-	private final int[]			timeRaster		= { 600000, 60000, 10000, 1000, 100, 10 }; // , 1 };
-	private final int[]			labelRaster;
+	private final MessageFormat msgForm			= new MessageFormat( msgNormalPtrn[ 0 ], Locale.US );  // XXX US locale
+	private	final Object[]		msgArgs			= new Object[ 2 ];
 	
-	private final MessageFormat msgForm = new MessageFormat( msgNormalPtrn[0], Locale.US );  // XXX US locale
-	private	final Object[]		msgArgs = new Object[2];
-	private static final int MIN_LABEL_DISTANCE = 72;   // minimum distance between two time labels in pixels
-	
-	private static final int[] pntBarGradientPixels = { 0xFFB8B8B8, 0xFFC0C0C0, 0xFFC8C8C8, 0xFFD3D3D3,
+	private static final int[]	pntBarGradientPixels ={ 0xFFB8B8B8, 0xFFC0C0C0, 0xFFC8C8C8, 0xFFD3D3D3,
 														0xFFDBDBDB, 0xFFE4E4E4, 0xFFEBEBEB, 0xFFF1F1F1,
 														0xFFF6F6F6, 0xFFFAFAFA, 0xFFFBFBFB, 0xFFFCFCFC,
 														0xFFF9F9F9, 0xFFF4F4F4, 0xFFEFEFEF };
-	private static final int barExtent = pntBarGradientPixels.length;
+	private static final int	barExtent		= pntBarGradientPixels.length;
 
-	private final AffineTransform trnsVertical = new AffineTransform();
+	private final AffineTransform trnsVertical	= new AffineTransform();
+
+	private String[]			msgPtrn;
+	private long[]				labelRaster;
+	private long				labelMinRaster;
+	private int					flags			= -1;
+
+	private boolean				flMirroir;			// MIRROIR set
+	private boolean				flTimeFormat;		// TIMEFORMAT set
+	private boolean				flIntegers;			// INTEGERS set
+	private boolean				flFixedBounds;		// FIXEDBOUNDS set
+	
+//	private boolean				fntMetricsKnown	= false;
+//	private int					fntDigitWidth;
+//	private int					fntPeriodWidth;
+//	private int					fntMinusWidth;
 
 	/**
 	 *	Defines the axis to have horizontal orient
 	 */
-	public static final int HORIZONTAL	= 0x00;
+	public static final int		HORIZONTAL		= 0x00;
 	/**
 	 *	Defines the axis to have vertical orient
 	 */
-	public static final int VERTICAL	= 0x01;
+	public static final int		VERTICAL		= 0x01;
 	/**
-	 *	Defines the axis to have flipped min/max values.
+	 *	Flag: Defines the axis to have flipped min/max values.
 	 *	I.e. for horizontal orient, the maximum value
 	 *	corresponds to the left edge, for vertical orient
 	 *	the maximum corresponds to the bottom edge
 	 */
-	public static final int MIRROIR		= 0x02;
+	public static final int		MIRROIR			= 0x02;
 	/**
-	 *	Requests the labels to be formatted as MIN:SEC.MILLIS
+	 *	Flag: Requests the labels to be formatted as MIN:SEC.MILLIS
 	 */
-	public static final int TIMEFORMAT	= 0x04;
+	public static final int		TIMEFORMAT		= 0x04;
+	/**
+	 *	Flag: Requests that the label values be integers
+	 */
+	public static final int		INTEGERS		= 0x08;
+	/**
+	 *	Flag: Requests that the space's min and max are always displayed
+	 *		  and hence subdivision are made according to the bounds
+	 */
+	public static final int		FIXEDBOUNDS		= 0x10;
 
-	private static final int HV_MASK	= 0x01;
+//	private static final int HV_MASK	= 0x01;
+
+	private final ComponentHost	host;
+
+	public Axis( int orient )
+	{
+		this( orient, 0 );
+	}
 
 	/**
 	 *  @param	orient	either HORIZONTAL or VERTICAL
 	 */
-	public Axis( int orient )
+	public Axis( int orient, int flags )
+	{
+		this( orient, flags, null );
+	}
+
+	public Axis( int orient, int flags, ComponentHost host )
 	{
 		super();
 		
 		this.orient = orient;
+		this.host	= host;
 
 		int imgWidth, imgHeight;
-		BufferedImage img;
+
+		fntLabel	= AbstractApplication.getApplication().getGraphicsHandler().getFont( GraphicsHandler.FONT_LABEL | GraphicsHandler.FONT_MINI );
 		
-		if( (orient & HV_MASK) == HORIZONTAL ) {
+		if( orient == HORIZONTAL ) {
 			setMaximumSize( new Dimension( getMaximumSize().width, barExtent ));
 			setMinimumSize( new Dimension( getMinimumSize().width, barExtent ));
 			setPreferredSize( new Dimension( getPreferredSize().width, barExtent ));
@@ -142,13 +208,7 @@ extends JComponent
 			imgHeight	= 1;
 		}
 		
-		if( (orient & TIMEFORMAT) == 0 ) {
-			msgPtrn		= msgNormalPtrn;
-			labelRaster	= normalRaster;
-		} else {
-			msgPtrn		= msgTimePtrn;
-			labelRaster	= timeRaster;
-		}
+		setFlags( flags );
 		
 		img = new BufferedImage( imgWidth, imgHeight, BufferedImage.TYPE_INT_ARGB );
 		img.setRGB( 0, 0, imgWidth, imgHeight, pntBarGradientPixels, 0, imgWidth );
@@ -157,48 +217,85 @@ extends JComponent
 		setOpaque( true );
   	}
 	
+	public void setFlags( int flags )
+	{
+		if( this.flags == flags ) return;
+		
+		this.flags		= flags;
+		flMirroir		= (flags & MIRROIR) != 0;
+		flTimeFormat	= (flags & TIMEFORMAT) != 0;
+		flIntegers		= (flags & INTEGERS) != 0;
+		flFixedBounds	= (flags & FIXEDBOUNDS) != 0;
+		
+		if( flTimeFormat ) {
+			msgPtrn		= msgTimePtrn;
+			labelRaster	= TIME_RASTER;
+		} else {
+			msgPtrn		= msgNormalPtrn;
+			labelRaster	= flIntegers ? INTEGERS_RASTER : DECIMAL_RASTER;
+		}
+		labelMinRaster	= labelRaster[ labelRaster.length - 1 ];
+
+		triggerRedisplay();
+	}
+
+	public int getFlags()
+	{
+		return flags;
+	}
+	
 	public void setSpace( VectorSpace space )
 	{
-		this.space = space;
-		recentSize  = null;			// triggers recalcLabels()
-		repaint();
+		this.space	= space;
+		triggerRedisplay();
 	}
 	
 	public void paintComponent( Graphics g )
 	{
 		super.paintComponent( g );
 		
-		final Dimension			d           = getSize();
-        final Graphics2D		g2          = (Graphics2D) g;
-		final Stroke			strkOrig	= g2.getStroke();
+		final Graphics2D		g2			= (Graphics2D) g;
+		final int				w           = getWidth();
+		final int				h           = getHeight();
+//		final Graphics2D		g2          = (Graphics2D) g;
+//		final Stroke			strkOrig	= g2.getStroke();
 		final AffineTransform	trnsOrig	= g2.getTransform();
 		final FontMetrics		fm			= g2.getFontMetrics();
 
-		int		y;
+		final int				y;
 
-		if( recentSize == null || d.width != recentSize.width || d.height != recentSize.height ) {
-			recentSize = d;
-			recalcLabels();
-			recalcTransforms();
+		g2.setFont( fntLabel );
+
+		if( doRecalc || (w != recentWidth) || (h != recentHeight) ) {
+			recentWidth		= w;
+			recentHeight	= h;
+			recalcLabels( g );
+			if( orient == VERTICAL ) recalcTransforms();
+			doRecalc		= false;
 		}
 
 		g2.setPaint( pntBackground );
-		g2.fillRect( 0, 0, recentSize.width, recentSize.height );
-		g2.setColor( Color.black );
-		g2.setFont( fntLabel );
+		g2.fillRect( 0, 0, w, h );
 
-		if( (orient & HV_MASK) == VERTICAL ) {
+		g2.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF );
+
+		if( orient == VERTICAL ) {
 			g2.transform( trnsVertical );
-			y   = recentSize.width - 3 - fm.getMaxDescent();
+			y   = w - 3 - fm.getMaxDescent();
 		} else {
-			y   = recentSize.height - 3 - fm.getMaxDescent();
-		}
-		for( int i = 0; i < labels.length; i++ ) {
-			g2.drawString( labels[i], labelPos[i], y );
+			y   = h - 3 - fm.getMaxDescent();
 		}
 		g2.setColor( Color.lightGray );
 		g2.draw( shpTicks );
-		g2.setStroke( strkOrig );
+//		g2.setStroke( strkOrig );
+
+		g2.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON );
+		g2.setColor( Color.black );
+
+		for( int i = 0; i < labels.length; i++ ) {
+			g2.drawString( labels[ i ], labelPos[ i ], y );
+		}
+
 		g2.setTransform( trnsOrig );
     }
     
@@ -206,14 +303,33 @@ extends JComponent
 	{
 //		trnsVertical.setToRotation( -Math.PI / 2, (double) barExtent / 2,
 //												  (double) barExtent / 2 );
-		trnsVertical.setToRotation( -Math.PI / 2, (double) recentSize.height / 2,
-												  (double) recentSize.height / 2 );
+		trnsVertical.setToRotation( -Math.PI / 2, (double) recentHeight / 2,
+												  (double) recentHeight / 2 );
 	}
   
-	private void recalcLabels()
+	private int calcStringWidth( FontMetrics fntMetr, double value )
 	{
-		int			width, height, valueOff, valueStep, numTicks, numLabels, ptrnIdx, raster;
-		double		scale, pixelOff, pixelStep, tickStep, d1;
+		if( flTimeFormat ) {
+			msgArgs[ 0 ]	= new Integer( (int) (value / 60) );
+			msgArgs[ 1 ]	= new Double( value % 60 );
+		} else {
+			msgArgs[ 0 ]	= new Double( value );
+		}
+		return fntMetr.stringWidth( msgForm.format( msgArgs ));
+	}
+	
+	private int calcMinLabSpc( FontMetrics fntMetr, double min, double max )
+	{
+		return Math.max( calcStringWidth( fntMetr, min ), calcStringWidth( fntMetr, max )) + MIN_LABSPC;
+	}
+	
+	private void recalcLabels( Graphics g )
+	{
+		final FontMetrics	fntMetr	= g.getFontMetrics();
+		int					shift, width, height, numTicks, numLabels, ptrnIdx, ptrnIdx2, minLbDist;
+		double				scale, pixelOff, pixelStep, tickStep, minK, maxK;
+		long				raster, n;
+		double				valueOff, valueStep, spcMin, spcMax;
 
 		shpTicks.reset();
 		if( space == null ) {
@@ -222,85 +338,156 @@ extends JComponent
 			return;
 		}
 
-		if( (orient & HV_MASK) == HORIZONTAL ) {
+		if( orient == HORIZONTAL ) {
 			if( space.hlog ) {
 				recalcLogLabels();
 				return;
 			}
-			width		= recentSize.width;
-			height		= recentSize.height;
-			scale		= (double) width / (space.hmax - space.hmin);
-			valueStep	= (int) (kPeriod * (space.hmax - space.hmin) / (width / MIN_LABEL_DISTANCE));
-			d1			= kPeriod * space.hmin; // (double) visibleSpan.getStart() * kPeriod;
+			width		= recentWidth;
+			height		= recentHeight;
+			spcMin		= space.hmin;
+			spcMax		= space.hmax;
 		} else {
 			if( space.vlog ) {
 				recalcLogLabels();
 				return;
 			}
-			width		= recentSize.height;
-			height		= recentSize.width;
-			scale		= (double) width / (space.vmax - space.vmin);
-			valueStep	= (int) (kPeriod * (space.vmax - space.vmin) / (width / MIN_LABEL_DISTANCE));
-			d1			= kPeriod * space.vmin; // (double) visibleSpan.getStart() * kPeriod;
+			width		= recentHeight;
+			height		= recentWidth;
+			spcMin		= space.vmin;
+			spcMax		= space.vmax;
 		}
+		scale		= width / (spcMax - spcMin);
+		minK		= kPeriod * spcMin;
+		maxK		= kPeriod * spcMax;
 		
-		ptrnIdx = 3;
-		raster	= 1;
-		for( int i = 0; i < labelRaster.length; i++ ) {
-			if( valueStep >= labelRaster[ i ]) {
-				ptrnIdx	= Math.max( 0, i - 3 );
-				raster	= labelRaster[ i ];
-				break;
+		if( flFixedBounds ) {
+			n			= (long) Math.abs( minK );
+			if( (n % 1000) == 0 ) {
+				ptrnIdx	= 0;
+			} else if( (n % 100) == 0 ) {
+				ptrnIdx	= 1;
+			} else if( (n % 10) == 0 ) {
+				ptrnIdx = 2;
+			} else {
+				ptrnIdx	= 3;
 			}
-		}
-		
-//		if( valueStep >= 1000000 ) {
-//			ptrnIdx	= 0;
-//			raster	= 1000000;
-//		} else if( valueStep >= 100000 ) {
-//			ptrnIdx	= 0;
-//			raster	= 100000;
-//		} else if( valueStep >= 10000 ) {
-//			ptrnIdx	= 0;
-//			raster	= 10000;
-//		} else if( valueStep >= 1000 ) {
-//			ptrnIdx	= 0;
-//			raster	= 1000;
-//		} else if( valueStep >= 100 ) {
-//			ptrnIdx	= 1;
-//			raster	= 100;
-//		} else if( valueStep >= 10 ) {
-//			ptrnIdx	= 2;
-//			raster	= 10;
-//		} else {
-//			ptrnIdx	= 3;
-//			raster	= 1;
-//		}
-		valueStep	= Math.max( 1, (valueStep + (raster >> 1)) / raster );
-		switch( valueStep ) {
-		case 2:
-		case 4:
-		case 8:
-			numTicks	= 4;
-			break;
-		case 3:
-		case 6:
-			numTicks	= 6;
-			break;
-		case 7:
-		case 9:
-			valueStep	= 10;
-			numTicks	= 5;
-			break;
-		default:
-			numTicks	= 5;
-			break;
-		}
-		valueStep   *= raster;
+			n			= (long) Math.abs( maxK );
+			if( (n % 1000) == 0 ) {
+				// nix
+			} else if( (n % 100) == 0 ) {
+				ptrnIdx	= Math.max( ptrnIdx, 1 );
+			} else if( (n % 10) == 0 ) {
+				ptrnIdx	= Math.max( ptrnIdx, 2 );
+			} else {
+				ptrnIdx	= 3;
+			}
 
-		msgForm.applyPattern( msgPtrn[ ptrnIdx ]);
-		valueOff	= (int) (d1 / valueStep) * valueStep;
-		pixelOff	= (valueOff - d1) / kPeriod * scale + 0.5;
+			// make a first label width calculation with coarsest display
+			msgForm.applyPattern( msgPtrn[ ptrnIdx ]);
+			minLbDist	= calcMinLabSpc( fntMetr, spcMin, spcMax );
+			numLabels	= Math.max( 1, width / minLbDist );
+
+			// ok, easy way : only divisions by powers of two
+			for( shift = 0; numLabels > 2; shift++, numLabels >>= 1 ) ;
+			numLabels <<= shift;
+			valueStep	= (maxK - minK) / numLabels;
+			
+			n			= (long) valueStep;
+			if( (n % 1000) == 0 ) {
+				ptrnIdx2	= ptrnIdx;
+			} else if( (n % 100) == 0 ) {
+				ptrnIdx2	= Math.max( ptrnIdx, 1 );
+			} else if( (n % 10) == 0 ) {
+				ptrnIdx2	= Math.max( ptrnIdx, 2 );
+			} else {
+				ptrnIdx2	= 3;
+			}
+			
+			if( ptrnIdx2 != ptrnIdx ) {	// ok, labels get bigger, recalc numLabels ...
+				msgForm.applyPattern( msgPtrn[ ptrnIdx2 ]);
+				minLbDist	= calcMinLabSpc( fntMetr, spcMin, spcMax );
+				numLabels	= Math.max( 1, width / minLbDist );
+				for( shift = 0; numLabels > 2; shift++, numLabels >>= 1 ) ;
+				numLabels <<= shift;
+				valueStep	= (maxK - minK) / numLabels;
+				
+				// nochmal ptrnIdx berechnen, evtl. reduziert sich die aufloesung wieder...
+				n			= (long) valueStep;
+				if( (n % 1000) == 0 ) {
+					ptrnIdx2	= ptrnIdx;
+				} else if( (n % 100) == 0 ) {
+					ptrnIdx2	= Math.max( ptrnIdx, 1 );
+				} else if( (n % 10) == 0 ) {
+					ptrnIdx2	= Math.max( ptrnIdx, 2 );
+				} else {
+					ptrnIdx2	= 3;
+				}
+				msgForm.applyPattern( msgPtrn[ ptrnIdx2 ]);
+			}
+			
+			numTicks	= 4;
+			valueOff	= minK;
+			pixelOff	= 0;
+
+		} else {
+			// make a first label width calculation with coarsest display
+			msgForm.applyPattern( msgPtrn[ 0 ]);
+			minLbDist	= calcMinLabSpc( fntMetr, spcMin, spcMax );
+			numLabels	= Math.max( 1, width / minLbDist );
+		
+			// now valueStep =^= 1000 * minStep
+			valueStep	= Math.ceil( (maxK - minK) / numLabels );
+			// die Grossenordnung von valueStep ist Indikator fuer Message Pattern
+			ptrnIdx = flIntegers ? 0 : 3;
+			raster	= labelMinRaster;
+			for( int i = 0; i < labelRaster.length; i++ ) {
+				if( valueStep >= labelRaster[ i ]) {
+					ptrnIdx	= Math.max( 0, i - 5 );
+					raster	= labelRaster[ i ];
+					break;
+				}
+			}
+			msgForm.applyPattern( msgPtrn[ ptrnIdx ]);
+			if( ptrnIdx > 0 ) {	// have to recheck label width!
+				minLbDist	= Math.max( calcStringWidth( fntMetr, spcMin ), calcStringWidth( fntMetr, spcMax )) + MIN_LABSPC;
+				numLabels	= Math.max( 1, width / minLbDist );
+				valueStep	= Math.ceil( (maxK - minK) / numLabels );
+			}
+//System.err.println( "width "+width+"; numLabels "+numLabels+"; minLbDist "+minLbDist+"; valueStep "+valueStep+"; minK "+minK+"; maxK "+maxK+"; raster "+raster );
+			
+//			valueStep	= Math.max( 1, ((long) valueStep + (raster >> 1)) / raster );
+// aufrunden!
+			valueStep	= Math.max( 1, Math.floor( (valueStep + raster - 1) / raster ));
+			if( valueStep > 9 ) {
+				numTicks	= 5;
+			} else {
+				switch( (int) valueStep ) {
+				case 2:
+				case 4:
+				case 8:
+					numTicks	= 4;
+					break;
+				case 3:
+				case 6:
+					numTicks	= 6;
+					break;
+				case 7:
+				case 9:
+					valueStep	= 10;
+					numTicks	= 5;
+					break;
+				default:
+					numTicks	= 5;
+					break;
+				}
+			}
+			valueStep   *= raster;
+//System.err.println( "now valueStep = "+valueStep );
+
+			valueOff	= Math.floor( Math.abs( minK ) / valueStep ) * (minK >= 0 ? valueStep : -valueStep);
+			pixelOff	= (valueOff - minK) / kPeriod * scale + 0.5;
+		}
 		pixelStep   = valueStep / kPeriod * scale;
 		tickStep	= pixelStep / numTicks;
 		
@@ -308,19 +495,19 @@ extends JComponent
 		if( labels.length != numLabels ) labels = new String[ numLabels ];
 		if( labelPos.length != numLabels ) labelPos = new int[ numLabels ];
 
-		if( (orient & MIRROIR) != 0 ) {
+		if( flMirroir ) {
 			pixelOff	= width - pixelOff;
 			tickStep	= -tickStep;
 		}
 
 //System.err.println( "valueOff = "+valueOff+"; valueStep = "+valueStep+"; pixelStep "+pixelStep+"; tickStep "+tickStep+
-//					"; test "+(j * tickStep + pixelOff)+ "; pixelOff "+pixelOff+"; d1 "+d1 );
+//					"; pixelOff "+pixelOff+"; d1 "+d1 );
 		for( int i = 0; i < numLabels; i++ ) {
-			if( (orient & TIMEFORMAT) == 0 ) {
-				msgArgs[ 0 ]	= new Double( (double) valueOff / kPeriod );
+			if( flTimeFormat ) {
+				msgArgs[ 0 ]	= new Integer( (int) (valueOff / 60000) );
+				msgArgs[ 1 ]	= new Double( (valueOff % 60000) / 1000 );
 			} else {
-				msgArgs[ 0 ]	= new Integer( valueOff / 60000 );
-				msgArgs[ 1 ]	= new Double( (double) (valueOff % 60000) / 1000 );
+				msgArgs[ 0 ]	= new Double( valueOff / kPeriod );
 			}
 			labels[ i ]		= msgForm.format( msgArgs );
 			labelPos[ i ]	= (int) pixelOff + 2;
@@ -341,21 +528,24 @@ extends JComponent
 		int				numLabels, width, height, numTicks, mult, expon, newPtrnIdx, ptrnIdx;
 		double			spaceOff, factor, d1, pixelOff, min, max;
 
-		if( (orient & HV_MASK) == HORIZONTAL ) {
-			width		= recentSize.width;
-			height		= recentSize.height;
+		if( orient == HORIZONTAL ) {
+			width		= recentWidth;
+			height		= recentHeight;
 			min			= space.hmin;
 			max			= space.hmax;
 		} else {
-			width		= recentSize.height;
-			height		= recentSize.width;
+			width		= recentHeight;
+			height		= recentWidth;
 			min			= space.vmin;
-			max			= space.hmax;
+			max			= space.vmax;
 		}
 		
-		factor	= Math.pow( max / min, (double) MIN_LABEL_DISTANCE / (double) width );
-		expon	= (int) (Math.log( factor ) / Math.log( 10 ));
+		factor	= Math.pow( max / min, (double) 72 / (double) width );	// XXX
+		expon	= (int) (Math.log( factor ) / MathUtil.LN10);
 		mult	= (int) (Math.ceil( factor / Math.pow( 10, expon )) + 0.5);
+		
+//System.out.println( "orig : factor " + factor + "; expon " + expon + "; mult " + mult );
+		
 		if( mult > 5 ) {
 			expon++;
 			mult = 1;
@@ -367,6 +557,9 @@ extends JComponent
 		factor	= mult * Math.pow( 10, expon );
 		
 		numLabels = (int) (Math.ceil( Math.log( max/min ) / Math.log( factor )) + 0.5);
+		
+//System.out.println( "max " + max + "; min " + min + "; width " + width + "; numLabels " + numLabels + "; factor " + factor + "; expon " + expon + "; mult " + mult );
+		
 		if( labels.length != numLabels ) labels = new String[ numLabels ];
 		if( labelPos.length != numLabels ) labelPos = new int[ numLabels ];
 
@@ -392,7 +585,7 @@ extends JComponent
 				ptrnIdx = newPtrnIdx;
 			}
 
-			if( (orient & HV_MASK) == HORIZONTAL ) {
+			if( orient == HORIZONTAL ) {
 				pixelOff	= space.hSpaceToUnity( spaceOff ) * width;
 			} else {
 				pixelOff	= space.vSpaceToUnity( spaceOff ) * width;
@@ -405,7 +598,7 @@ extends JComponent
 			shpTicks.lineTo( (float) pixelOff, height - 2 );
 			d1			= spaceOff * (factor - 1) / numTicks;
 			for( int n = 1; n < numTicks; n++ ) {
-				if( (orient & HV_MASK) == HORIZONTAL ) {
+				if( orient == HORIZONTAL ) {
 					pixelOff	= space.hSpaceToUnity( spaceOff + d1 * n ) * width;
 				} else {
 					pixelOff	= space.vSpaceToUnity( spaceOff + d1 * n ) * width;
@@ -414,5 +607,27 @@ extends JComponent
 				shpTicks.lineTo( (float) pixelOff, height - 2 );
 			}
 		}
+	}
+
+	private void triggerRedisplay()
+	{
+		doRecalc	= true;
+		if( host != null ) {
+//System.err.println( "host.update" );
+			host.update( this );
+		} else if( isVisible() ) {
+//System.err.println( "repaint" );
+			repaint();
+		}
+	}
+
+	// -------------- Disposable interface --------------
+
+	public void dispose()
+	{
+		labels		= null;
+		labelPos	= null;
+		shpTicks.reset();
+		img.flush();
 	}
 }

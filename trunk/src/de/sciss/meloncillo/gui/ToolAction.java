@@ -24,15 +24,18 @@
  *
  *
  *  Changelog:
- *		01-Aug-04   commented
- *		26-Mar-05	zoom tool added
+ *		12-May-05	created from de.sciss.meloncillo.gui.ToolAction
+ *		19-Jun-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
+import java.awt.Cursor;
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
+import javax.swing.AbstractButton;
+import javax.swing.Icon;
 
 /**
  *  An extension of <code>AbstractAction</code>
@@ -44,7 +47,7 @@ import javax.swing.*;
  *  doesn't do anything at the moment.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 07-Dec-07
  */
 public class ToolAction
 extends AbstractAction
@@ -95,13 +98,13 @@ extends AbstractAction
 		GraphicsUtil.ICON_ZOOM
 	};
 	private static final Cursor[] CURSORS = {
-		Cursor.getPredefinedCursor( Cursor.DEFAULT_CURSOR ), Cursor.getPredefinedCursor( Cursor.CROSSHAIR_CURSOR ),
+		Cursor.getPredefinedCursor( Cursor.TEXT_CURSOR ), Cursor.getPredefinedCursor( Cursor.CROSSHAIR_CURSOR ),
 		Cursor.getPredefinedCursor( Cursor.CROSSHAIR_CURSOR ), Cursor.getPredefinedCursor( Cursor.CROSSHAIR_CURSOR ),
 		Cursor.getPredefinedCursor( Cursor.CROSSHAIR_CURSOR ), Cursor.getPredefinedCursor( Cursor.HAND_CURSOR ),
 		Cursor.getPredefinedCursor( Cursor.HAND_CURSOR )	// csrZoomIn
 	};
 
-	private final int		ID;
+	private final int		id;
 	private final Icon[]	icons;
 //	private AbstractButton  b;
 
@@ -109,16 +112,16 @@ extends AbstractAction
 	 *  Creates a tool action with
 	 *  the given ID.
 	 *
-	 *  @param  ID  identier for the tool, e.g. LINE or PENCIL,
+	 *  @param  id  identier for the tool, e.g. LINE or PENCIL,
 	 *				which determines the icons and mouse pointer
 	 */
-	public ToolAction( int ID )
+	public ToolAction( int id )
 	{
 		super();
 		
-		this.ID = ID;
+		this.id = id;
 		
-		icons = GraphicsUtil.createToolIcons( ICONS[ID] );
+		icons = GraphicsUtil.createToolIcons( ICONS[id] );
 	}
 	
 	/**
@@ -147,7 +150,7 @@ extends AbstractAction
 	 */
 	public int getID()
 	{
-		return ID;
+		return id;
 	}
 	
 	/**
@@ -158,6 +161,6 @@ extends AbstractAction
 	 */
 	public Cursor getDefaultCursor()
 	{
-		return CURSORS[ ID ];
+		return CURSORS[ id ];
 	}
 }

@@ -32,10 +32,13 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.event.*;
-import java.awt.geom.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.Point2D;
 
-import de.sciss.io.*;
+import de.sciss.gui.VectorSpace;
+import de.sciss.io.Span;
 
 /**
  *  A <code>VectorEditor</code> is a two dimensional
@@ -60,7 +63,7 @@ import de.sciss.io.*;
  *	to a <code>ToolBar</code>.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  *
  *  @see		de.sciss.meloncillo.math.VectorTransformer#createPopupMenu( VectorEditor )
  *  @see		VectorDisplay.Listener

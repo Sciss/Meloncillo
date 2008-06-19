@@ -66,6 +66,7 @@ import de.sciss.meloncillo.gui.MenuFactory;
 import de.sciss.meloncillo.gui.MeterFrame;
 import de.sciss.meloncillo.gui.ObserverPalette;
 import de.sciss.meloncillo.gui.PrefsFrame;
+import de.sciss.meloncillo.gui.WelcomeScreen;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.realtime.RealtimeFrame;
 import de.sciss.meloncillo.realtime.Transport;
@@ -429,7 +430,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		
 		if( prefsVersion == 0.0 ) { // means no preferences found, so display splash screen
 //			layoutWindows( getStandardLayout(), true );
-    		new de.sciss.meloncillo.debug.WelcomeScreen( this );
+    		new WelcomeScreen( this );
 		}
 
 		if( warnings != null ) {

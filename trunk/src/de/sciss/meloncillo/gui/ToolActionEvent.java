@@ -24,13 +24,13 @@
  *
  *
  *  Changelog:
- *		22-Jul-04   new method incorporate().
- *		01-Aug-04   commented
+ *		12-May-05	created from de.sciss.meloncillo.gui.ToolActionEvent
+ *		19-Jun-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.gui;
 
-import de.sciss.app.*;
+import de.sciss.app.BasicEvent;
 
 /**
  *  This kind of event is fired
@@ -38,17 +38,16 @@ import de.sciss.app.*;
  *  the user switched to a different tool.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.56, 05-May-06
  *
  *  @see		ToolBar#addToolActionListener( ToolActionListener )
- *  @see		ToolPalette#addToolActionListener( ToolActionListener )
  *  @see		ToolActionListener
  *  @see		ToolAction
  */
 public class ToolActionEvent
 extends BasicEvent
 {
-// --- ID values ---
+	// --- ID values ---
 	/**
 	 *  returned by getID() : the tool was changed
 	 */
@@ -86,8 +85,8 @@ extends BasicEvent
 	public boolean incorporate( BasicEvent oldEvent )
 	{
 		if( oldEvent instanceof ToolActionEvent &&
-			this.getSource() == oldEvent.getSource() &&
-			this.getID() == oldEvent.getID() ) {
+			getSource() == oldEvent.getSource() &&
+			getID() == oldEvent.getID() ) {
 			
 			return true;
 

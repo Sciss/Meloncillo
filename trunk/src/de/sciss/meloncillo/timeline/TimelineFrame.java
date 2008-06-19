@@ -1770,6 +1770,12 @@ timelinePos = currentPos;
 
 		public void mouseEntered( MouseEvent e ) {}
 		public void mouseExited( MouseEvent e ) {}
+
+		protected void cancelGesture()
+		{
+			dragStarted = false;
+			validDrag	= false;
+		}
 	}
 
 	private class TimelineZoomTool
@@ -1880,5 +1886,13 @@ timelinePos = currentPos;
 		public void mouseExited( MouseEvent e ) {}
 		public void mouseMoved( MouseEvent e ) {}
 		public void mouseClicked( MouseEvent e ) {}
+
+		protected void cancelGesture()
+		{
+			zoomTimer.stop();
+			vpTrackPanel.setZoomRect( null );
+			dragStarted = false;
+			validDrag	= false;
+		}
 	}
 }

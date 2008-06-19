@@ -24,13 +24,27 @@
  *
  *
  *  Changelog:
- *		31-Jul-04   commented. RuntimeExceptions added
+ *		12-May-05	created from de.sciss.meloncillo.gui.AbstractTool
+ *		24-Sep-05	implements KeyListener and requests focus on mouse press
+ *		01-Oct-05	removed KeyListener, uses Input/ActionMap now because
+ *					making the component focusable was destroying other keyboard bindings
+ *		19-Jun-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Component;
+import java.awt.Graphics2D;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import javax.swing.JComponent;
+import javax.swing.KeyStroke;
+
+import de.sciss.gui.MenuAction;
+import de.sciss.gui.TopPainter;
 
 /**
  *  This class describes a generic GUI tool
@@ -38,14 +52,18 @@ import java.awt.event.*;
  *  a <code>Component</code>.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.70, 10-Jun-08
+ *  @version	0.70, 28-Sep-07
  */
 public abstract class AbstractTool
-implements MouseListener, MouseMotionListener, TopPainter
+implements MouseListener, MouseMotionListener, TopPainter // KeyListener
 {
-	private Component c;
+	private Component comp;
+	private MenuAction actionCancel	= null;
 
-	public AbstractTool() {}
+	protected AbstractTool()
+	{
+		/* empty */ 
+	}
 
 	/**
 	 *  Makes this tool a component's active
@@ -65,12 +83,18 @@ implements MouseListener, MouseMotionListener, TopPainter
 	 */
 	public void toolAcquired( Component c )
 	{
-		if( this.c != null ) throw new IllegalStateException();
+		if( comp != null ) throw new IllegalStateException();
 		if( c == null ) throw new IllegalArgumentException();
 
-		this.c = c;
+		comp = c;
 		c.addMouseListener( this );
 		c.addMouseMotionListener( this );
+//		c.addKeyListener( this );
+
+		if( comp instanceof JComponent ) {
+			if( actionCancel == null ) actionCancel = new ActionCancel();
+			actionCancel.installOn( (JComponent) comp, JComponent.WHEN_IN_FOCUSED_WINDOW );
+		}
 	}
 
 	/**
@@ -98,13 +122,22 @@ implements MouseListener, MouseMotionListener, TopPainter
 	 */
 	public void toolDismissed( Component c )
 	{
-		if( this.c == null ) throw new IllegalStateException();
-		if( c == null || c != this.c ) throw new IllegalArgumentException();
+		if( comp == null ) throw new IllegalStateException();
+		if( c == null || c != comp ) throw new IllegalArgumentException();
 	
 		c.removeMouseMotionListener( this );
 		c.removeMouseListener( this );
-		this.c = null;
+//		c.removeKeyListener( this );
+		if( (actionCancel != null) && (comp instanceof JComponent) ) {
+			actionCancel.deinstallFrom( (JComponent) comp, JComponent.WHEN_IN_FOCUSED_WINDOW );
+		}
+		
+		cancelGesture();
+		
+		comp = null;
 	}
+	
+	protected abstract void cancelGesture();
 
 	/**
 	 *  Paint the current (possibly volatile) state
@@ -136,6 +169,55 @@ implements MouseListener, MouseMotionListener, TopPainter
 	 */
 	protected Component getComponent()
 	{
-		return c;
+		return comp;
+	}
+	
+	public void mousePressed( MouseEvent e )
+	{
+//		final Component c = getComponent();	// needn't be the one from e.getComponent() !
+//	
+//		if( c != null ) c.requestFocus();
+
+//System.err.println( "requesting focus on "+e.getComponent().getClass().getName() );
+	}
+
+	public void mouseReleased( MouseEvent e ) { /* empty */ }
+	public void mouseClicked( MouseEvent e ) { /* empty */ }
+	public void mouseDragged( MouseEvent e ) { /* empty */ }
+	public void mouseEntered( MouseEvent e ) { /* empty */ }
+	public void mouseExited( MouseEvent e ) { /* empty */ }
+	public void mouseMoved( MouseEvent e ) { /* empty */ }
+
+//	public void keyPressed( KeyEvent e )
+//	{
+//		boolean	consume	= true;
+//	
+//		switch( e.getKeyCode() ) {
+//		case KeyEvent.VK_ESCAPE: // abort
+//			cancelGesture();
+//			break;
+//			
+//		default:
+//			consume	= false;
+//			break;
+//		}
+//			
+//		if( consume ) e.consume();
+//	}
+//
+//	public void keyReleased( KeyEvent e ) {}
+//	public void keyTyped( KeyEvent e ) {}
+
+	private class ActionCancel
+	extends MenuAction
+	{
+		protected ActionCancel()
+		{
+			super( "tool-cancel", KeyStroke.getKeyStroke( KeyEvent.VK_ESCAPE, 0 ));
+		}
+			
+		public void actionPerformed( ActionEvent e ) {
+			cancelGesture();
+		}
 	}
 }

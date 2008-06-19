@@ -29,7 +29,7 @@
  *		02-Sep-04	changed the text since this is the final thesis version
  */
 
-package de.sciss.meloncillo.debug;
+package de.sciss.meloncillo.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Container;

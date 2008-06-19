@@ -1,8 +1,8 @@
 /*
  *  VectorSpace.java
- *  Meloncillo
+ *  de.sciss.gui package
  *
- *  Copyright (c) 2004 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -24,12 +24,13 @@
  *
  *
  *  Changelog:
- *		14-Mar-05	copied from de.sciss.fscape.gui.VectorSpace
+ *		12-May-05	copied from de.sciss.meloncillo.gui.VectorSpace
+ *		16-Jul-07	moved to de.sciss.gui
  */
 
-package de.sciss.meloncillo.gui;
+package de.sciss.gui;
 
-import java.awt.geom.*;
+import java.awt.geom.Point2D;
 
 public class VectorSpace
 {
@@ -124,6 +125,21 @@ public class VectorSpace
 								hlabel, hunit, vlabel, vunit );
 	}
 
+	/**
+	 * 	Creates a space whose horizontal axis is linearly scaled and vertical
+	 * 	axis is logarithmically scaled.
+	 * 
+	 *	@param	hmin
+	 *	@param	hmax
+	 *	@param	vmin
+	 *	@param	vmax
+	 *	@param	vcenter
+	 *	@param	hlabel
+	 *	@param	hunit
+	 *	@param	vlabel
+	 *	@param	vunit
+	 *	@return
+	 */
 	public static VectorSpace createLinLogSpace( double hmin, double hmax, double vmin, double vmax, double vcenter,
 												 String hlabel, String hunit, String vlabel, String vunit )
 	{

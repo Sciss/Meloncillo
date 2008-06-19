@@ -32,13 +32,17 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.*;
-import java.awt.geom.*;
-import java.util.*;
+import java.awt.Shape;
+import java.awt.geom.Dimension2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.List;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.session.*;
+import de.sciss.gui.VectorSpace;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  An editor suitable for <code>SigmaReceiver</code>s.
@@ -82,7 +86,7 @@ extends TableLookupReceiverEditor
 	 */
 	public java.util.List getHandledReceivers()
 	{
-		java.util.List list = new ArrayList( 1 );
+		final List list = new ArrayList( 1 );
 		list.add( SigmaReceiver.class );
 		return list;
 	}

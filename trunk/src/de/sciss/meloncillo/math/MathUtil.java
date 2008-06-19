@@ -24,8 +24,8 @@
  *
  *
  *  Changelog:
- *		31-May-04	created
- *		04-Aug-04   commented
+ *		25-Jan-05	created from de.sciss.meloncillo.math.MathUtil
+ *		19-Jun-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.math;
@@ -35,7 +35,7 @@ package de.sciss.meloncillo.math;
  *  for common math operations and constants
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.6, 04-Aug-04
+ *  @version	0.70, 22-Apr-08
  */
 public class MathUtil
 {
@@ -52,7 +52,7 @@ public class MathUtil
 	 */
 	public static final double LN10 = Math.log( 10 );
 
-	private MathUtil() {}
+	private MathUtil() { /* empty */ }
 
 	/**
 	 *  Decibel-to-Linear conversion.
@@ -65,7 +65,7 @@ public class MathUtil
 	{
 		return Math.exp( dB / 20 * LN10 );
 	}
-	
+		
 	/**
 	 *  Linear-to-Decibel conversion
 	 *
@@ -76,5 +76,30 @@ public class MathUtil
 	public static double linearToDB( double linear )
 	{
 		return Math.log( linear ) * 20 / LN10;
+	}
+
+	/**
+	 *  Calculate the logarithm with base 2.
+	 *
+	 *  @param  val	the input value
+	 *  @return the log2 of the value
+	 */
+	public static double log2( double val )
+	{
+		return Math.log(  val ) / LN2;
+	}
+
+	/**
+	 *  Calculates an integer that is a power
+	 *	of two and is equal or greater than a given integer
+	 *
+	 *	@param	x	the minimum value to return
+	 *	@return		an integer 2^n which is equal or greater than x
+	 */
+	public static int nextPowerOfTwo( int x )
+	{
+		int y;
+		for( y = 1; y < x; y <<= 1 ) ;
+		return y;
 	}
 }
