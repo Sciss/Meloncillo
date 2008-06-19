@@ -170,8 +170,10 @@ implements ProgressComponent
 	 */
 	public void updateTitle()
 	{
-		final String	name	= doc.getName();		// 2022 20DF 2299 2605 2666
-		final String	title   = AbstractApplication.getApplication().getResourceString( "frameMain" ) + (doc.isDirty() ? " - \u2022" : " - " ) + name;
+		final String		name	= doc.getName();		// 2022 20DF 2299 2605 2666
+		final Application	app		= AbstractApplication.getApplication();
+		final String		title   = app.getResourceString( "frameMain" ) + (doc.isDirty() ? " - \u2022" : " - " ) +
+			name == null ? app.getResourceString( "frameUntitled" ) : name;
 		setTitle( title );
 		setDirty( doc.isDirty() );
 	}

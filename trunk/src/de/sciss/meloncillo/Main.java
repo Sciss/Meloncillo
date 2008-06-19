@@ -71,7 +71,6 @@ import de.sciss.meloncillo.gui.WelcomeScreen;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.plugin.PlugInManager;
 import de.sciss.meloncillo.realtime.RealtimeFrame;
-import de.sciss.meloncillo.realtime.Transport;
 import de.sciss.meloncillo.realtime.TransportPalette;
 import de.sciss.meloncillo.render.BounceDialog;
 import de.sciss.meloncillo.render.FilterDialog;
@@ -177,10 +176,10 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	 *  Instance for getting copies of the global menu
 	 */
 //	public final MenuFactory menuFactory;
-	/**
-	 *  Global transport object
-	 */
-	public final Transport transport;
+//	/**
+//	 *  Global transport object
+//	 */
+//	public final Transport transport;
 
 	/**
 	 *  Key for getReceiver/Transmitter/RenderModuleTypes() : a human
@@ -285,7 +284,6 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 //	public static final Clipboard clipboard	= Toolkit.getDefaultToolkit().getSystemClipboard();
 	
 	// --- frames ---
-//	private final Hashtable	collComponents		= new Hashtable();
 
 	// --- types ---
 	private static final java.util.List collReceiverTypes			= new ArrayList();
@@ -394,7 +392,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		// ---- init infrastructure ----
         
 		doc			= new Session();
-        transport	= new Transport( this, doc );
+//        transport	= new Transport( this, doc );
 //		menuFactory	= new MenuFactory( this, doc );
 
         init();
@@ -587,7 +585,8 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	public synchronized void quit()
 	{
 		final Flag				confirmed	= new Flag( false );
-		final ProcessingThread	pt			= getMenuFactory().closeAll( forcedQuit, confirmed );
+//		final ProcessingThread	pt			= getMenuFactory().closeAll( forcedQuit, confirmed );
+		final ProcessingThread	pt			= doc.closeDocument( getResourceString( "menuQuit" ), forcedQuit, confirmed );
 
 		if( pt != null ) {
 			pt.addListener( quitAfterSaveListener );

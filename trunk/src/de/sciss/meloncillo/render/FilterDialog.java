@@ -32,18 +32,25 @@
 
 package de.sciss.meloncillo.render;
 
-import java.io.*;
-import java.util.*;
-import javax.swing.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.transmitter.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.JOptionPane;
+import javax.swing.WindowConstants;
 
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
+import de.sciss.common.ProcessingThread;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.io.BlendContext;
+import de.sciss.meloncillo.io.BlendSpan;
+import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.transmitter.Transmitter;
 
 /**
  *  The dialog for filtering trajectory data.
@@ -71,8 +78,8 @@ public class FilterDialog
 extends BasicRenderDialog
 implements RenderConsumer
 {
-	private static final Vector collProducerTypes   = new Vector();
-	private static final Vector collEmpty			= new Vector();
+	private static final List collProducerTypes = new ArrayList();
+	private static final List collEmpty			= new ArrayList();
 
 	// context options map
 	private static final String	KEY_CONSC	= "consc";
@@ -103,19 +110,19 @@ implements RenderConsumer
 		super.dispose();
 	}
 
-	protected java.util.List getProducerTypes()
+	protected List getProducerTypes()
 	{
 		if( collProducerTypes.isEmpty() ) {
-			Hashtable h;
-			h = new Hashtable();
+			Map h;
+			h = new HashMap();
 			h.put( Main.KEY_CLASSNAME, "de.sciss.meloncillo.render.TimeWarpFilter" );
 			h.put( Main.KEY_HUMANREADABLENAME, "Time Warp" );
 			collProducerTypes.add( h );
-			h = new Hashtable();
+			h = new HashMap();
 			h.put( Main.KEY_CLASSNAME, "de.sciss.meloncillo.render.VectorTransformFilter" );
 			h.put( Main.KEY_HUMANREADABLENAME, "Vector Transformation" );
 			collProducerTypes.add( h );
-			h = new Hashtable();
+			h = new HashMap();
 			h.put( Main.KEY_CLASSNAME, "de.sciss.meloncillo.render.LispFilter" );
 			h.put( Main.KEY_HUMANREADABLENAME, "Lisp Plug-In" );
 			collProducerTypes.add( h );
@@ -342,7 +349,7 @@ implements RenderConsumer
 	private class ConsumerContext
 	{
 		SyncCompoundSessionObjEdit	edit;
-		BlendContext					bc;
-		BlendSpan[]						bs;			// for each trns
+		BlendContext				bc;
+		BlendSpan[]					bs;			// for each trns
 	}
 }

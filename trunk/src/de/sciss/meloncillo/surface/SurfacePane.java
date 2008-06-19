@@ -71,6 +71,7 @@ import de.sciss.meloncillo.timeline.*;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
+import de.sciss.common.ProcessingThread;
 import de.sciss.gui.*;
 import de.sciss.io.*;
 
@@ -225,7 +226,7 @@ implements  VirtualSurface, TimelineListener,
 		
 		this.root   = root;
 		this.doc	= doc;
-		transport   = root.transport;
+		transport   = doc.getTransport();
 		
 		setPreferredSize( new Dimension( 480, 640 ));
 
@@ -2029,7 +2030,7 @@ implements  VirtualSurface, TimelineListener,
 	// since we are using our own when dragging ?
 	private class SurfacePencilTool
 	extends AbstractTool
-	implements RunnableProcessing, TrajectoryGenerator
+	implements ProcessingThread.Client, TrajectoryGenerator
 	{
 		// --- drag-and-drop ---
 		
@@ -2108,7 +2109,7 @@ implements  VirtualSurface, TimelineListener,
 			finishGesture( false );
 		
 			// wait for rendering to be completed
-			while( renderThread != null && renderThread.isAlive() ) {
+			while( renderThread != null && renderThread.isRunning() ) {
 				renderThread.sync();
 				renderThread = null;
 			}
@@ -2133,9 +2134,12 @@ implements  VirtualSurface, TimelineListener,
 //				dndVelocity = false;
 				repaint( virtualToScreenClip( dndRecentRect ));
 				if( success && !previewOnly ) {
-					renderThread = new ProcessingThread( this, root, root, doc,
-						AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ),
-						null, Session.DOOR_TIMETRNSMTE );
+//					renderThread = new ProcessingThread( this, root, root, doc,
+//					             						AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ),
+//					             						null, Session.DOOR_TIMETRNSMTE );
+					renderThread = new ProcessingThread( this, root,
+						AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ));
+					renderThread.start();
 				}
 			}
 		}
@@ -2257,7 +2261,7 @@ implements  VirtualSurface, TimelineListener,
 		// sync: this method attempts on time, trns and grp
 		public void mousePressed( MouseEvent e )
 		{
-			if( renderThread != null && renderThread.isAlive() ) {
+			if( renderThread != null && renderThread.isRunning() ) {
 				renderThread.sync();
 				renderThread = null;
 			}
@@ -2445,7 +2449,7 @@ implements  VirtualSurface, TimelineListener,
 		 *  time warp is performed as follows:
 		 *  t'(t) = v_start * t + (v_end - v_start)/2T * t^2 , v_start = (0...2)/T, v_end = 2/T - v_start 
 		 */
-		public boolean run( ProcessingThread context, Object argument )
+		public int processRun( ProcessingThread context )
 		{
 			Transmitter						trns;
 			MultirateTrackEditor			mte;
@@ -2466,11 +2470,11 @@ implements  VirtualSurface, TimelineListener,
 			boolean							success		= false;
 			BlendContext					bc			= root.getBlending();
 
-			if( dndFreehandPoints.size() < 2 ) return true;
+			if( dndFreehandPoints.size() < 2 ) return DONE;
 			pit		= (PointInTime) dndFreehandPoints.firstElement();
 			pit2	= (PointInTime) dndFreehandPoints.lastElement();
 			span	= new Span( pit.getWhen(), pit2.getWhen() );
-			if( span.getLength() < 2 ) return true;
+			if( span.getLength() < 2 ) return DONE;
 				
 			interpLen   = span.getLength();
 			warpedTime  = new float[(int) Math.min( interpLen, 4096 )];
@@ -2519,10 +2523,11 @@ implements  VirtualSurface, TimelineListener,
 				context.setException( e1 );
 			}
 			
-			return success;
+			return success ? DONE : FAILED;
 		} // run()
 
-		public void finished( ProcessingThread context, Object argument, boolean success ) {}
+		public void processFinished( ProcessingThread context ) {}
+		public void processCancel( ProcessingThread context ) {}
 
 		private void initFunctionEvaluation()
 		{

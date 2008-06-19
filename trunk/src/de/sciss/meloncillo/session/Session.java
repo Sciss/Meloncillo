@@ -35,21 +35,39 @@
 
 package de.sciss.meloncillo.session;
 
-import java.io.*;
-import java.text.*;
-import java.util.*;
-import java.util.prefs.*;
-import org.w3c.dom.*;
-import org.xml.sax.*;
+import java.awt.EventQueue;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.prefs.BackingStoreException;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.timeline.*;
-import de.sciss.meloncillo.util.*;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
-import de.sciss.app.*;
+import de.sciss.util.Flag;
+
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.common.ProcessingThread;
 import de.sciss.io.IOUtil;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.gui.MainFrame;
+import de.sciss.meloncillo.io.XMLRepresentation;
+import de.sciss.meloncillo.realtime.Transport;
+import de.sciss.meloncillo.timeline.Timeline;
+import de.sciss.meloncillo.util.LockManager;
+import de.sciss.meloncillo.util.MapManager;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  This is the core 'document' of Meloncillo
@@ -67,7 +85,7 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	 *	Denotes the path to this session or
 	 *	<code>null</code> if not yet saved
 	 */
-	public static final String MAP_KEY_PATH	= "path";
+//	public static final String MAP_KEY_PATH	= "path";
 	
 	// used for restoring groups in fromXML()
 	protected static final String	OPTIONS_KEY_SESSION	= "session";
@@ -172,6 +190,13 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	private final de.sciss.app.UndoManager undo	= new de.sciss.app.UndoManager( this );
 	private boolean dirty = false;
 
+//	private final ActionSave		actionSave;
+	
+	private File					file			 = null;
+	
+	private final Transport			transport;
+	protected ProcessingThread		pt				= null;
+	
 	/**
 	 *  Creates a new Session. This should be invoked only once at
 	 *  the application startup. Subsequent session loading and clearing
@@ -185,7 +210,27 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	{
 //		super( new SessionCollection(), new SessionCollection(), new SessionCollection() );
 		super();
-		clear();
+
+        transport	= new Transport( this );
+//		actionSave	= new ActionSave();
+
+        clear();
+	}
+	
+	public Transport getTransport()
+	{
+		return transport;
+	}
+	
+	public void setFile( File f )
+	{
+		file = f;
+		setName( f == null ? null : f.getName() );
+	}
+	
+	public File getFile()
+	{
+		return file;
 	}
 
 	/**
@@ -240,13 +285,13 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	 */
 	public void clear()
 	{
-		final de.sciss.app.Application	app = AbstractApplication.getApplication();
+		final Application	app = AbstractApplication.getApplication();
 	
 		try {
 			bird.waitExclusive( DOOR_ALL );
 
 			super.clear();
-			setName( app.getResourceString( "frameUntitled" ));
+			setFile( null );
 			selectedReceivers.clear( this );
 			selectedTransmitters.clear( this );
 			selectedGroups.clear( this );
@@ -266,6 +311,88 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 		}
 	}
 	
+	/**
+	 * 	Checks if a process is currently running. This method should be called
+	 * 	before launching a process using the <code>start()</code> method.
+	 * 	If a process is ongoing, this method waits for a default timeout period
+	 * 	for the thread to finish.
+	 * 
+	 *	@return	<code>true</code> if a new process can be launched, <code>false</code>
+	 *			if a previous process is ongoing and a new process cannot be launched
+	 *	@throws	IllegalMonitorStateException	if called from outside the event thread
+	 *	@synchronization	must be called in the event thread
+	 */
+	public boolean checkProcess()
+	{
+		return checkProcess( 500 );
+	}
+	
+	/**
+	 * 	Checks if a process is currently running. This method should be called
+	 * 	before launching a process using the <code>start()</code> method.
+	 * 	If a process is ongoing, this method waits for a given timeout period
+	 * 	for the thread to finish.
+	 * 
+	 * 	@param	timeout	the maximum duration in milliseconds to wait for an ongoing process
+	 *	@return	<code>true</code> if a new process can be launched, <code>false</code>
+	 *			if a previous process is ongoing and a new process cannot be launched
+	 *	@throws	IllegalMonitorStateException	if called from outside the event thread
+	 *	@synchronization	must be called in the event thread
+	 */
+	public boolean checkProcess( int timeout )
+	{
+//System.out.println( "checking..." );
+		if( !EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
+		if( pt == null ) return true;
+		if( timeout == 0 ) return false;
+
+//System.out.println( "sync " + timeout );
+		pt.sync( timeout );
+//System.out.println( "sync done" );
+		return( (pt == null) || !pt.isRunning() );
+	}
+	
+	public void cancelProcess( boolean sync )
+	{
+		if( !EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
+		if( pt == null ) return;
+		pt.cancel(  sync );
+	}
+	
+	public String getProcessName()
+	{
+		if( !EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
+		if( pt == null ) return null;
+		return pt.getName();
+	}
+	
+	/**
+	 * 	Starts a <code>ProcessingThread</code>. Only one thread
+	 * 	can exist at a time. To ensure that no other thread is running,
+	 * 	call <code>checkProcess()</code>.
+	 * 
+	 * 	@param	pt	the thread to launch
+	 * 	@throws	IllegalMonitorStateException	if called from outside the event thread
+	 * 	@throws	IllegalStateException			if another process is still running
+	 * 	@see	#checkProcess()
+	 * 	@synchronization	must be called in the event thread
+	 */
+	public void start( ProcessingThread process )
+	{
+		if( !EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
+		if( this.pt != null ) throw new IllegalStateException( "Process already running" );
+		
+		pt = process;
+		pt.addListener( new ProcessingThread.Listener() {
+			public void processStarted( ProcessingThread.Event e ) { /* empty */ }
+			public void processStopped( ProcessingThread.Event e )
+			{
+				pt = null;
+			}
+		});
+		pt.start();
+	}
+
 // ---------------- Document interface 
 
 	public de.sciss.app.Application getApplication()
@@ -394,15 +521,15 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	public void fromXML( org.w3c.dom.Document domDoc, Element node, Map options )
 	throws IOException
 	{
-		NodeList						nl;
-		Element							elem, elem2;
-		double							d1;
-		String							val, val2;
-		SessionObject					so;
-		Object							o;
-		final ArrayList					soList		= new ArrayList();
-		final NodeList					rootNL		= node.getChildNodes();
-		final de.sciss.app.Application	app			= AbstractApplication.getApplication();
+		NodeList			nl;
+		Element				elem, elem2;
+		double				d1;
+		String				val, val2;
+		SessionObject		so;
+		Object				o;
+		final List			soList		= new ArrayList();
+		final NodeList		rootNL		= node.getChildNodes();
+		final Application	app			= AbstractApplication.getApplication();
 
 		options.put( OPTIONS_KEY_SESSION, this );
 
@@ -623,5 +750,11 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 			return is;
 		}
 		return null;	// unknown DTD, use default behaviour
+	}
+
+	public ProcessingThread closeDocument( String name, boolean force, Flag wasClosed )
+	{
+		final DocumentFrame frame = (DocumentFrame) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN );
+		return frame.closeDocument( name, force, wasClosed );	// XXX should be in here not frame!!!
 	}
 }

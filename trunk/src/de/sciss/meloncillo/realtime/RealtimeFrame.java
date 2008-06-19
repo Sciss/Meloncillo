@@ -33,19 +33,27 @@
 
 package de.sciss.meloncillo.realtime;
 
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
 import java.awt.geom.Point2D;
-import java.io.*;
-import java.util.*;
-import javax.swing.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.plugin.*;
-import de.sciss.meloncillo.session.*;
+import javax.swing.AbstractAction;
+import javax.swing.AbstractButton;
+import javax.swing.Icon;
+import javax.swing.JComponent;
+import javax.swing.JToggleButton;
 
-import de.sciss.app.*;
-import de.sciss.gui.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.gui.GraphicsUtil;
+import de.sciss.meloncillo.plugin.AbstractPlugInFrame;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  Analogon to the AbstractRenderDialog,
@@ -61,7 +69,7 @@ public class RealtimeFrame
 extends AbstractPlugInFrame
 // implements TransportListener
 {
-	private static final Vector			collProducerTypes   = new Vector();
+	private static final List			collProducerTypes   = new ArrayList();
 	private final TransportPalette		transportPalette;
 	private final Transport				transport;
 	private final actionRealtimeClass	actionRealtime;
@@ -76,7 +84,7 @@ extends AbstractPlugInFrame
 	{
 		super( root, doc, AbstractApplication.getApplication().getResourceString( "frameRealtime" ), 0 );
 		
-		transport			= root.transport;
+		transport			= doc.getTransport();
 		transportPalette	= (TransportPalette) root.getComponent( Main.COMP_TRANSPORT );
 
 		actionRealtime		= new actionRealtimeClass( GraphicsUtil.ICON_REALTIME );
@@ -165,11 +173,11 @@ extends AbstractPlugInFrame
 		return null;
 	}
 
-	protected java.util.List getProducerTypes()
+	protected List getProducerTypes()
 	{
 		if( collProducerTypes.isEmpty() ) {
-			Hashtable h;
-			h = new Hashtable();
+			Map h;
+			h = new HashMap();
 			h.put( Main.KEY_CLASSNAME, "de.sciss.meloncillo.realtime.LispRealtimePlugIn" );
 			h.put( Main.KEY_HUMANREADABLENAME, "Lisp Plug-In" );
 			collProducerTypes.add( h );

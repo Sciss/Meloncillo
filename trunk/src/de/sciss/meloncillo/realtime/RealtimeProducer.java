@@ -31,16 +31,16 @@
 
 package de.sciss.meloncillo.realtime;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.receiver.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.transmitter.*;
-
-import de.sciss.app.*;
-import de.sciss.io.*;
+import de.sciss.app.LaterInvocationManager;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.transmitter.TrajectoryGenerator;
+import de.sciss.meloncillo.transmitter.Transmitter;
 
 /**
  *	The RealtimeProducer is the "factory" of
@@ -63,7 +63,7 @@ import de.sciss.io.*;
  *	method is called.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 20-Jun-08
  *
  *	@see	Transport
  *	@see	RealtimeProducer#RealtimeProducer( Main, Session, RealtimeHost )
@@ -99,8 +99,8 @@ implements LaterInvocationManager.Listener
 	public RealtimeProducer.Source source;
 	
 	private final LaterInvocationManager lim	= new LaterInvocationManager( this );
-	private final ArrayList	collInfos			= new ArrayList();  // synced because always in event thread
-	private final ArrayList	collReplacements	= new ArrayList();  // synced because always in event thread
+	private final List	collInfos			= new ArrayList();  // synced because always in event thread
+	private final List	collReplacements	= new ArrayList();  // synced because always in event thread
 	
 	private final Session		doc;
 	private final RealtimeHost	host;
@@ -116,7 +116,7 @@ implements LaterInvocationManager.Listener
 	 *	@param	doc		Session document
 	 *	@param	host	usually the Transport
 	 */
-	public RealtimeProducer( Main root, Session doc, RealtimeHost host )
+	public RealtimeProducer( Session doc, RealtimeHost host )
 	{
 		this.doc	= doc;
 		this.host   = host;

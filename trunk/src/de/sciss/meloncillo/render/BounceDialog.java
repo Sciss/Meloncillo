@@ -32,17 +32,20 @@
 
 package de.sciss.meloncillo.render;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.WindowConstants;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
-import de.sciss.io.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
+import de.sciss.common.ProcessingThread;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  The dialog for bouncing sound synthesis
@@ -58,7 +61,7 @@ import de.sciss.io.*;
 public class BounceDialog
 extends BasicRenderDialog
 {
-	private static final Vector collProducerTypes   = new Vector();
+	private static final List collProducerTypes   = new ArrayList();
 
 	/**
 	 *	Constructs a Bounce-to-Disk dialog.
@@ -87,11 +90,11 @@ extends BasicRenderDialog
 		super.dispose();
 	}
 
-	protected java.util.List getProducerTypes()
+	protected List getProducerTypes()
 	{
 		if( collProducerTypes.isEmpty() ) {
-			Hashtable h;
-			h = new Hashtable();
+			Map h;
+			h = new HashMap();
 			h.put( Main.KEY_CLASSNAME, "de.sciss.meloncillo.render.LispBounce" );
 			h.put( Main.KEY_HUMANREADABLENAME, "Lisp Plug-In" );
 			collProducerTypes.add( h );

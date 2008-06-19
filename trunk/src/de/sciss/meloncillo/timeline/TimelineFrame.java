@@ -86,6 +86,7 @@ import de.sciss.app.AbstractApplication;
 import de.sciss.app.Application;
 import de.sciss.app.DynamicListening;
 import de.sciss.app.LaterInvocationManager;
+import de.sciss.common.ProcessingThread;
 import de.sciss.gui.AbstractWindowHandler;
 import de.sciss.gui.GUIUtil;
 import de.sciss.gui.MenuAction;
@@ -119,8 +120,6 @@ import de.sciss.meloncillo.transmitter.Transmitter;
 import de.sciss.meloncillo.transmitter.TransmitterEditor;
 import de.sciss.meloncillo.transmitter.TransmitterRowHeader;
 import de.sciss.meloncillo.util.PrefsUtil;
-import de.sciss.meloncillo.util.ProcessingThread;
-import de.sciss.meloncillo.util.RunnableProcessing;
 import de.sciss.meloncillo.util.TransferableCollection;
 
 
@@ -252,7 +251,7 @@ implements  TimelineListener, ToolActionListener,
 		super( doc );
 
 		this.root   = root;
-		transport   = root.transport;
+		transport   = doc.getTransport();
 
 		final Container			cp		= getContentPane();
 		final InputMap			imap	= getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW );
@@ -775,7 +774,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 	private class ActionPaste
 	extends MenuAction
-	implements RunnableProcessing
+	implements ProcessingThread.Client
 	{
 		private ActionPaste()
 		{
@@ -819,15 +818,18 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 				return;
 			}
 
-			new ProcessingThread( this, root, root, doc, getValue( NAME ).toString(), coll, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
+			final ProcessingThread pt;
+			pt = new ProcessingThread( this, root, getValue( NAME ).toString() );
+			pt.putClientArg( "coll", coll );
+			pt.start();
 		}
 		
 		/**
 		 *  This method is called by ProcessingThread
 		 */
-		public boolean run( ProcessingThread context, Object argument )
+		public int processRun( ProcessingThread context ) throws IOException
 		{
-			List							coll		= (List) argument;
+			final List						coll		= (List) context.getClientArg( "coll" );
 			List							collAffectedTransmitters;
 			Transferable					t;
 			int								i, j, numTrns;
@@ -946,10 +948,11 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				context.setException( e2 );
 			}
 			
-			return success;
+			return success ? DONE : FAILED;
 		}
 
-		public void finished( ProcessingThread context, Object argument, boolean success ) {}
+		public void processFinished( ProcessingThread context ) {}
+		public void processCancel( ProcessingThread context ) {}
 	} // class actionPasteClass
 
 	private class ActionSelectAll
@@ -987,7 +990,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 
 	private class ActionDelete
 	extends MenuAction
-	implements RunnableProcessing
+	implements ProcessingThread.Client
 	{
 		private ActionDelete()
 		{
@@ -1012,13 +1015,16 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				doc.bird.releaseShared( Session.DOOR_TIMETRNS | Session.DOOR_GRP);
 			}
 
-			new ProcessingThread( this, root, root, doc, getValue( NAME ).toString(), null, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
+//			new ProcessingThread( this, root, root, doc, getValue( NAME ).toString(), null, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
+			final ProcessingThread pt;
+			pt = new ProcessingThread( this, root, getValue( NAME ).toString() );
+			pt.start();
 		}
 		
 		/**
 		 *  This method is called by ProcessingThread
 		 */
-		public boolean run( ProcessingThread context, Object argument )
+		public int processRun( ProcessingThread context )
 		{
 			Span							span, span2, span3;
 			java.util.List					collAffectedTransmitters;
@@ -1089,10 +1095,11 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				context.setException( e1 );
 			}
 			
-			return success;
+			return success ? DONE : FAILED;
 		} // run
 
-		public void finished( ProcessingThread context, Object argument, boolean success ) {}
+		public void processFinished( ProcessingThread context ) {}
+		public void processCancel( ProcessingThread context ) {}
 	}
 
 	/**

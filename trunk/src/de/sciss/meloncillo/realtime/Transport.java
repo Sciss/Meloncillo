@@ -94,7 +94,6 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
     private	boolean looping			= false;
 	private int		rt_command		= CMD_IGNORE;
 	
-	private final Main		root;
     private final Session   doc;
 	private long			loopStart, loopStop;
 	
@@ -117,6 +116,8 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
 																	   new Span(), 1000 );
 	
 	private final Preferences			plugInPrefs;
+	
+	private final Transport				enc_this	= this;
 
 	// sync : call in event thread!
 	/**
@@ -127,14 +128,13 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
 	 *	@param	root	Application root
 	 *	@param	doc		Session document
 	 */
-    public Transport( Main root, Session doc )
+    public Transport( Session doc )
     {
         super( "Transport" );
         
-		this.root   = root;
         this.doc    = doc;
 		
-		rt_producer		= new RealtimeProducer( root, doc, this );
+		rt_producer		= new RealtimeProducer( doc, this );
 		rt_context		= null;
 //		calcSenseBufSize();
 //		createContext();
@@ -1039,7 +1039,7 @@ ourLp:		for( i = 0; i < rt_numConsumers; i++ ) {
 
 	public void	showMessage( int type, String text )
 	{
-		((ProgressComponent) root.getComponent( Main.COMP_MAIN )).showMessage( type, text );
+		((ProgressComponent) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN )).showMessage( type, text );
 	}
 
 // --------------- internal actions ---------------
@@ -1057,7 +1057,7 @@ ourLp:		for( i = 0; i < rt_numConsumers; i++ ) {
 			boolean					requestSense, requestTraj;
 			RealtimeConsumerRequest req;
 
-			synchronized( root.transport ) {
+			synchronized( enc_this) {
 				System.err.println( "List of realtime consumers:\n" );
 				for( i = 0; i < rt_numConsumers; i++ ) {
 					System.err.println( "  "+rt_consumers[ i ].getClass().getName() );

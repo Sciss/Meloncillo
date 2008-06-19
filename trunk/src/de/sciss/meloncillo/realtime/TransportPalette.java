@@ -117,7 +117,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 		setResizable( false );
 		
 		this.doc	= doc;
-		transport   = root.transport;
+		transport   = doc.getTransport();
 
 //        final int		ctrlShift   = KeyEvent.CTRL_MASK + KeyEvent.SHIFT_MASK;
         final Container	cp			= getContentPane();

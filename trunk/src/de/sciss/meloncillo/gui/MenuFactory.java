@@ -37,42 +37,79 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.io.*;
-import java.util.*;
-import java.util.prefs.*;
+import java.awt.FileDialog;
+import java.awt.Frame;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.geom.Point2D;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.prefs.Preferences;
 
-import javax.swing.*;
-import javax.swing.undo.*;
-import javax.xml.parsers.*;
-import javax.xml.transform.*;
-import javax.xml.transform.dom.*;
-import javax.xml.transform.stream.*;
-import org.w3c.dom.*;
-import org.xml.sax.*;
+import javax.swing.Action;
+import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+import javax.swing.SpringLayout;
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoableEdit;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
-import net.roydesign.mac.MRJAdapter;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.debug.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.lisp.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.receiver.*;
-import de.sciss.meloncillo.render.*;
-import de.sciss.meloncillo.transmitter.*;
-import de.sciss.meloncillo.util.*;
+import de.sciss.util.Flag;
 import de.sciss.util.NumberSpace;
 
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
 import de.sciss.common.AppWindow;
 import de.sciss.common.BasicMenuFactory;
-import de.sciss.gui.*;
+import de.sciss.common.ProcessingThread;
+import de.sciss.gui.BooleanPrefsMenuAction;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.MenuAction;
+import de.sciss.gui.MenuCheckItem;
+import de.sciss.gui.MenuGroup;
 import de.sciss.gui.MenuItem;
-import de.sciss.io.*;
+import de.sciss.gui.MenuSeparator;
+import de.sciss.gui.NumberField;
+import de.sciss.gui.ProgressComponent;
+import de.sciss.gui.StringItem;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.debug.DebugTrackEditor;
+import de.sciss.meloncillo.debug.HRIRPrepareDialog;
+import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.EditAddSessionObjects;
+import de.sciss.meloncillo.edit.EditInsertTimeSpan;
+import de.sciss.meloncillo.edit.EditRemoveSessionObjects;
+import de.sciss.meloncillo.edit.EditSetSessionObjects;
+import de.sciss.meloncillo.edit.EditSetTimelinePosition;
+import de.sciss.meloncillo.edit.EditSetTimelineScroll;
+import de.sciss.meloncillo.edit.EditSetTimelineSelection;
+import de.sciss.meloncillo.edit.SyncCompoundEdit;
+import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.io.TrackSpan;
+import de.sciss.meloncillo.io.XMLRepresentation;
+import de.sciss.meloncillo.lisp.JathaDiddler;
+import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.render.BounceDialog;
+import de.sciss.meloncillo.render.FilterDialog;
+import de.sciss.meloncillo.session.DocumentFrame;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.session.SessionGroup;
+import de.sciss.meloncillo.transmitter.Transmitter;
+import de.sciss.meloncillo.util.MapManager;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  <code>JMenu</code>s cannot be added to more than
@@ -120,21 +157,18 @@ extends BasicMenuFactory
 {
 	private final Session   doc;
 	
-	private ActionOpen				actionOpen;
-	private ActionSave				actionSave;
-	private ActionSaveAs			actionSaveAs;
+	private ActionOpen		actionOpen;
 	
-	private Action	actionClearSession,
-					actionInsTimeSpan, actionNewReceivers, actionNewTransmitters, actionNewGroup,
+	private Action	actionInsTimeSpan, actionNewReceivers, actionNewTransmitters, actionNewGroup,
 					actionRemoveTransmitters, actionRemoveGroups, actionFilter,
 					actionBounce, actionSelectionBackwards,
 					actionShowSurface, actionShowTimeline, actionShowTransport,
 					actionShowObserver, actionShowMeter, actionShowRealtime;
 	
 	private Action  actionDebugDumpUndo, actionDebugDumpTracks, actionDebugViewTrack,
-					actionDebugDumpPrefs, actionDebugDumpRealtime, actionJathaDiddler,
+					actionDebugDumpPrefs, actionJathaDiddler,
 					actionDebugDumpListeners, actionHRIRPrepare;
-
+//	private Action	actionDebugDumpRealtime;
 
 	// for custom JOptionPane calls (see actionNewReceiversClass )
 	private final String[]	queryOptions;
@@ -195,9 +229,8 @@ extends BasicMenuFactory
 //		final int myCtrl = MENU_SHORTCUT == InputEvent.CTRL_MASK ? InputEvent.CTRL_MASK | InputEvent.ALT_MASK : InputEvent.CTRL_MASK;
 
 		// --- file menu ---
-
 		mg	= (MenuGroup) get( "file" );
-		mg.add( new MenuItem( "clearSession", actionClearSession ), 0 );
+		mg.add( new MenuItem( "clearSession", getResourceString( "menuClearSession" ), KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT )));
 		i	= mg.indexOf( "saveAs" );
 		smg = new MenuGroup( "insert", getResourceString( "menuInsert" ));
 		smg.add( new MenuItem( "newReceivers", actionNewReceivers ));
@@ -283,7 +316,7 @@ extends BasicMenuFactory
 		mg.add( new MenuItem( "debugDumpTracks", actionDebugDumpTracks ));
 		mg.add( new MenuItem( "debugViewTrack", actionDebugViewTrack ));
 		mg.add( new MenuItem( "debugDumpPrefs", actionDebugDumpPrefs ));
-		mg.add( new MenuItem( "debugDumpRealtime", actionDebugDumpRealtime ));
+//		mg.add( new MenuItem( "debugDumpRealtime", actionDebugDumpRealtime ));
 		mg.add( new MenuItem( "debugDumpListeners", actionDebugDumpListeners ));
 		i	= indexOf( "help" );
 		add( mg, i );
@@ -295,15 +328,8 @@ extends BasicMenuFactory
 		final de.sciss.app.Application	app = AbstractApplication.getApplication();
 		
 		// --- file menu ---
-		actionClearSession	= new ActionClearSession( app.getResourceString( "menuClearSession" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT ));
 		actionOpen		= new ActionOpen(  app.getResourceString( "menuOpen" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_O, MENU_SHORTCUT ));
-		actionSave		= new ActionSave(  app.getResourceString( "menuSave" ),
-												KeyStroke.getKeyStroke( KeyEvent.VK_S, MENU_SHORTCUT ));
-		actionSaveAs	= new ActionSaveAs( app.getResourceString( "menuSaveAs" ), KeyStroke.getKeyStroke(
-												KeyEvent.VK_S, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
-
 		actionNewReceivers = new ActionNewReceivers(  app.getResourceString( "menuNewReceivers" ),
 							KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT + KeyEvent.ALT_MASK ));
 		actionNewTransmitters = new ActionNewTransmitters( app.getResourceString( "menuNewTransmitters" ),
@@ -356,7 +382,7 @@ extends BasicMenuFactory
 		actionDebugDumpPrefs	= PrefsUtil.getDebugDumpAction( doc );
 		actionDebugDumpTracks   = DebugTrackEditor.getDebugDumpAction( doc );
 		actionDebugViewTrack	= DebugTrackEditor.getDebugViewAction( doc );
-		actionDebugDumpRealtime	= ((Main) getApplication()).transport.getDebugDumpAction();
+//		actionDebugDumpRealtime	= ((Main) getApplication()).transport.getDebugDumpAction();
 		actionDebugDumpListeners= new ActionDebugDumpListeners();
 	}
 
@@ -386,60 +412,60 @@ extends BasicMenuFactory
 		actionOpen.perform( f );
 	}
 
-	/**
-	 *  Checks if there are unsaved changes to
-	 *  the session. If so, displays a confirmation
-	 *  dialog. Invokes Save/Save As depending
-	 *  on user selection.
-	 *  
-	 *  @param  parentComponent the component associated with
-	 *							the proposed action, e.g. root
-	 *  @param  actionName		name of the action that
-	 *							threatens the session
-	 *  @return					- true if the action should proceed,
-	 *							- false if the action should be aborted
-	 */
-	public boolean confirmUnsaved( Component parentComponent, String actionName )
-	{
-		if( !doc.isDirty() ) return true;
-		
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
-		final String[]					options	= { app.getResourceString( "buttonSave" ),
-													app.getResourceString( "buttonCancel" ),
-													app.getResourceString( "buttonDontSave" ) };
-		int								choice;
-		ProcessingThread				proc;
-		File							f;
-		
-		choice = JOptionPane.showOptionDialog( parentComponent, app.getResourceString( "optionDlgUnsaved" ), actionName,
-											   JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null,
-											   options, options[0] );
-		switch( choice ) {
-		case JOptionPane.CLOSED_OPTION:
-		case 1:
-			return false;
-			
-		case 2:
-			return true;
-			
-		case 0:
-			f = (File) doc.getMap().getValue( Session.MAP_KEY_PATH );
-			if( f == null ) {
-				f = actionSaveAs.queryFile();
-			}
-			if( f != null ) {
-				proc = actionSave.perform( f );
-				if( proc != null ) {
-					return proc.sync();
-				}
-			}
-			return false;
-			
-		default:
-			assert false : choice;
-			return false;
-		}
-	}
+//	/**
+//	 *  Checks if there are unsaved changes to
+//	 *  the session. If so, displays a confirmation
+//	 *  dialog. Invokes Save/Save As depending
+//	 *  on user selection.
+//	 *  
+//	 *  @param  parentComponent the component associated with
+//	 *							the proposed action, e.g. root
+//	 *  @param  actionName		name of the action that
+//	 *							threatens the session
+//	 *  @return					- true if the action should proceed,
+//	 *							- false if the action should be aborted
+//	 */
+//	public boolean confirmUnsaved( Component parentComponent, String actionName )
+//	{
+//		if( !doc.isDirty() ) return true;
+//		
+//		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+//		final String[]					options	= { app.getResourceString( "buttonSave" ),
+//													app.getResourceString( "buttonCancel" ),
+//													app.getResourceString( "buttonDontSave" ) };
+//		int								choice;
+//		ProcessingThread				proc;
+//		File							f;
+//		
+//		choice = JOptionPane.showOptionDialog( parentComponent, app.getResourceString( "optionDlgUnsaved" ), actionName,
+//											   JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null,
+//											   options, options[0] );
+//		switch( choice ) {
+//		case JOptionPane.CLOSED_OPTION:
+//		case 1:
+//			return false;
+//			
+//		case 2:
+//			return true;
+//			
+//		case 0:
+//			f = (File) doc.getMap().getValue( Session.MAP_KEY_PATH );
+//			if( f == null ) {
+//				f = actionSaveAs.queryFile();
+//			}
+//			if( f != null ) {
+//				proc = actionSave.perform( f );
+//				if( proc != null ) {
+//					return proc.sync();
+//				}
+//			}
+//			return false;
+//			
+//		default:
+//			assert false : choice;
+//			return false;
+//		}
+//	}
 
 // ---------------- Action objects for file (session) operations ---------------- 
 
@@ -472,14 +498,14 @@ extends BasicMenuFactory
 		{
 			int				numi, result;
 			Receiver		rcv;
-			java.util.List	coll, coll2;
+			List			coll, coll2;
 			Point2D			anchor;
 			double			d1;
 			Class			c;
 			UndoableEdit	edit;
 			SessionGroup	group;
 
-			final java.util.List	collTypes	= Main.getReceiverTypes();
+			final List				collTypes	= Main.getReceiverTypes();
 			final JPanel			msgPane		= new JPanel( new SpringLayout() );
 			final NumberField		ggNum		= new NumberField( NumberSpace.createIntSpace( 1, 0x10000 ));
 			final JComboBox			ggType		= new JComboBox();
@@ -658,52 +684,10 @@ extends BasicMenuFactory
 		}
 	}
 	
-	// action for the Clear-Session menu item
-	private class ActionClearSession
-	extends MenuAction
-	{
-		private String text;
-	
-		private ActionClearSession( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-			
-			this.text = text;
-		}
-		
-		/*
-		 *  Clears the document. If the session was
-		 *  modified, the user is asked to confirm the clear
-		 *  action. If the transport is running, it will be
-		 *  stopped. Undo history is purged.
-		 *
-		 *  @synchronization	waitExclusive on DOOR_ALL
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			if( !confirmUnsaved( null, text )) return;
-
-			final MainFrame mf = (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
-
-			((Main) getApplication()).transport.stopAndWait();
-			try {
-				doc.bird.waitExclusive( Session.DOOR_ALL );
-				doc.getUndoManager().discardAllEdits();
-				doc.clear();
-				doc.setDirty( false );
-				mf.updateTitle();
-				mf.clearLog();
-			}
-			finally {
-				doc.bird.releaseExclusive( Session.DOOR_ALL );
-			}
-		}
-	}
-
 	// action for the Open-Session menu item
 	private class ActionOpen
 	extends MenuAction
-	implements RunnableProcessing
+	implements ProcessingThread.Client
 	{
 		private String text;
 	
@@ -722,7 +706,32 @@ extends BasicMenuFactory
 		 */
 		public void actionPerformed( ActionEvent e )
 		{
-			if( !confirmUnsaved( null, text )) return;
+			perform();
+		}
+		
+		protected void perform()
+		{
+			final Flag				confirmed	= new Flag( false );
+			final DocumentFrame		frame		= (DocumentFrame) getApplication().getComponent( Main.COMP_MAIN );
+			final ProcessingThread	pt			= frame.confirmUnsaved( text, confirmed );
+			if( pt == null ) {
+				if( !confirmed.isSet() ) return;
+				queryAndPerform();
+			} else {
+				pt.addListener( new ProcessingThread.Listener() {
+					public void processStarted( ProcessingThread.Event e ) {}
+					public void processStopped( ProcessingThread.Event e ) {
+						if( e.getProcessingThread().getReturnCode() == ProgressComponent.DONE ) {
+							queryAndPerform();
+						}
+					}
+				});
+				pt.start();
+			}
+		}
+		
+		private void queryAndPerform()
+		{
 			File f = queryFile();
 			if( f != null ) perform( f );
 		}
@@ -731,7 +740,8 @@ extends BasicMenuFactory
 		{
 			FileDialog  fDlg;
 			String		strFile, strDir;
-			Frame		frame = (Frame) getApplication().getComponent( Main.COMP_MAIN );
+//			Frame		frame = (Frame) getApplication().getComponent( Main.COMP_MAIN );
+			final Frame	frame	= new Frame();
 
 			fDlg	= new FileDialog( frame, AbstractApplication.getApplication().getResourceString(
 				"fileDlgOpen" ), FileDialog.LOAD );
@@ -739,6 +749,7 @@ extends BasicMenuFactory
 			// fDlg.setDirectory();
 			// fDlg.setFile();
 			fDlg.show();
+			frame.dispose();
 			strDir	= fDlg.getDirectory();
 			strFile	= fDlg.getFile();
 			
@@ -760,20 +771,26 @@ extends BasicMenuFactory
 		protected ProcessingThread perform( File path )
 		{
 			final Main root = (Main) AbstractApplication.getApplication();
-			root.transport.stopAndWait();
+			doc.getTransport().stopAndWait();
 			((MainFrame) root.getComponent( Main.COMP_MAIN )).clearLog();
 			Map options = new HashMap();
 			options.put( "file", path );
-			return( new ProcessingThread( this, root, root, doc, text, options, Session.DOOR_ALL ));
+//			return( new ProcessingThread( this, root, root, doc, text, options, Session.DOOR_ALL ));
+			final ProcessingThread pt;
+			pt = new ProcessingThread( this, root, text );
+			pt.putClientArg( "options", options );
+			pt.start();
+			return pt;
 		}
 
-		public boolean run( ProcessingThread context, Object argument )
+		public int processRun( ProcessingThread context )
+		throws IOException
 		{
 			org.w3c.dom.Document	domDoc;
 			DocumentBuilderFactory  builderFactory;
 			DocumentBuilder			builder;
 			boolean					success = false;
-			Map						options	= (Map) argument;
+			Map						options	= (Map) context.getClientArg( "options" );
 			File					f		= (File) options.get( "file" );
 
 			builderFactory  = DocumentBuilderFactory.newInstance();
@@ -792,8 +809,9 @@ extends BasicMenuFactory
 				context.setProgression( -1f );
 				options.put( XMLRepresentation.KEY_BASEPATH, f.getParentFile() );
 				doc.fromXML( domDoc, domDoc.getDocumentElement(), options );
-				doc.getMap().putValue( this, Session.MAP_KEY_PATH, f );
-				doc.setName( f.getName() );
+//				doc.getMap().putValue( this, Session.MAP_KEY_PATH, f );
+//				doc.setName( f.getName() );
+				doc.setFile( f );
 
 				context.setProgression( 1.0f );
 				success = true;
@@ -814,9 +832,11 @@ extends BasicMenuFactory
 			if( !success ) {
 				doc.clear();
 			}
-			return success;
+			return success ? DONE : FAILED;
 		} // run()
-		
+
+		public void processCancel( ProcessingThread context ) {}
+
 		/**
 		 *  When the sesion was successfully
 		 *  loaded, its name will be put in the
@@ -826,13 +846,13 @@ extends BasicMenuFactory
 		 *  the <code>Main</code> class and the
 		 *  main frame's title is updated
 		 */
-		public void finished( ProcessingThread context, Object argument, boolean success )
+		public void processFinished( ProcessingThread context )
 		{
-			final Map		options = (Map) argument;
+			final Map		options = (Map) context.getClientArg( "options" );
 			Object			warn;
 			final MainFrame mf		= (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
 		
-			if( success ) {
+			if( context.getReturnCode() == DONE ) {
 				addRecent( (File) options.get( "file" ));
 				if( AbstractApplication.getApplication().getUserPrefs().getBoolean(
 					PrefsUtil.KEY_RECALLFRAMES, false )) {
@@ -851,219 +871,6 @@ extends BasicMenuFactory
 		}
 	}
 	
-	// action for the Save-Session menu item
-	private class ActionSave
-	extends MenuAction
-	implements RunnableProcessing
-	{
-		private String text;
-
-		private ActionSave( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-			
-			this.text = text;
-		}
-
-		/**
-		 *  Saves a document. If the file
-		 *  wasn't saved before, a file chooser
-		 *  is shown before.
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			File f	= (File) doc.getMap().getValue( Session.MAP_KEY_PATH );
-		
-			if( f == null ) {
-				f = actionSaveAs.queryFile();
-			}
-			if( f != null ) perform( f );
-		}
-		
-		/**
-		 *  Save the session to the given file.
-		 *  Transport is stopped before, if it was running.
-		 *  On success, undo history is purged and
-		 *  <code>setModified</code> and <code>updateTitle</code>
-		 *  are called, and the file is added to
-		 *  the Open-Recent menu.
-		 *
-		 *  @param  docFile		the file denoting
-		 *						the session's name. note that
-		 *						<code>Session</code> will create
-		 *						a folder of this name and store the actual
-		 *						session data in a file of the same name
-		 *						plus .XML suffix inside this folder
-		 *  @synchronization	this method is to be called in the event thread
-		 */
-		protected ProcessingThread perform( File docFile )
-		{
-			final Main root = (Main) AbstractApplication.getApplication();
-			root.transport.stopAndWait();
-			return new ProcessingThread( this, root, root, doc, text, docFile, Session.DOOR_ALL );
-		}
-
-		public boolean run( ProcessingThread context, Object argument )
-		{
-			org.w3c.dom.Document			domDoc;
-			DocumentBuilderFactory			builderFactory;
-			DocumentBuilder					builder;
-			TransformerFactory				transformerFactory;
-			Transformer						transformer;
-			Element							childNode;
-			final File						f		= (File) argument;
-			final File						dir		= f.getParentFile();
-			File							tempDir	= null;
-			boolean							success = false;
-			final Map						options	= new HashMap();
-			final de.sciss.app.Application	app	= AbstractApplication.getApplication();
-		
-			builderFactory		= DocumentBuilderFactory.newInstance();
-			builderFactory.setValidating( true );
-			transformerFactory  = TransformerFactory.newInstance();
-
-			context.setProgression( -1f );
-
-			try {
-				builder		= builderFactory.newDocumentBuilder();
-				transformer = transformerFactory.newTransformer();
-				builder.setEntityResolver( doc );
-				domDoc		= builder.newDocument();
-				childNode   = domDoc.createElement( Session.XML_ROOT );
-				domDoc.appendChild( childNode );
-				options.put( XMLRepresentation.KEY_BASEPATH, dir );
-				doc.getMap().putValue( this, Session.MAP_KEY_PATH, f );
-				doc.setName( f.getName() );
-				
-				if( dir.exists() ) {
-//System.err.println( "dir exists "+dir.getAbsolutePath() );
-					tempDir = new File( dir.getAbsolutePath() + ".tmp" );
-					if( tempDir.exists() ) {
-//System.err.println( "temp dir exists "+tempDir.getAbsolutePath() );
-						IOUtil.deleteAll( tempDir );
-					}
-					if( !dir.renameTo( tempDir )) {
-						throw new IOException( tempDir.getAbsolutePath() + " : " +
-											   IOUtil.getResourceString( "errMakeDir" ));
-					}
-				}
-				if( !dir.mkdirs() ) {
-//System.err.println( "mkdir failed : "+dir.getAbsolutePath() );
-					throw new IOException( dir.getAbsolutePath() + " : " +
-										   IOUtil.getResourceString( "errMakeDir" ));
-				}
-				
-				doc.toXML( domDoc, childNode, options );
-				context.setProgression( -1f );
-				transformer.setOutputProperty( OutputKeys.DOCTYPE_SYSTEM, Session.ICHNOGRAM_DTD );
-				transformer.transform( new DOMSource( domDoc ), new StreamResult( f ));
-				MRJAdapter.setFileCreatorAndType( f, app.getMacOSCreator(), Session.MACOS_FILE_TYPE );
-				
-				doc.getUndoManager().discardAllEdits();
-
-				if( tempDir != null && tempDir.exists() ) {
-					IOUtil.deleteAll( tempDir );
-				}
-
-				context.setProgression( 1.0f );
-				success = true;
-			}
-			catch( ParserConfigurationException e1 ) {
-				context.setException( e1 );
-			}
-			catch( TransformerConfigurationException e2 ) {
-				context.setException( e2 );
-			}
-			catch( TransformerException e3 ) {
-				context.setException( e3 );
-			}
-			catch( IOException e4 ) {
-				context.setException( e4 );
-			}
-			catch( DOMException e5 ) {
-				context.setException( e5 );
-			}
-
-			return success;
-		} // run
-
-		public void finished( ProcessingThread context, Object argument, boolean success )
-		{
-			final MainFrame mf = (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
-
-			if( success ) {
-				addRecent( (File) argument );
-				doc.setDirty( false );
-			} else {
-				File tempDir = new File( ((File) argument).getParentFile().getAbsolutePath() + ".tmp" );
-				if( tempDir.exists() ) {
-					JOptionPane.showMessageDialog( mf.getWindow(),
-						AbstractApplication.getApplication().getResourceString( "warnOldSessionDir" )+ " :\n"+
-						tempDir.getAbsolutePath(), getValue( Action.NAME ).toString(),
-						JOptionPane.WARNING_MESSAGE );
-				}
-			}
-			mf.updateTitle();
-		}
-	}
-	
-	// action for the Save-Session-As menu item
-	private class ActionSaveAs
-	extends MenuAction
-	{
-		private ActionSaveAs( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-		}
-
-		/*
-		 *  Query a file name from the user and save the document
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			File f = queryFile();
-			if( f != null ) actionSave.perform( f );
-		}
-		
-		/**
-		 *  Open a file chooser so the user
-		 *  can select a new output file for the session.
-		 *
-		 *  @return the chosen <coded>File</code> or <code>null</code>
-		 *			if the dialog was cancelled.
-		 */
-		protected File queryFile()
-		{
-			FileDialog  fDlg;
-			String		strFile, strDir;
-			File		f;
-			int			i;
-			Frame		frame = (Frame) getApplication().getComponent( Main.COMP_MAIN );
-
-			fDlg	= new FileDialog( frame,
-				AbstractApplication.getApplication().getResourceString( "fileDlgSave" ),
-				FileDialog.SAVE );
-			f		= (File) doc.getMap().getValue( Session.MAP_KEY_PATH );
-			if( f != null ) f = f.getParentFile();	// use session folder instead of XML file
-			if( f != null ) {
-				strDir  = f.getParent();
-				strFile = f.getName();
-				if( strDir != null ) fDlg.setDirectory( strDir );
-				fDlg.setFile( strFile );
-			}
-			fDlg.show();
-			strDir	= fDlg.getDirectory();
-			strFile	= fDlg.getFile();
-			
-			if( strFile == null ) return null;   // means the dialog was cancelled
-
-			i = strFile.lastIndexOf( "." );
-			strFile = i > 0 ? strFile.substring( 0, i ) : strFile;
-			f = new File( new File( strDir, strFile ), strFile + Session.FILE_EXTENSION );
-			return f;
-		}
-	}
-
 	// action for Bounce-to-Disk menu item
 	private class ActionBounce
 	extends MenuAction
@@ -1248,7 +1055,7 @@ extends BasicMenuFactory
 	// action for Insert-New-Transmitters menu item
 	private class ActionNewTransmitters
 	extends MenuAction
-	implements RunnableProcessing
+	implements ProcessingThread.Client
 	{
 		private int		defaultValue = 1;
 		private String  text;
@@ -1297,13 +1104,18 @@ extends BasicMenuFactory
 			}
 
 			final Main root = (Main) AbstractApplication.getApplication();
-			new ProcessingThread( this, root, root, doc, text, coll, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
+//			new ProcessingThread( this, root, root, doc, text, coll, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
+			final ProcessingThread pt;
+			pt = new ProcessingThread( this, root, text );
+			pt.putClientArg( "coll", coll );
+			pt.start();
 		}
 
 		/**
 		 *  @synchronization	waitExclusive on DOOR_TIMETRNSMTE + DOOR_GRP
 		 */
-		public boolean run( ProcessingThread context, Object argument )
+		public int processRun( ProcessingThread context )
+		throws IOException
 		{
 			int						i, j;
 			Transmitter				trns;
@@ -1315,10 +1127,10 @@ extends BasicMenuFactory
 			String					s;
 			double					d1;
 			SyncCompoundEdit		edit		= new BasicSyncCompoundEdit( doc.bird, Session.DOOR_TRNS | Session.DOOR_GRP );
-			java.util.List			collMap		= (java.util.List) argument;
+			List					collMap		= (List) context.getClientArg( "coll" );
 			int						num			= collMap.size();
-			java.util.List			coll		= new ArrayList( num );
-			java.util.List			coll2		= doc.transmitters.getAll();
+			List					coll		= new ArrayList( num );
+			List					coll2		= doc.transmitters.getAll();
 			boolean					success		= false;
 			Span					span		= new Span( 0, doc.timeline.getLength() );
 			TrackSpan				ts;
@@ -1394,10 +1206,11 @@ extends BasicMenuFactory
 				edit.undo();
 			}
 			
-			return success;
+			return success ? DONE : FAILED;
 		} // run()
 		
-		public void finished( ProcessingThread context, Object argument, boolean success ) {}
+		public void processFinished( ProcessingThread context ) {}
+		public void processCancel( ProcessingThread context ) {}
 	}
 	
 	// action for Remove-Selected-Transmitters/Groups menu item
@@ -1481,7 +1294,7 @@ extends BasicMenuFactory
 	// action for Insert-Time-Span menu item
 	private class ActionInsTimeSpan
 	extends MenuAction
-	implements RunnableProcessing
+	implements ProcessingThread.Client
 	{
 		private double defaultValue = 1.0;
 		private String text;
@@ -1529,7 +1342,11 @@ extends BasicMenuFactory
 			}
 
 			final Main root = (Main) AbstractApplication.getApplication();
-			new ProcessingThread( this, root, root, doc, text, new Span( start, stop ), Session.DOOR_TIMETRNSMTE );
+//			new ProcessingThread( this, root, root, doc, text, new Span( start, stop ), Session.DOOR_TIMETRNSMTE );
+			final ProcessingThread pt;
+			pt = new ProcessingThread( this, root, text );
+			pt.putClientArg( "span", new Span( start, stop ));
+			pt.start();
 		}
 
 		/**
@@ -1541,7 +1358,8 @@ extends BasicMenuFactory
 		 *  
 		 *  @synchronization	waitExclusive on DOOR_TIMETRNSMTE
 		 */
-		public boolean run( ProcessingThread context, Object argument )
+		public int processRun( ProcessingThread context )
+		throws IOException
 		{
 			Transmitter						trns;
 			MultirateTrackEditor			mte;
@@ -1552,15 +1370,15 @@ extends BasicMenuFactory
 			float							f1, f2, interpWeight;
 			double							d1;
 			Span							visibleSpan, interpSpan;
-			Span							span		= (Span) argument;
-			TrackSpan	ts;
+			Span							span		= (Span) context.getClientArg( "span" );
+			TrackSpan						ts;
 			long							start, interpOff, interpLen;
 			long							progress	= 0;
 			long							progressLen;
 			boolean							success		= false;
-			SyncCompoundSessionObjEdit	edit;
+			SyncCompoundSessionObjEdit		edit;
 
-			if( span.getStart() > doc.timeline.getLength() ) return false;
+			if( span.getStart() > doc.timeline.getLength() ) return DONE;
 			
 			interpWeight= 1.0f / (float) (span.getLength() + 1); // +1 because the linear interpolation excludes the neighbouring samples
 			visibleSpan = doc.timeline.getVisibleSpan();
@@ -1655,10 +1473,11 @@ extends BasicMenuFactory
 				context.setException( e1 );
 			}
 			
-			return success;
+			return success ? DONE : FAILED;
 		} // run()
 
-		public void finished( ProcessingThread context, Object argument, boolean success ) {}
+		public void processFinished( ProcessingThread context ) {}
+		public void processCancel( ProcessingThread context ) {}
 	} // class actionInsTimeSpanClass
 
 	/**

@@ -34,25 +34,39 @@
 
 package de.sciss.meloncillo.render;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.util.Set;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.math.*;
-import de.sciss.meloncillo.plugin.*;
-import de.sciss.meloncillo.receiver.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.timeline.*;
-import de.sciss.meloncillo.transmitter.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 
-import de.sciss.app.*;
-import de.sciss.gui.*;
-import de.sciss.io.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.app.DynamicListening;
+import de.sciss.common.ProcessingThread;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.ProgressComponent;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.math.NearestNeighbour;
+import de.sciss.meloncillo.math.Resampling;
+import de.sciss.meloncillo.plugin.AbstractPlugInFrame;
+import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.timeline.TimelineEvent;
+import de.sciss.meloncillo.timeline.TimelineListener;
+import de.sciss.meloncillo.transmitter.Transmitter;
 
 /**
  *  A still abstract RenderDialog but
@@ -64,11 +78,11 @@ import de.sciss.io.*;
  *	bodies for <code>invokeProducerRender</code> etc.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  */
 public abstract class BasicRenderDialog
 extends AbstractPlugInFrame
-implements  RenderHost, RunnableProcessing,
+implements  RenderHost, ProcessingThread.Client,
 			TimelineListener, DynamicListening
 {
 	private RenderPlugIn			plugIn	= null;
@@ -161,8 +175,8 @@ implements  RenderHost, RunnableProcessing,
 	 */
 	protected JComponent createBottomPanel( int flags )
 	{
-		JPanel							bottomPanel;
-		final de.sciss.app.Application	app = AbstractApplication.getApplication();
+		JPanel				bottomPanel;
+		final Application	app = AbstractApplication.getApplication();
 
 		actionClose		= new actionCloseClass(  app.getResourceString( "buttonClose" ));
 		actionCancel	= new actionCancelClass( app.getResourceString( "buttonCancel" ));
@@ -193,12 +207,16 @@ implements  RenderHost, RunnableProcessing,
 	
 		context.setOption( RenderContext.KEY_PLUGIN, plugIn );
 		renderingRunning = true;
-		pt  = new ProcessingThread( this, pc, root, doc, getTitle(), context, Session.DOOR_ALL );
+//		pt  = new ProcessingThread( this, pc, root, doc, getTitle(), context, Session.DOOR_ALL );
+		pt  = new ProcessingThread( this, pc, getTitle() );
+		pt.putClientArg( "context", context );
 
 		ggClose.setEnabled( false );
 		ggRender.setAction( actionCancel );
 		ggRender.requestFocus();
 		hibernation( true );
+
+		pt.start();
 	}
 
 	/**
@@ -324,12 +342,13 @@ implements  RenderHost, RunnableProcessing,
  *	@see	#invokeProducerRender( ProcessingThread, RenderContext, RenderSource, RenderPlugIn )
  *	@see	#invokeProducerFinish( ProcessingThread, RenderContext, RenderSource, RenderPlugIn )
  */
-	public boolean run( ProcessingThread pt, Object argument )
+	public int processRun( ProcessingThread pt )
+	throws IOException
 	{
-		final RenderContext				context		= (RenderContext) argument;
+		final RenderContext				context		= (RenderContext) pt.getClientArg( "context" );
 		final RenderPlugIn				plugIn		= (RenderPlugIn) context.getOption( RenderContext.KEY_PLUGIN );
 		RenderSource					source;
-		final de.sciss.app.Application	app			= AbstractApplication.getApplication();
+		final Application				app			= AbstractApplication.getApplication();
 
 		float[][]						inTrnsFrames, outTrnsFrames;
 		int								minBlockSize, maxBlockSize, prefBlockSize;
@@ -364,7 +383,7 @@ implements  RenderHost, RunnableProcessing,
 		source			= new RenderSource( numTrns, numRcv );
 
 		try {
-			if( !invokeProducerBegin( pt, context, source, plugIn )) return false;
+			if( !invokeProducerBegin( pt, context, source, plugIn )) return FAILED;
 			remainingRead		= context.getTimeSpan().getLength();
 			newOptions			= context.getModifiedOptions();
 			if( newOptions.contains( RenderContext.KEY_MINBLOCKSIZE )) {
@@ -402,15 +421,15 @@ implements  RenderHost, RunnableProcessing,
 				}
 				catch( InstantiationException e1 ) {
 					pt.setException( e1 );
-					return false;
+					return FAILED;
 				}
 				catch( IllegalAccessException e2 ) {
 					pt.setException( e2 );
-					return false;
+					return FAILED;
 				}
 				catch( ClassNotFoundException e3 ) {
 					pt.setException( e3 );
-					return false;
+					return FAILED;
 				}
 				finally {
 					if( rsmp == null ) {
@@ -524,11 +543,11 @@ implements  RenderHost, RunnableProcessing,
 
 				// --- handle thread ---
 				if( !isRunning() ) {
-					return false;
+					return FAILED;
 				}
 
 				// --- producer rendering ---
-				if( !invokeProducerRender( pt, context, source, plugIn )) return false;
+				if( !invokeProducerRender( pt, context, source, plugIn )) return FAILED;
 
 				remainingWrite -= writeLen;
 				readOffset     += readLen;
@@ -556,13 +575,15 @@ implements  RenderHost, RunnableProcessing,
 			}
 		}
 
-		return success;
+		return success ? DONE : FAILED;
 	}
 	
+	public void processCancel( ProcessingThread context ) {}
+
 	/**
 	 *	Re-enables the frame components.
 	 */
-	public void finished( ProcessingThread context, Object argument, boolean success )
+	public void processFinished( ProcessingThread context )
 	{
 		renderingRunning = false;
 		ggClose.setEnabled( true );

@@ -29,20 +29,30 @@
 
 package de.sciss.meloncillo.debug;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.text.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.Container;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.text.NumberFormat;
+import java.util.Locale;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.SpringLayout;
 
 import de.sciss.app.AbstractApplication;
-import de.sciss.gui.*;
-import de.sciss.io.*;
+import de.sciss.common.ProcessingThread;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.PathField;
+import de.sciss.io.AudioFile;
+import de.sciss.io.AudioFileDescr;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *	Temporary utility dialog to prepare
@@ -51,11 +61,11 @@ import de.sciss.io.*;
  *	supercollider plug-in.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  */
 public class HRIRPrepareDialog
 extends JFrame
-implements RunnableProcessing, ActionListener
+implements ProcessingThread.Client, ActionListener
 {
 	private static final int	IR_OFFSET	= 200;		// frame offset in the original IR files (just before the click)
 	private static final int	IR_LENGTH	= 1024;		// truncation length of the original IRs
@@ -64,12 +74,9 @@ implements RunnableProcessing, ActionListener
 	
 	private static final String TITLE = "HRIR Preparation";
 	
-	private final Session doc;
-
 	public HRIRPrepareDialog( Session doc )
 	{
 		super( TITLE );
-		this.doc	= doc;
 		
 		Container cp = getContentPane();
 		cp.setLayout( new SpringLayout() );
@@ -128,14 +135,17 @@ implements RunnableProcessing, ActionListener
 		};
 				
 		final Main root = (Main) AbstractApplication.getApplication();
-//		public ProcessingThread( final RunnableProcessing rp, final ProgressComponent pc, final Application root,
-//			 Session doc, String procName, final Object rpArgument, int requiredDoors )
-		new ProcessingThread( this, root, root, doc, getTitle(), fileArgs, 0 );
+//		new ProcessingThread( this, root, root, doc, getTitle(), fileArgs, 0 );
+		final ProcessingThread pt;
+		pt = new ProcessingThread( this, root, getTitle() );
+		pt.putClientArg( "files", fileArgs );
+		pt.start();
 	}
 	
 	// ------- RunnableProcessing ---------
 			
-	public boolean run( ProcessingThread context, Object argument )
+	public int processRun( ProcessingThread context )
+	throws IOException
 	{
 		final float[][]			inBuf			= new float[ 2 ][ IR_LENGTH ];
 		final float[][]			outBuf			= new float[ 1 ][ 0 ];
@@ -147,7 +157,7 @@ implements RunnableProcessing, ActionListener
 		AudioFile				inF				= null;
 		AudioFile				outF			= null;
 		AudioFileDescr			inDescr, outDescr;
-		File[]					fileArgs		= (File[]) argument;
+		File[]					fileArgs		= (File[]) context.getClientArg( "files" );
 
 		final int progLen = 24 * 7;
 		int progOff = 0;
@@ -222,11 +232,9 @@ implements RunnableProcessing, ActionListener
 		catch( IOException e1 ) {
 			context.setException( e1 );
 		}
-		return success;
+		return success ? DONE : FAILED;
 	} // run
 	
-	public void finished( ProcessingThread context, Object argument, boolean success )
-	{
-		// nothing to do
-	}
+	public void processFinished( ProcessingThread context ) {}
+	public void processCancel( ProcessingThread context ) {}
 }

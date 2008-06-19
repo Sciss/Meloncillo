@@ -108,7 +108,7 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 		super( PALETTE );
 
 		this.doc	= doc;
-		transport   = root.transport;
+		transport   = doc.getTransport();
 
 		final Container		cp		= getContentPane();
 		final Application	app		= AbstractApplication.getApplication();

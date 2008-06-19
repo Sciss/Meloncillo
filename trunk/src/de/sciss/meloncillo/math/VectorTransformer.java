@@ -34,6 +34,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+import java.util.List;
+
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
@@ -162,14 +164,13 @@ implements PreferenceNodeSync
 	 *  @see	#KEY_RENDERPLUGIN
 	 *  @see	de.sciss.meloncillo.render.VectorTransformFilter
 	 */
-	public final static java.util.List getTransforms()
+	public final static List getTransforms()
 	{
-		int			i;
-		Vector		v   = new Vector();
-		Hashtable   h;
+		final List	v   = new ArrayList();
+		Map			h;
 	
-		for( i = 0; i < transformerClasses.length; i++ ) {
-			h   = new Hashtable();
+		for( int i = 0; i < transformerClasses.length; i++ ) {
+			h   = new HashMap();
 			h.put( Main.KEY_CLASSNAME, transformerClasses[i][0] );
 			h.put( Main.KEY_HUMANREADABLENAME, AbstractApplication.getApplication().getResourceString(
 				(String) transformerClasses[i][1] ));

@@ -31,22 +31,29 @@
 
 package de.sciss.meloncillo.surface;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.io.*;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Graphics2D;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
+import java.io.IOException;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.util.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.transmitter.*;
-
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
 import de.sciss.common.BasicApplication;
-import de.sciss.io.*;
+import de.sciss.common.ProcessingThread;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.gui.AbstractGeomTool;
+import de.sciss.meloncillo.gui.MenuFactory;
+import de.sciss.meloncillo.gui.VirtualSurface;
+import de.sciss.meloncillo.io.BlendContext;
+import de.sciss.meloncillo.io.BlendSpan;
+import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.transmitter.Transmitter;
 
 /**
  *  A basic class for implementing geometric surface
@@ -62,7 +69,7 @@ import de.sciss.io.*;
  */
 public abstract class AbstractSurfaceGeomTool
 extends AbstractGeomTool
-implements RunnableProcessing
+implements ProcessingThread.Client
 {
 	// --- rendering ---
 	private ProcessingThread renderThread   = null;		// this is the thread responsible for rendering the finished gesture
@@ -111,7 +118,7 @@ implements RunnableProcessing
 		super.toolDismissed( c );
 
 		// wait for rendering to be completed
-		if( renderThread != null && renderThread.isAlive() ) {
+		if( renderThread != null && renderThread.isRunning() ) {
 			renderThread.sync();
 			renderThread = null;
 		}
@@ -130,9 +137,13 @@ implements RunnableProcessing
 	 */
 	protected void renderGesture( Point2D[] ctrlPoints )
 	{
-		renderThread = new ProcessingThread( this, root, root, doc,
-			AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ),
-			ctrlPoints, Session.DOOR_TIMETRNSMTE );
+//		renderThread = new ProcessingThread( this, root, root, doc,
+//		                         			AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ),
+//		                         			ctrlPoints, Session.DOOR_TIMETRNSMTE );
+		renderThread = new ProcessingThread( this, root,
+		    AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ));
+		renderThread.putClientArg( "points", ctrlPoints );
+		renderThread.start();
 	}
 
 	/**
@@ -147,7 +158,7 @@ implements RunnableProcessing
 
 		if( success ) {
 			// wait for rendering to be completed
-			if( renderThread != null && renderThread.isAlive() ) {
+			if( renderThread != null && renderThread.isRunning() ) {
 				renderThread.sync();
 				renderThread = null;
 			}
@@ -208,7 +219,7 @@ implements RunnableProcessing
 	{
 		// if the last tool gesture is still rendering,
 		// wait for the rendering to complete.
-		if( renderThread != null && renderThread.isAlive() ) {
+		if( renderThread != null && renderThread.isRunning() ) {
 			renderThread.sync();
 			renderThread = null;
 		}
@@ -243,7 +254,7 @@ implements RunnableProcessing
 	 *  @param  argument	we pass the control points (<code>Point2D[]</code>) as
 	 *						the processing argument.
 	 */
-	public boolean run( ProcessingThread context, Object argument )
+	public int processRun( ProcessingThread context ) throws IOException
 	{
 		Transmitter						trns;
 		MultirateTrackEditor			mte;
@@ -262,8 +273,8 @@ implements RunnableProcessing
 		BlendContext					bc			= root.getBlending();
 
 		span = doc.timeline.getSelectionSpan();
-		if( span.getLength() < 2 ) return false;
-		if( !initFunctionEvaluation( (Point2D[]) argument )) return false;
+		if( span.getLength() < 2 ) return DONE;
+		if( !initFunctionEvaluation( (Point2D[]) context.getClientArg( "points" ))) return FAILED;
 
 		interpLen		= span.getLength();
 		warpedTime		= new float[(int) Math.min( interpLen, 4096 )];
@@ -304,12 +315,14 @@ implements RunnableProcessing
 			context.setException( e1 );
 		}
 		
-		return success;
+		return success ? DONE : FAILED;
 	} // run()
 
 	/**
 	 *  Invoked by the <code>ProcessingThread</code> upon
 	 *  processing completion. This implementation does not nothing
 	 */
-	public void finished( ProcessingThread context, Object argument, boolean success ) {}
+	public void processFinished( ProcessingThread context ) {}
+
+	public void processCancel( ProcessingThread context ) {}
 }
