@@ -135,7 +135,7 @@ implements  RenderHost, RunnableProcessing,
 			if( className != null ) {
 				try {
 					plugIn	= (RenderPlugIn) Class.forName( className ).newInstance();
-					plugIn.init( root, doc );
+					plugIn.init( doc );
 				}
 				catch( InstantiationException e1 ) {
 					GUIUtil.displayError( getWindow(), e1, app.getResourceString( "errInitPlugIn" ));

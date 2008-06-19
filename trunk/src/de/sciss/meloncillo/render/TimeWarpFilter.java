@@ -54,7 +54,6 @@ import de.sciss.io.AudioFileDescr;
 import de.sciss.io.IOUtil;
 import de.sciss.io.InterleavedStreamFile;
 import de.sciss.io.Span;
-import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.gui.PopupListener;
 import de.sciss.meloncillo.gui.ToolBar;
 import de.sciss.meloncillo.gui.VectorEditor;
@@ -82,7 +81,6 @@ public class TimeWarpFilter
 extends JPanel
 implements RenderPlugIn, TopPainter
 {
-	private Main			root;
 	private VectorEditor	warpEditor;
 
 	// context options map
@@ -104,9 +102,8 @@ implements RenderPlugIn, TopPainter
 		super();
 	}
 
-	public void init( Main root, Session doc )
+	public void init( Session doc )
 	{
-		this.root   = root;
 //		this.doc	= doc;
 		
 //		String className	= getClass().getName();
@@ -120,7 +117,7 @@ implements RenderPlugIn, TopPainter
 	{
 		float			f1;
 		float[]			warpTable;
-		final	ToolBar	vtb			= new VectorEditorToolBar( root );
+		final	ToolBar	vtb			= new VectorEditorToolBar();
 		
 		warpTable   = new float[ 1024 ];
 		f1			= 1.0f / 1023;

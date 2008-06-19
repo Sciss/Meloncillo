@@ -158,7 +158,7 @@ implements PreferenceChangeListener
 		this.root   = root;
 		this.doc	= doc;
 		
-		final de.sciss.app.Application	app	= AbstractApplication.getApplication();
+		final Application	app	= AbstractApplication.getApplication();
 		
 		rsmpItems	= new StringItem[] {
 			new StringItem( NearestNeighbour.class.getName(),
@@ -212,8 +212,8 @@ implements PreferenceChangeListener
 	
 	public void init()
 	{
-        addDynamicListening( new DynamicPrefChangeManager( classPrefs,
-                                               			new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this ));
+        addDynamicListening( new DynamicPrefChangeManager(
+            classPrefs, new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this ));
         super.init();
 	}
 

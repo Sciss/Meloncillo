@@ -43,6 +43,7 @@ import java.awt.Component;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
@@ -68,6 +69,7 @@ import de.sciss.meloncillo.gui.ObserverPalette;
 import de.sciss.meloncillo.gui.PrefsFrame;
 import de.sciss.meloncillo.gui.WelcomeScreen;
 import de.sciss.meloncillo.io.BlendContext;
+import de.sciss.meloncillo.plugin.PlugInManager;
 import de.sciss.meloncillo.realtime.RealtimeFrame;
 import de.sciss.meloncillo.realtime.Transport;
 import de.sciss.meloncillo.realtime.TransportPalette;
@@ -78,7 +80,6 @@ import de.sciss.meloncillo.surface.SurfaceFrame;
 import de.sciss.meloncillo.timeline.TimelineEvent;
 import de.sciss.meloncillo.timeline.TimelineFrame;
 import de.sciss.meloncillo.timeline.TimelineListener;
-import de.sciss.meloncillo.util.MapManager;
 import de.sciss.meloncillo.util.PrefsUtil;
 import de.sciss.util.Flag;
 
@@ -159,7 +160,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 //	 */
 //	public static final Preferences prefs	= Preferences.userNodeForPackage( Main.class );
 
-	/**
+	/*
 	 *  The plug-in manager is used to announce the activation
 	 *	and deactivation of plug-ins. This is done by using <code>putValue</code>
 	 *	and <code>removeValue</code> respectively. It's really more a Set than a Map,
@@ -170,7 +171,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	 *	@see MapManager#putValue( Object, String, Object )
 	 *	@see MapManager#getValue( String )
 	 */
-	public final MapManager plugInManager = new MapManager( this, new HashMap() );
+//	public final PlugInManager plugInManager = new PlugInManager( this );
 	
 	/**
 	 *  Instance for getting copies of the global menu
@@ -357,8 +358,8 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	{
 		super( Main.class, APP_NAME );
 
-		final java.util.List warnings;
-		final Preferences prefs	= getUserPrefs();
+		final List			warnings;
+		final Preferences	prefs	= getUserPrefs();
 
 		Map m;
 		collReceiverTypes.add( new StringItem( "de.sciss.meloncillo.receiver.SigmaReceiver", 
@@ -370,6 +371,8 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		m.put( KEY_HUMANREADABLENAME, "Simple Transmitter" );
 		collTransmitterTypes.add( m );
 
+		new PlugInManager( this );	// singleton
+		
 		// ---- init prefs ----
 
 		final double prefsVersion = prefs.getDouble( PrefsUtil.KEY_VERSION, 0.0 );

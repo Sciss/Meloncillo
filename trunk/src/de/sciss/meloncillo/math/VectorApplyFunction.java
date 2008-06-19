@@ -40,7 +40,6 @@ import java.io.*;
 import java.util.prefs.*;
 import javax.swing.*;
 
-import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.plugin.*;
 import de.sciss.meloncillo.render.*;
 import de.sciss.meloncillo.session.*;
@@ -224,7 +223,7 @@ implements RenderPlugIn, PreferenceChangeListener
 //        HelpGlassPane.setHelp( msgPane, "VectorTransformApplyFunction" );	// EEE
 
 		// --- Listener ---
-		dpl = new DynamicPrefChangeManager( null, new String[] { KEY_FUNCTION }, this );
+		dpl = new DynamicPrefChangeManager( null, new String[] { KEY_FUNCTION }, this, false );
 		new DynamicAncestorAdapter( dpl ).addTo( msgPane );
 	}
 
@@ -326,7 +325,7 @@ implements RenderPlugIn, PreferenceChangeListener
 
 // ------------------ RenderPlugIn interface ------------------
 	
-	public void init( Main root, Session doc )
+	public void init( Session doc )
 	{
 		// XXX
 	}

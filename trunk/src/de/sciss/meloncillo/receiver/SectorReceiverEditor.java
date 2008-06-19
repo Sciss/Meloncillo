@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.sciss.gui.VectorSpace;
-import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.session.Session;
 
 /**
@@ -60,14 +59,14 @@ extends TableLookupReceiverEditor
 	private final Line2D		shpLine			= new Line2D.Double();
 	private final Ellipse2D		shpEllipse		= new Ellipse2D.Double();
 
-	public SectorReceiverEditor()
+	public SectorReceiverEditor( Session doc )
 	{
-		super();
+		super( doc );
     }
 	
-	public void init( Main root, Session doc, Receiver rcv )
+	public void init( Receiver rcv )
 	{
-		super.init( root, doc, rcv );
+		super.init( rcv );
 	}
 	
 	/**

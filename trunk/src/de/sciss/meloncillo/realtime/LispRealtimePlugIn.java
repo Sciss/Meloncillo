@@ -97,10 +97,10 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 //        HelpGlassPane.setHelp( this, "RealtimeLisp" );	// EEE
 	}
 
-	public void init( Main root, Session doc )
+	public void init( Session doc )
 	{
-		super.init( root, doc );
-		tp = (TransportPalette) root.getComponent( Main.COMP_TRANSPORT );
+		super.init( doc );
+		tp = (TransportPalette) AbstractApplication.getApplication().getComponent( Main.COMP_TRANSPORT );
 	}
 	
 	/**

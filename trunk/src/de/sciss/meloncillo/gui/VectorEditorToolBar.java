@@ -29,16 +29,16 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.event.*;
-import javax.swing.*;
+import java.awt.event.KeyEvent;
 
-import de.sciss.meloncillo.*;
+import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 
-import de.sciss.gui.*;
+import de.sciss.gui.GUIUtil;
 
 /**
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  */
 public class VectorEditorToolBar
 extends ToolBar
@@ -49,9 +49,9 @@ extends ToolBar
 	 *
 	 *	@param	root	Application root
 	 */
-	public VectorEditorToolBar( Main root )
+	public VectorEditorToolBar()
 	{
-		super( root, ToolBar.HORIZONTAL );
+		super( ToolBar.HORIZONTAL );
 
 		ToolAction			toolAction;
 		JToggleButton		toggle;

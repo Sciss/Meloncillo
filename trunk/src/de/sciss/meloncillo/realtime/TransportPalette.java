@@ -129,7 +129,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 
 		setTitle( app.getResourceString( "paletteTransport" ));
 
-		toolBar			= new ToolBar( root, ToolBar.HORIZONTAL );
+		toolBar			= new ToolBar( ToolBar.HORIZONTAL );
 		toolBar.setOpaque( false );
 
         ggRewind		= new JButton();

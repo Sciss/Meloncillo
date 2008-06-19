@@ -190,7 +190,7 @@ extends AbstractPlugInFrame
 			if( className != null ) {
 				try {
 					plugIn	= (RealtimePlugIn) Class.forName( className ).newInstance();
-					plugIn.init( root, doc );
+					plugIn.init( doc );
 				}
 				catch( InstantiationException e1 ) {
 					GUIUtil.displayError( getWindow(), e1, AbstractApplication.getApplication().getResourceString( "errInitPlugIn" ));

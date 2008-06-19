@@ -62,7 +62,7 @@ extends ToolBar
 	 */
 	public SurfaceToolBar( Main root )
 	{
-		super( root, ToolBar.HORIZONTAL );
+		super( ToolBar.HORIZONTAL );
 
 		ToolAction			toolAction;
 		BlendingAction		actionBlending;

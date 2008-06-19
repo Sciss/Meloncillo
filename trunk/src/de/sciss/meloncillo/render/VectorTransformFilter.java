@@ -43,6 +43,7 @@ import java.awt.Insets;
 import java.awt.Window;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
@@ -56,6 +57,7 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
 import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicPrefChangeManager;
 import de.sciss.gui.AbstractWindowHandler;
@@ -110,7 +112,6 @@ public class VectorTransformFilter
 extends JPanel
 implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 {
-	private Main					root;
 	private Session					doc;
 	private Preferences				classPrefs;
 	private RenderHost				mainHost	= null;
@@ -165,9 +166,8 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 		};
 	}
 
-	public void init( Main root, Session doc )
+	public void init( Session doc )
 	{
-		this.root   = root;
 		this.doc	= doc;
 		
 		String className	= getClass().getName();
@@ -187,16 +187,16 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 	 */
 	private void createSettingsView()
 	{
-		JLabel							lb;
-		final java.util.List			collAlgorithms  = VectorTransformer.getTransforms();
-		Map								map;
-		StringItem						item;
-		Boolean							b;
-		final GridBagLayout				lay				= new GridBagLayout();
-		final GridBagConstraints		con				= new GridBagConstraints();
-		final Insets					ascetic			= new Insets( 2, 4, 2, 4 );
-		final Insets					bourgeois		= new Insets( 2, 24, 14, 4 );
-		final de.sciss.app.Application	app				= AbstractApplication.getApplication();
+		JLabel						lb;
+		final List					collAlgorithms  = VectorTransformer.getTransforms();
+		Map							map;
+		StringItem					item;
+		Boolean						b;
+		final GridBagLayout			lay				= new GridBagLayout();
+		final GridBagConstraints	con				= new GridBagConstraints();
+		final Insets				ascetic			= new Insets( 2, 4, 2, 4 );
+		final Insets				bourgeois		= new Insets( 2, 24, 14, 4 );
+		final Application			app				= AbstractApplication.getApplication();
 
 		this.setLayout( lay );
 
@@ -215,7 +215,7 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 		ggCenterX.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
 		ggCenterX.setNumber( new Double( 0.5 ));
 		ggCenterY		= new PrefNumberField();
-		ggCenterX.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
+		ggCenterY.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
 		ggCenterY.setNumber( new Double( 0.5 ));
 		funcGUIX		= new JScrollPane( JScrollPane.VERTICAL_SCROLLBAR_NEVER,
 										   JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
@@ -338,7 +338,7 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 			if( className != null ) {
 				try {
 					producer = (RenderPlugIn) Class.forName( className ).newInstance();
-					producer.init( root, doc );
+					producer.init( doc );
 					if( key.equals( KEY_TRANSX )) {
 						prod[ 0 ]		= producer;
 						pane			= funcGUIX;

@@ -34,28 +34,53 @@
 
 package de.sciss.meloncillo.surface;
 
-import java.awt.*;
-import java.awt.datatransfer.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.io.*;
-import java.util.*;
-import java.util.prefs.*;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.ClipboardOwner;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.geom.Point2D;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
 
-import javax.swing.*;
-import javax.swing.undo.*;
+import javax.swing.Action;
+import javax.swing.Box;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoableEdit;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.receiver.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
-import de.sciss.common.AppWindow;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.app.DynamicPrefChangeManager;
 import de.sciss.common.BasicApplication;
-import de.sciss.gui.*;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.MenuAction;
+import de.sciss.gui.VectorSpace;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.EditAddSessionObjects;
+import de.sciss.meloncillo.edit.EditSetSessionObjects;
+import de.sciss.meloncillo.gui.Axis;
+import de.sciss.meloncillo.gui.MenuFactory;
+import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.session.DocumentFrame;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.session.SessionGroup;
+import de.sciss.meloncillo.session.SessionGroupTable;
+import de.sciss.meloncillo.util.PrefsUtil;
+import de.sciss.meloncillo.util.TransferableCollection;
 
 /**
  *  The frame that hosts the <code>SurfacePane</code>
@@ -66,10 +91,9 @@ import de.sciss.gui.*;
  *  @version	0.75, 19-Jun-08
  */
 public class SurfaceFrame
-extends AppWindow
-implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
+extends DocumentFrame
+implements ClipboardOwner, PreferenceChangeListener
 {
-	private final Session		doc;
 	private final SurfacePane	surface;
 	
 	private final Axis			haxis, vaxis;
@@ -85,9 +109,7 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 	 */
 	public SurfaceFrame( Main root, Session doc )
 	{
-		super( REGULAR );
-
-		this.doc	= doc;
+		super( doc );
 		
 		final Container			cp		= getContentPane();
 		final JSplitPane		split	= new JSplitPane( JSplitPane.HORIZONTAL_SPLIT );
@@ -103,8 +125,8 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 		stb.setOpaque( false );
 		gp.add( stb );
 		haxisBox	= Box.createHorizontalBox();
-		haxis		= new Axis( Axis.HORIZONTAL );
-		vaxis		= new Axis( Axis.VERTICAL | Axis.MIRROIR );
+		haxis		= new Axis( Axis.HORIZONTAL, Axis.FIXEDBOUNDS );
+		vaxis		= new Axis( Axis.VERTICAL, Axis.MIRROIR | Axis.FIXEDBOUNDS );
 		surface		= new SurfacePane( root, doc );
 		surface.addComponentListener( new ComponentAdapter() {
 			public void componentResized( ComponentEvent e )
@@ -194,66 +216,20 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 		return new Point2D.Float( 0.05f, 0.7f );
 	}
 
-	/** 
-	 *  Returns the surface panel
-	 *
-	 *  @return the surface which is attached to this frame
-	 */
-	public SurfacePane getSurfacePane()
-	{
-		return surface;
-	}
-
-// ---------------- LaterInvocationManager.Listener interface ---------------- 
-
-	// o instanceof PreferenceChangeEvent
-	public void preferenceChange( PreferenceChangeEvent pce )
-	{
-		String  key		= pce.getKey();
-		String  value	= pce.getNewValue();
-		boolean	b;
-
-		if( key.equals( PrefsUtil.KEY_VIEWRULERS )) {
-			b = Boolean.valueOf( value ).booleanValue();
-			haxisBox.setVisible( b );
-			vaxis.setVisible( b );
-		}
-	}
-
-// ---------------- EditMenuListener interface ---------------- 
-
-	/**
-	 *  Performs a cut operation
-	 *  on the selected receivers (undoable)
-	 *
-	 *  @synchronization	waitExclusive on DOOR_RCV
-	 */
-	public void editCut( ActionEvent e )
-	{
-		if( editCopy() ) {
-			editClear( e );
-		}
-	}
-
-	/**
+	/*
 	 *  Performs a copy operation
 	 *  on the selected receivers
 	 *
 	 *  @synchronization	waitShared on DOOR_RCV
 	 */
-	public void editCopy( ActionEvent e )
-	{
-		editCopy();
-	}
-
 	private boolean editCopy()
 	{
-		final java.util.List			v		= new ArrayList();
-		Object							o;
-		Receiver						rcv;
-		java.util.List					collSelection;
-		boolean							success = false;
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+		final List			v		= new ArrayList();
+		final Application	app		= AbstractApplication.getApplication();
+		Object				o;
+		Receiver			rcv;
+		List				collSelection;
+		boolean				success = false;
 
 		try {
 			doc.bird.waitShared( Session.DOOR_RCV );
@@ -283,19 +259,14 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 
 		return success;
 	}
-	
-	/**
+
+	/*
 	 *  Tries to find transferable receivers in the clipboard
 	 *  and paste those to the surface, automatically renaming
 	 *  them and finding a good position on the surface. (undoable)
 	 *
 	 *  @synchronization	waitExclusive on DOOR_RCV + DOOR_GRP
 	 */
-	public void editPaste( ActionEvent e )
-	{
-		editPaste();
-	}
-	
 	private boolean editPaste()
 	{
 		Transferable					t;
@@ -391,13 +362,13 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 		return success;
 	}
 
-	/**
+	/*
 	 *  Deletes all selected receivers
 	 *  from the surface (undoable)
 	 *
 	 *  @synchronization	waitExclusive on DOOR_RCV + DOOR_GRP
 	 */
-	public void editClear( ActionEvent e )
+	private void editClear()
 	{
 		((MenuFactory) ((BasicApplication) AbstractApplication.getApplication()).getMenuFactory()).actionRemoveReceivers.perform();
 //	
@@ -426,12 +397,12 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 //		}
 	}
 
-	/**
+	/*
 	 *  Selects all receivers (undoable)
 	 *
 	 *  @synchronization	waitExclusive on DOOR_RCV
 	 */
-	public void editSelectAll( ActionEvent e )
+	private void editSelectAll()
 	{
 		UndoableEdit edit;
 	
@@ -443,6 +414,97 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 		}
 		finally {
 			doc.bird.releaseExclusive( Session.DOOR_RCV );
+		}
+	}
+
+	/** 
+	 *  Returns the surface panel
+	 *
+	 *  @return the surface which is attached to this frame
+	 */
+	public SurfacePane getSurfacePane()
+	{
+		return surface;
+	}
+
+// ---------------- LaterInvocationManager.Listener interface ---------------- 
+
+	// o instanceof PreferenceChangeEvent
+	public void preferenceChange( PreferenceChangeEvent pce )
+	{
+		String  key		= pce.getKey();
+		String  value	= pce.getNewValue();
+		boolean	b;
+
+		if( key.equals( PrefsUtil.KEY_VIEWRULERS )) {
+			b = Boolean.valueOf( value ).booleanValue();
+			haxisBox.setVisible( b );
+			vaxis.setVisible( b );
+		}
+	}
+
+// ---------------- DocumentFrame abstract methods ----------------
+	
+	protected Action getCutAction() { return new ActionCut(); }
+	protected Action getCopyAction() { return new ActionCopy(); }
+	protected Action getPasteAction() { return new ActionPaste(); }
+	protected Action getDeleteAction() { return new ActionDelete(); }
+	protected Action getSelectAllAction() { return new ActionSelectAll(); }
+	
+// ---------------- EditMenuListener interface ---------------- 
+
+	private class ActionCut
+	extends MenuAction
+	{
+		protected ActionCut() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			if( editCopy() ) editClear();
+		}
+	}
+	
+	private class ActionCopy
+	extends MenuAction
+	{
+		protected ActionCopy() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editCopy();
+		}
+	}
+
+	private class ActionPaste
+	extends MenuAction
+	{
+		protected ActionPaste() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editPaste();
+		}
+	}
+
+	private class ActionDelete
+	extends MenuAction
+	{
+		protected ActionDelete() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editClear();
+		}
+	}
+
+	private class ActionSelectAll
+	extends MenuAction
+	{
+		protected ActionSelectAll() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editSelectAll();
 		}
 	}
 

@@ -34,19 +34,29 @@
 
 package de.sciss.meloncillo.math;
 
-import java.awt.*;
-import java.io.*;
-import java.util.prefs.*;
-import javax.swing.*;
+import java.awt.Component;
+import java.io.IOException;
+import java.util.prefs.Preferences;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.plugin.*;
-import de.sciss.meloncillo.render.*;
-import de.sciss.meloncillo.session.*;
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SpringLayout;
+
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.PrefCheckBox;
+import de.sciss.gui.PrefNumberField;
+import de.sciss.meloncillo.plugin.PlugInContext;
+import de.sciss.meloncillo.render.RenderConsumer;
+import de.sciss.meloncillo.render.RenderContext;
+import de.sciss.meloncillo.render.RenderHost;
+import de.sciss.meloncillo.render.RenderPlugIn;
+import de.sciss.meloncillo.render.RenderSource;
+import de.sciss.meloncillo.render.VectorTransformFilter;
+import de.sciss.meloncillo.session.Session;
 import de.sciss.util.NumberSpace;
-
-import de.sciss.app.*;
-import de.sciss.gui.*;
 
 /**
  *  Raises the vector data to the power of a constant and/or
@@ -81,7 +91,7 @@ implements RenderPlugIn
 
 	public VectorRaiseMultiply()
 	{
-		final de.sciss.app.Application	app = AbstractApplication.getApplication();
+		final Application	app = AbstractApplication.getApplication();
 		
 		msgPane			= new JPanel( new SpringLayout() );
 		
@@ -182,7 +192,7 @@ implements RenderPlugIn
 	
 // ------------------ RenderPlugIn interface ------------------
 	
-	public void init( Main root, Session doc )
+	public void init( Session doc )
 	{
 		// XXX
 	}

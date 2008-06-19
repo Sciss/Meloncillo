@@ -69,9 +69,9 @@ import de.sciss.gui.PathEvent;
 import de.sciss.gui.PathField;
 import de.sciss.gui.PathListener;
 import de.sciss.gui.StringItem;
-import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
 import de.sciss.meloncillo.edit.EditPutMapValue;
+import de.sciss.meloncillo.plugin.PlugInManager;
 import de.sciss.meloncillo.util.LockManager;
 import de.sciss.meloncillo.util.MapManager;
 import de.sciss.util.NumberSpace;
@@ -93,7 +93,6 @@ public class SessionObjectTable
 extends JTable
 implements DynamicListening
 {
-	private final Main					root;
 	private final Document				doc;
 	private final LockManager			lm;
 	private final int					doors;
@@ -108,11 +107,10 @@ implements DynamicListening
 	
 	private static final String[] columnNames = new String[] { "key", "value" };	// not used
 	
-	public SessionObjectTable( Main root, de.sciss.app.Document doc, final LockManager lm, final int doors )
+	public SessionObjectTable( de.sciss.app.Document doc, final LockManager lm, final int doors )
 	{
 		super();
 
-		this.root	= root;
 		this.doc	= doc;
 		this.lm		= lm;
 		this.doors	= doors;
@@ -185,7 +183,7 @@ implements DynamicListening
 
     public void startListening()
     {
-		root.plugInManager.addListener( plugListener );
+    	PlugInManager.getInstance().addListener( plugListener );
 	
 		if( !lm.attemptShared( doors, 250 )) return;
 		try {
@@ -275,7 +273,7 @@ implements DynamicListening
 				contexts.put( o, c );
 				// remove fields that belong to inactive plug-ins
 				if( (c.dynamic != null) && 
-					(root.plugInManager.getValue( c.dynamic.toString() ) == null) ) {
+					(PlugInManager.getInstance().getValue( c.dynamic.toString() ) == null) ) {
 					keys.remove( o );
 				}
 			}

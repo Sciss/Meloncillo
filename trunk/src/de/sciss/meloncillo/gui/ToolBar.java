@@ -34,15 +34,22 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashMap;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.AbstractButton;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JToggleButton;
+import javax.swing.JToolBar;
 
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.BasicEvent;
+import de.sciss.app.EventManager;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  Extension of <code>JPanel</code> that
@@ -86,7 +93,7 @@ implements EventManager.Processor
 	 *
 	 *	@param	orient	only <code>HORIZONTAL</code> at the moment
 	 */
-	public ToolBar( Main root, int orient )
+	public ToolBar( int orient )
 	{
 		super( orient );
         if( AbstractApplication.getApplication().getUserPrefs().getBoolean( PrefsUtil.KEY_INTRUDINGSIZE, false )) {

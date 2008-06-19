@@ -185,7 +185,7 @@ implements NumberListener, TimelineListener, DynamicListening
 			c.add( ggName );
 			con.fill		= GridBagConstraints.BOTH;
 			con.weighty		= 1.0;
-			ggTable			= new SessionObjectTable( root, doc, doc.bird, DOORS[ i ]);
+			ggTable			= new SessionObjectTable( doc, doc.bird, DOORS[ i ]);
 			lay.setConstraints( ggTable, con );
 			c.add( ggTable );
 			ggTabPane.addTab( app.getResourceString( TAB_NAMES[ i ]), null, c, null );

@@ -36,18 +36,35 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Font;
+import java.awt.GraphicsEnvironment;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.PrintStream;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.Action;
+import javax.swing.Box;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.WindowConstants;
 
-import de.sciss.app.*;
-import de.sciss.common.AppWindow;
-import de.sciss.gui.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
+import de.sciss.app.Application;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.LogTextArea;
+import de.sciss.gui.MenuAction;
+import de.sciss.gui.ProgressBar;
+import de.sciss.gui.ProgressComponent;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.session.DocumentFrame;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
+
 
 /**
  *  The main window of the application.
@@ -71,20 +88,17 @@ import de.sciss.gui.*;
  *  @see	javax.swing.AbstractButton#doClick()
  */
 public class MainFrame
-extends AppWindow
-implements ProgressComponent, EditMenuListener
+extends DocumentFrame
+implements ProgressComponent
 {
 	private final ProgressBar	pb;
 	private final LogTextArea	lta;
 	private final PrintStream	logStream;
-	private final Session		doc;
 	private final Font			fntMonoSpaced;
 
 	public MainFrame( final Main root, final Session doc )
 	{
-		super( REGULAR );
-		
-		this.doc		= doc;
+		super( doc );
 		
 		// ---- own gui ----
 
@@ -258,18 +272,22 @@ implements ProgressComponent, EditMenuListener
 		return false;
 	}
 
-// ---------------- EditMenuListener interface ---------------- 
+// ---------------- DocumentFrame abstract methods ----------------
+	
+	protected Action getCutAction() { return null; }
+	protected Action getCopyAction() { return null; }
+	protected Action getPasteAction() { return null; }
+	protected Action getDeleteAction() { return new ActionDelete(); }
+	protected Action getSelectAllAction() { return null; }
 
-	/**
-	 *  Clear the console window
-	 */
-	public void editClear( ActionEvent e )
+	private class ActionDelete
+	extends MenuAction
 	{
-		clearLog();
-	}
+		protected ActionDelete() { /* empty */ }
 
-	public void editSelectAll( ActionEvent e ) {}
-	public void editPaste( ActionEvent e ) {}
-	public void editCut( ActionEvent e ) {}
-	public void editCopy( ActionEvent e ) {}
+		public void actionPerformed( ActionEvent e )
+		{
+			clearLog();
+		}
+	}
 }

@@ -89,7 +89,6 @@ import de.sciss.gui.PrefCheckBox;
 import de.sciss.gui.PrefComboBox;
 import de.sciss.gui.StringItem;
 import de.sciss.io.IOUtil;
-import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.lisp.AdvancedJatha;
 import de.sciss.meloncillo.lisp.BasicLispPrimitive;
 import de.sciss.meloncillo.lisp.ExecutePrimitive;
@@ -159,7 +158,6 @@ implements PlugIn, PreferenceChangeListener
 	 */
 	protected LispHashTable			prefsHash;
 
-	private Main					root;
 	private Session					doc;
 
 	// ------- RenderSource types -------
@@ -248,9 +246,8 @@ implements PlugIn, PreferenceChangeListener
 		super();
 	}
 	
-	public void init( Main root, Session doc )
+	public void init( Session doc )
 	{
-		this.root   = root;
 		this.doc	= doc;
 		
 		final de.sciss.app.Application	app			= AbstractApplication.getApplication();
@@ -668,7 +665,7 @@ implements PlugIn, PreferenceChangeListener
 		try {
 			// unregister old plug-in
 			if( lispSourceName != null ) {
-				root.plugInManager.removeValue( this, "lisp-" + lispSourceName );
+				PlugInManager.getInstance().removeValue( this, "lisp-" + lispSourceName );
 				sessionPropertyAddPrimitive.setDynamic( null );
 			}
 			if( name != null && synthControlListFile != null ) {
@@ -704,7 +701,7 @@ implements PlugIn, PreferenceChangeListener
 			}
 			// register new plug-in
 			if( lispSourceName != null ) {
-				root.plugInManager.putValue( this, "lisp-" + lispSourceName, new Object() );
+				PlugInManager.getInstance().putValue( this, "lisp-" + lispSourceName, new Object() );
 			}
 		}
 	}

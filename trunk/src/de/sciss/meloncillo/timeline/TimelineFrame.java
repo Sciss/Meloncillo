@@ -37,28 +37,92 @@
  
 package de.sciss.meloncillo.timeline;
 
-import java.awt.*;
-import java.awt.datatransfer.*;
-import java.awt.event.*;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Stroke;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.ClipboardOwner;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
-import java.io.*;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.undo.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.realtime.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.transmitter.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.Box;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JViewport;
+import javax.swing.KeyStroke;
+import javax.swing.SpringLayout;
+import javax.swing.SwingUtilities;
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoableEdit;
 
-import de.sciss.app.*;
-import de.sciss.common.AppWindow;
-import de.sciss.gui.*;
-import de.sciss.io.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.LaterInvocationManager;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.MenuAction;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.EditRemoveTimeSpan;
+import de.sciss.meloncillo.edit.EditSetTimelineLength;
+import de.sciss.meloncillo.edit.EditSetTimelinePosition;
+import de.sciss.meloncillo.edit.EditSetTimelineScroll;
+import de.sciss.meloncillo.edit.EditSetTimelineSelection;
+import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.gui.AbstractTool;
+import de.sciss.meloncillo.gui.GraphicsUtil;
+import de.sciss.meloncillo.gui.MenuFactory;
+import de.sciss.meloncillo.gui.ToolAction;
+import de.sciss.meloncillo.gui.ToolActionEvent;
+import de.sciss.meloncillo.gui.ToolActionListener;
+import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.io.TrackList;
+import de.sciss.meloncillo.io.TrackSpan;
+import de.sciss.meloncillo.realtime.RealtimeConsumer;
+import de.sciss.meloncillo.realtime.RealtimeConsumerRequest;
+import de.sciss.meloncillo.realtime.RealtimeContext;
+import de.sciss.meloncillo.realtime.RealtimeProducer;
+import de.sciss.meloncillo.realtime.Transport;
+import de.sciss.meloncillo.session.DocumentFrame;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.session.SessionObject;
+import de.sciss.meloncillo.transmitter.Transmitter;
+import de.sciss.meloncillo.transmitter.TransmitterEditor;
+import de.sciss.meloncillo.transmitter.TransmitterRowHeader;
+import de.sciss.meloncillo.util.PrefsUtil;
+import de.sciss.meloncillo.util.ProcessingThread;
+import de.sciss.meloncillo.util.RunnableProcessing;
+import de.sciss.meloncillo.util.TransferableCollection;
+
 
 /**
  *  One of the core GUI elements: The
@@ -115,13 +179,12 @@ import de.sciss.io.*;
  *	@todo	pointer tool : ctrl+drag doesn't work.
  */
 public class TimelineFrame
-extends AppWindow
+extends DocumentFrame
 implements  TimelineListener, ToolActionListener,
-            DynamicListening, EditMenuListener, ClipboardOwner,
+            DynamicListening, ClipboardOwner,
 			RealtimeConsumer
 {
 	private final Main				root;
-	private final Session			doc;
     private final TimelineAxis		axis;
     private final TimelineScroll	scroll;
 	private final Transport			transport;
@@ -129,8 +192,8 @@ implements  TimelineListener, ToolActionListener,
 	private final TimelineToolBar	ttb;
 
 	// --- collections ---
-	private final java.util.List	collTransmitterEditors		= new ArrayList();
-	private final java.util.List	collTransmitterHeaders		= new ArrayList();
+	private final List				collTransmitterEditors		= new ArrayList();
+	private final List				collTransmitterHeaders		= new ArrayList();
 	// maps transmitters (keys) to editors (values)
  	private final Map				hashTransmittersToEditors   = new HashMap();
 
@@ -147,8 +210,9 @@ implements  TimelineListener, ToolActionListener,
 	private final	TimelinePointerTool pointerTool;
 
 	// --- actions ---
-	private final Action	actionPaste, actionClear, actionIncHeight, actionDecHeight;
-	private final actionSpanWidthClass actionIncWidth, actionDecWidth;
+	private final Action			actionIncHeight, actionDecHeight;
+	private final ActionSpanWidth	actionIncWidth, actionDecWidth;
+	private final ActionDelete		actionClear;
 
 	private long					currentPos					= 0;
 
@@ -185,10 +249,9 @@ implements  TimelineListener, ToolActionListener,
 	 */
 	public TimelineFrame( Main root, final Session doc )
 	{
-		super( REGULAR );
+		super( doc );
 
 		this.root   = root;
-		this.doc	= doc;
 		transport   = root.transport;
 
 		final Container			cp		= getContentPane();
@@ -351,12 +414,11 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 //		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
 
 		// --- Actions ---
-		actionPaste			= new actionPasteClass( app.getResourceString( "menuPaste" ));
-		actionClear			= new actionClearClass( app.getResourceString( "menuClear" ));
-		actionIncHeight		= new actionRowHeightClass( 2.0f );
-		actionDecHeight		= new actionRowHeightClass( 0.5f );
-		actionIncWidth		= new actionSpanWidthClass( 2.0f );
-		actionDecWidth		= new actionSpanWidthClass( 0.5f );
+		actionClear			= new ActionDelete();
+		actionIncHeight		= new ActionRowHeight( 2.0f );
+		actionDecHeight		= new ActionRowHeight( 0.5f );
+		actionIncWidth		= new ActionSpanWidth( 2.0f );
+		actionDecWidth		= new ActionSpanWidth( 0.5f );
 
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_DOWN, KeyEvent.CTRL_MASK ), "inch" );
 		amap.put( "inch", actionIncHeight );
@@ -369,19 +431,19 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_CLOSE_BRACKET, MenuFactory.MENU_SHORTCUT ), "decw" );
 		amap.put( "decw", actionDecWidth );
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_ENTER, 0 ), "retn" );
-		amap.put( "retn", new actionScrollClass( SCROLL_SESSION_START ));
+		amap.put( "retn", new ActionScroll( SCROLL_SESSION_START ));
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_LEFT, 0 ), "left" );
-		amap.put( "left", new actionScrollClass( SCROLL_SELECTION_START ));
+		amap.put( "left", new ActionScroll( SCROLL_SELECTION_START ));
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_RIGHT, 0 ), "right" );
-		amap.put( "right", new actionScrollClass( SCROLL_SELECTION_STOP ));
+		amap.put( "right", new ActionScroll( SCROLL_SELECTION_STOP ));
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_F, KeyEvent.ALT_MASK ), "fit" );
-		amap.put( "fit", new actionScrollClass( SCROLL_FIT_TO_SELECTION ));
+		amap.put( "fit", new ActionScroll( SCROLL_FIT_TO_SELECTION ));
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_A, KeyEvent.ALT_MASK ), "entire" );
-		amap.put( "entire", new actionScrollClass( SCROLL_ENTIRE_SESSION ));
+		amap.put( "entire", new ActionScroll( SCROLL_ENTIRE_SESSION ));
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_ENTER, KeyEvent.SHIFT_MASK ), "seltobeg" );
-		amap.put( "seltobeg", new actionSelectClass( SELECT_TO_SESSION_START ));
+		amap.put( "seltobeg", new ActionSelect( SELECT_TO_SESSION_START ));
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_ENTER, KeyEvent.SHIFT_MASK + KeyEvent.ALT_MASK ), "seltoend" );
-		amap.put( "seltoend", new actionSelectClass( SELECT_TO_SESSION_END ));
+		amap.put( "seltoend", new ActionSelect( SELECT_TO_SESSION_END ));
 
 		// -------
 
@@ -626,22 +688,29 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		vpTrackPanel.updateAndRepaint();
     }
 
-// ---------------- EditMenuListener interface ---------------- 
+ // ---------------- EditMenuListener interface ---------------- 
 
-	/**
-	 *  Cuts the selected timespan of the selected
-	 *  transmitters and stores it in the clipboard.
-	 *
-	 *  @see	#editClear( ActionEvent )
+	/*
+	 *  Selects the whole timeline, does not
+	 *  alter the transmitter selection
 	 */
-	public void editCut( ActionEvent e )
+	private void editSelectAll()
 	{
-		if( editCopy() ) {
-			actionClear.actionPerformed( e );
+		Span			span;
+		UndoableEdit	edit;
+	
+		if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
+		try {
+			span	= new Span( 0, doc.timeline.getLength() );
+			edit	= new EditSetTimelineSelection( this, doc, span );
+			doc.getUndoManager().addEdit( edit );
+		}
+		finally {
+			doc.bird.releaseExclusive( Session.DOOR_TIME );
 		}
 	}
 
-	/**
+	/*
 	 *  Copies the selected timespan of the selected
 	 *  transmitters to the clipboard. Uses a
 	 *  <code>TransferableCollection</code> whose
@@ -651,11 +720,6 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 	 *  @see	de.sciss.meloncillo.io.TrackList
 	 *  @see	de.sciss.meloncillo.util.TransferableCollection
 	 */
-	public void editCopy( ActionEvent e )
-	{
-		editCopy();
-	}
-
 	private boolean editCopy()
 	{
 		Span							span;
@@ -691,63 +755,15 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 		return success;
 	}
+
+// ---------------- DocumentFrame abstract methods ----------------
 	
-	/**
-	 *  Pastes cutted or copied trajectory data
-	 *  into the selected transmitters beginning at
-	 *  the current timeline position. If all transmitters
-	 *  are selected, the data is pasted such that everything
-	 *  after the current timeline position is shifted to the back.
-	 *  If some transmitters are not selected, their data is
-	 *  left untouched, but silence will be inserted at the end
-	 *  of these tracks so they'll have the same length as the
-	 *  tracks to which data was pasted. This can be rather annoying
-	 *  because it produces a lot of unnecessary blank space at the
-	 *  end of sessions, and thus will likely change in a future
-	 *  version.
-	 *
-	 *  @todo   this ignores the timeline selection.
-	 *			there should be a general switching gadget
-	 *			for insert/overwrite in the timeline frame.
-	 */
-	public void editPaste( ActionEvent e )
-	{
-		actionPaste.actionPerformed( e );
-	}
-
-	/**
-	 *  Removes the selected time span in the
-	 *  selected transmitters. If all transmitters
-	 *  are selected, the timeline is shortened.
-	 *  If some transmitters are not selected,
-	 *  an empty track is appended to the selected
-	 *  transmitters to fill up the removed gap.
-	 */
-	public void editClear( ActionEvent e )
-	{
-		actionClear.actionPerformed( e );
-	}
-
-	/**
-	 *  Selects the whole timeline, does not
-	 *  alter the transmitter selection
-	 */
-	public void editSelectAll( ActionEvent e )
-	{
-		Span			span;
-		UndoableEdit	edit;
+	protected Action getCutAction() { return new ActionCut(); }
+	protected Action getCopyAction() { return new ActionCopy(); }
+	protected Action getPasteAction() { return new ActionPaste(); }
+	protected Action getDeleteAction() { return actionClear; }
+	protected Action getSelectAllAction() { return new ActionSelectAll(); }
 	
-		if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-		try {
-			span	= new Span( 0, doc.timeline.getLength() );
-			edit	= new EditSetTimelineSelection( this, doc, span );
-			doc.getUndoManager().addEdit( edit );
-		}
-		finally {
-			doc.bird.releaseExclusive( Session.DOOR_TIME );
-		}
-	}
-
 // ---------------- ClipboardOwner interface ---------------- 
 
 	public void lostOwnership( Clipboard clipboard, Transferable contents )
@@ -757,16 +773,13 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 // ---------------- internal action classes ---------------- 
 
-	private class actionPasteClass
-	extends AbstractAction
+	private class ActionPaste
+	extends MenuAction
 	implements RunnableProcessing
 	{
-		private final String text;
-		
-		private actionPasteClass( String text )
+		private ActionPaste()
 		{
-			super( text );
-			this.text = text;
+			super();
 		}
 		
 		public void actionPerformed( ActionEvent e )
@@ -806,7 +819,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 				return;
 			}
 
-			new ProcessingThread( this, root, root, doc, text, coll, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
+			new ProcessingThread( this, root, root, doc, getValue( NAME ).toString(), coll, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
 		}
 		
 		/**
@@ -814,8 +827,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		 */
 		public boolean run( ProcessingThread context, Object argument )
 		{
-			java.util.List					coll		= (java.util.List) argument;
-			java.util.List					collAffectedTransmitters;
+			List							coll		= (List) argument;
+			List							collAffectedTransmitters;
 			Transferable					t;
 			int								i, j, numTrns;
 			long							position, docLength, pasteLength, start;
@@ -939,19 +952,54 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		public void finished( ProcessingThread context, Object argument, boolean success ) {}
 	} // class actionPasteClass
 
-	private class actionClearClass
-	extends AbstractAction
+	private class ActionSelectAll
+	extends MenuAction
+	{
+		protected ActionSelectAll() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editSelectAll();
+		}
+	}
+
+	private class ActionCopy
+	extends MenuAction
+	{
+		protected ActionCopy() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editCopy();
+		}
+	}
+
+	private class ActionCut
+	extends MenuAction
+	{
+		protected ActionCut() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			if( editCopy() ) actionClear.perform();
+		}
+	}
+
+	private class ActionDelete
+	extends MenuAction
 	implements RunnableProcessing
 	{
-		private final String text;
-		
-		private actionClearClass( String text )
+		private ActionDelete()
 		{
-			super( text );
-			this.text = text;
+			super( AbstractApplication.getApplication().getResourceString( "menuDelete" ));
 		}
 		
 		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+		
+		protected void perform()
 		{
 			Span  span;
 
@@ -964,7 +1012,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				doc.bird.releaseShared( Session.DOOR_TIMETRNS | Session.DOOR_GRP);
 			}
 
-			new ProcessingThread( this, root, root, doc, text, null, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
+			new ProcessingThread( this, root, root, doc, getValue( NAME ).toString(), null, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
 		}
 		
 		/**
@@ -1051,7 +1099,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 	 *  Increase or decrease the height
 	 *  of the rows of the selected transmitters
 	 */
-	private class actionRowHeightClass
+	private class ActionRowHeight
 	extends AbstractAction
 	{
 		private final float factor;
@@ -1060,7 +1108,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		 *  @param  factor  factors > 1 increase the row height,
 		 *					factors < 1 decrease.
 		 */
-		private actionRowHeightClass( float factor )
+		private ActionRowHeight( float factor )
 		{
 			super();
 			this.factor = factor;
@@ -1100,7 +1148,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 	 *  Increase or decrease the width
 	 *  of the visible time span
 	 */
-	private class actionSpanWidthClass
+	private class ActionSpanWidth
 	extends AbstractAction
 	{
 		private final float factor;
@@ -1109,7 +1157,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		 *  @param  factor  factors > 1 increase the span width (zoom out)
 		 *					factors < 1 decrease (zoom in).
 		 */
-		private actionSpanWidthClass( float factor )
+		private ActionSpanWidth( float factor )
 		{
 			super();
 			this.factor = factor;
@@ -1168,12 +1216,12 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 	private static final int SCROLL_FIT_TO_SELECTION= 3;
 	private static final int SCROLL_ENTIRE_SESSION	= 4;
 
-	private class actionScrollClass
+	private class ActionScroll
 	extends AbstractAction
 	{
 		private final int mode;
 	
-		private actionScrollClass( int mode )
+		private ActionScroll( int mode )
 		{
 			super();
 			
@@ -1252,12 +1300,12 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 	private static final int SELECT_TO_SESSION_START	= 0;
 	private static final int SELECT_TO_SESSION_END		= 1;
 
-	private class actionSelectClass
+	private class ActionSelect
 	extends AbstractAction
 	{
 		private final int mode;
 	
-		private actionSelectClass( int mode )
+		private ActionSelect( int mode )
 		{
 			super();
 			
@@ -1579,8 +1627,8 @@ timelinePos = currentPos;
 	private abstract class TimelineTool
 	extends AbstractTool
 	{
-		private final java.util.List	collObservedComponents	= new ArrayList();
-//		private final java.util.List	collOldCursors			= new ArrayList();
+		private final List	collObservedComponents	= new ArrayList();
+//		private final List	collOldCursors			= new ArrayList();
 	
 		public void toolAcquired( Component c )
 		{
@@ -1649,7 +1697,7 @@ timelinePos = currentPos;
 		public void mousePressed( MouseEvent e )
 		{
 			if( e.isMetaDown() ) {
-				editSelectAll( null );
+				editSelectAll();
 				dragStarted = false;
 				validDrag	= false;
 			} else {

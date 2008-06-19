@@ -33,13 +33,13 @@
 
 package de.sciss.meloncillo.receiver;
 
-import javax.swing.*;
+import javax.swing.WindowConstants;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
-
-import de.sciss.app.*;
-import de.sciss.common.AppWindow;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
+import de.sciss.meloncillo.session.DocumentFrame;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
 
 /**
  *  A simple implementation of the <code>ReceiverEditor</code>
@@ -53,12 +53,10 @@ import de.sciss.common.AppWindow;
  *  @version	0.75, 10-Jun-08
  */
 public abstract class AbstractReceiverEditor
-extends AppWindow
+extends DocumentFrame		// needed to access edit menu?
 implements ReceiverEditor, SessionCollection.Listener
 {
 	protected   Receiver	rcv		= null;
-	protected   Session		doc		= null;
-	protected   Main		root	= null;
 
 	/**
 	 *  Creates a new editor. Initialization
@@ -66,11 +64,12 @@ implements ReceiverEditor, SessionCollection.Listener
 	 *  method. This method will install a listener
 	 *  that deals with the window disposal.
 	 */
-	protected AbstractReceiverEditor()
+	protected AbstractReceiverEditor( Session doc )
 	{
-		super( PALETTE );
+//		super( PALETTE );
+		super( doc );
 
-		setDefaultCloseOperation( JFrame.DO_NOTHING_ON_CLOSE );
+		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
 
 		addListener( new AbstractWindow.Adapter() {
 			public void windowClosing( AbstractWindow.Event e )
@@ -80,7 +79,14 @@ implements ReceiverEditor, SessionCollection.Listener
 		});
 
 //  	HelpGlassPane.setHelp( this.getRootPane(), "ReceiverEditor" );	// EEE
-    }
+
+//		new Exception().printStackTrace();
+	}
+
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
+	}
 
 	// update frame title which displays the receiver's name
 	private void updateTitle()
@@ -140,19 +146,17 @@ implements ReceiverEditor, SessionCollection.Listener
 	 *  call the superclass implementation
 	 *  at first.
 	 */
-	public void init( Main root, Session doc, Receiver rcv )
+	public void init( Receiver rcv )
 	{
-		if( this.canHandle( rcv )) {
-			this.rcv	= rcv;
-			this.root   = root;
-			this.doc	= doc;
-			init();
-			doc.receivers.addListener( this );
-			updateTitle();
-		} else {
+		if( !this.canHandle( rcv )) {
 			throw new IllegalArgumentException( rcv.getClass().getName() +
-				AbstractApplication.getApplication().getResourceString( "receiverExceptionNotHandled" ));
+		                    				AbstractApplication.getApplication().getResourceString( "receiverExceptionNotHandled" ));
 		}
+		
+		this.rcv	= rcv;
+//		init();
+		doc.receivers.addListener( this );
+		updateTitle();
 	}
 	
 	/**

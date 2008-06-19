@@ -49,6 +49,8 @@ import java.awt.event.*;
 import java.awt.geom.*;
 import java.awt.image.*;
 import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.text.*;
 import java.util.*;
 import java.util.prefs.*;
@@ -1615,8 +1617,10 @@ implements  VirtualSurface, TimelineListener,
 				} else { // items have been selected
 					if( e.getClickCount() == 2 && doc.selectedReceivers.size() == 1 ) {  // double click opens editor
 						rcv		= (Receiver) doc.selectedReceivers.get( 0 );
-						rcvEdit = (ReceiverEditor) rcv.getDefaultEditor().newInstance();	// XXX deligate to SurfacePaneFrame
-						rcvEdit.init( root, doc, rcv );
+						final Class clz = rcv.getDefaultEditor();
+						final Constructor cons = clz.getConstructor( new Class[] { Session.class });
+						rcvEdit = (ReceiverEditor) cons.newInstance( new Object[] { doc });	// XXX deligate to SurfacePaneFrame
+						rcvEdit.init( rcv );
 						rcvEditFrame = rcvEdit.getView();
 						rcvEditFrame.setVisible( true );
 						rcvEditFrame.toFront();
@@ -1629,6 +1633,12 @@ implements  VirtualSurface, TimelineListener,
 			}
 			catch( IllegalAccessException e2 ) {
 				System.err.println( e2.getLocalizedMessage() );
+			}
+			catch( InvocationTargetException e3 ) {
+				System.err.println( e3.getLocalizedMessage() );
+			}
+			catch( NoSuchMethodException e4 ) {
+				System.err.println( e4.getLocalizedMessage() );
 			}
 			finally {
 				doc.bird.releaseShared( Session.DOOR_RCV );

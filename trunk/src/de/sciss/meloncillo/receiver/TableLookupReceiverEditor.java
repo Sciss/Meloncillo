@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Locale;
 
+import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
@@ -56,13 +57,13 @@ import javax.swing.undo.UndoableEdit;
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.Application;
 import de.sciss.gui.GUIUtil;
+import de.sciss.gui.MenuAction;
 import de.sciss.gui.TopPainter;
 import de.sciss.gui.VectorSpace;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.EditTableLookupRcvSense;
 import de.sciss.meloncillo.gui.Axis;
-import de.sciss.meloncillo.gui.EditMenuListener;
 import de.sciss.meloncillo.gui.ObserverPalette;
 import de.sciss.meloncillo.gui.PopupListener;
 import de.sciss.meloncillo.gui.ToolBar;
@@ -95,7 +96,7 @@ import de.sciss.meloncillo.util.PrefsUtil;
  */
 public abstract class TableLookupReceiverEditor
 extends AbstractReceiverEditor
-implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
+implements  VectorDisplay.Listener, ClipboardOwner, TopPainter
 {
 	protected final VectorEditor	distanceEditor;
 	protected final VectorEditor	rotationEditor;
@@ -118,11 +119,11 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	private Shape						shpTop			= null;
 	private static final Color			colrAdjusting   = new Color( 0xFF, 0xFF, 0x00, 0x7F );
 
-	public TableLookupReceiverEditor()
+	public TableLookupReceiverEditor( Session doc )
 	{
-		super();
+		super( doc );
 		
-		final Application	app = AbstractApplication.getApplication();
+		final Application	app	= AbstractApplication.getApplication();
 		JPopupMenu			distancePopup, rotationPopup;
 		Box					box;
 		VectorSpace			distanceSpace, rotationSpace;
@@ -146,8 +147,7 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 		distanceEditor.setSpace( null, distanceSpace );
 		distancePopup  = VectorTransformer.createPopupMenu( distanceEditor );
 
-		padPanel1 = new JPanel();
-		padPanel1.setLayout( new BorderLayout() );
+		padPanel1 = new JPanel( new BorderLayout() );
 		padPanel1.add( BorderLayout.CENTER, distanceEditor );
 		padPanel1.add( box, BorderLayout.NORTH );
 		padPanel1.add( distVAxis, BorderLayout.WEST );
@@ -167,8 +167,7 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 		rotationEditor = new VectorEditor();
 		rotationEditor.setSpace( null, rotationSpace );
 		rotationPopup  = VectorTransformer.createPopupMenu( rotationEditor );
-		padPanel2 = new JPanel();
-		padPanel2.setLayout( new BorderLayout() );
+		padPanel2 = new JPanel( new BorderLayout() );
 		padPanel2.add( BorderLayout.CENTER, rotationEditor );
 		padPanel2.add( box, BorderLayout.NORTH );
 		padPanel2.add( rotVAxis, BorderLayout.WEST );
@@ -219,9 +218,9 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 		rotationEditor.addListener( this );
 		
 //		getRootPane().setPreferredSize( new Dimension( 320, 320 ));		// XXX
-		padPanel1.setPreferredSize( new Dimension( 320, 160 ));
-		padPanel2.setPreferredSize( new Dimension( 320, 160 ));
-    }
+		distanceEditor.setPreferredSize( new Dimension( 320, 160 ));
+		rotationEditor.setPreferredSize( new Dimension( 320, 160 ));
+	}
 	
 	protected boolean alwaysPackSize()
 	{
@@ -231,11 +230,11 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	/**
 	 *  @synchronization	waitExclusive on DOOR_RCV
 	 */
-	public void init( Main root, Session doc, Receiver rcv )
+	public void init( Receiver rcv )
 	{
-		super.init( root, doc, rcv );
+		super.init( rcv );
 
-		final ToolBar		vtb		= new VectorEditorToolBar( root );
+		final ToolBar		vtb		= new VectorEditorToolBar();
 		final Box			b		= Box.createHorizontalBox();
 		final JPanel		gp		= GUIUtil.createGradientPanel();
 		final Container		c		= getContentPane();
@@ -257,8 +256,10 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 
 		updateSpaces();
 		setVectors();
-		observer	= (ObserverPalette) root.getComponent( Main.COMP_OBSERVER );
-		surface		= (SurfaceFrame) root.getComponent( Main.COMP_SURFACE );
+		observer	= (ObserverPalette) AbstractApplication.getApplication().getComponent( Main.COMP_OBSERVER );
+		surface		= (SurfaceFrame) AbstractApplication.getApplication().getComponent( Main.COMP_SURFACE );
+
+		init();	// !
 	}
 	
 	/*
@@ -489,14 +490,17 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 
 	public void vectorSpaceChanged( VectorDisplay.Event e ) {}
 
+// ---------------- DocumentFrame abstract methods ----------------
+	
+	protected Action getCutAction() { return null; }
+	protected Action getCopyAction() { return new ActionCopy(); }
+	protected Action getPasteAction() { return new ActionPaste(); }
+	protected Action getDeleteAction() { return null; }
+	protected Action getSelectAllAction() { return null; }
+	
 // ---------------- EditMenuListener interface ---------------- 
 
-	/**
-	 *  Does nothing, cut is not supported
-	 */
-	public void editCut( ActionEvent e ) {}
-
-	/**
+	/*
 	 *  Copies the receiver to the clipboard.
 	 *
 	 *  @see	Receiver#receiverFlavor
@@ -504,7 +508,7 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	 *  @todo   the receiver should
 	 *			not be copied but just the tables.
 	 */
-	public void editCopy( ActionEvent e )
+	private void editCopy()
 	{
 		final TableLookupReceiver   rcv = (TableLookupReceiver) this.rcv;
 		if( rcv == null || doc == null ) return;
@@ -544,7 +548,7 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	 *  @todo   the receiver should
 	 *			not be copied but just the tables.
 	 */
-	public void editPaste( ActionEvent e )
+	private void editPaste()
 	{
 		Transferable					t;
 		Receiver						rcv;
@@ -575,16 +579,6 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 		}
 	}
 
-	/**
-	 *  Does nothing, clear is not supported
-	 */
-	public void editClear( ActionEvent e ) {}
-
-	/**
-	 *  Does nothing, select all is not supported
-	 */
-	public void editSelectAll( ActionEvent e ) {}
-
 // ---------------- ClipboardOwner interface ---------------- 
 
 	/**
@@ -593,5 +587,29 @@ implements  VectorDisplay.Listener, EditMenuListener, ClipboardOwner, TopPainter
 	public void lostOwnership( Clipboard clipboard, Transferable contents )
 	{
 		// nothing
+	}
+
+	// ---------------- EditMenuListener interface ---------------- 
+
+	private class ActionCopy
+	extends MenuAction
+	{
+		protected ActionCopy() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editCopy();
+		}
+	}
+
+	private class ActionPaste
+	extends MenuAction
+	{
+		protected ActionPaste() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			editPaste();
+		}
 	}
 }

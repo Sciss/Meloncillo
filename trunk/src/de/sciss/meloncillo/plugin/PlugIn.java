@@ -30,10 +30,9 @@
 
 package de.sciss.meloncillo.plugin;
 
-import javax.swing.*;
+import javax.swing.JComponent;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  A simple interface for communication
@@ -53,10 +52,9 @@ public interface PlugIn
 	 *  This gets called right after the
 	 *  instantiation of a new render module
 	 *
-	 *	@param	root	Application root
 	 *	@param	doc		Session document
 	 */
-	public void init( Main root, Session doc );
+	public void init( Session doc );
 
 	/**
 	 *  Asks the plugin to return a component

@@ -31,8 +31,6 @@
 package de.sciss.meloncillo.receiver;
 
 import de.sciss.app.AbstractWindow;
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
 
 /**
  *  The <code>ReceiverEditor</code> interface is a
@@ -60,15 +58,13 @@ public interface ReceiverEditor
 	/**
 	 *  Sets the <code>Receiver</code> that shall be edited
 	 *
-	 *  @param  root	application root
-	 *  @param  doc		session document containing the receiver
 	 *  @param  rcv		the receiver to edit
 	 *
 	 *  @throws IllegalArgumentException	in case the passed <code>Receiver</code>
 	 *										cannot be handled by this editor
 	 *  @see	#canHandle( Receiver )
 	 */
-	public void init( Main root, Session doc, Receiver rcv );
+	public void init( Receiver rcv );
 
 	/**
 	 *  Tests if the editor can handle a certain <code>Receiver</code>.
