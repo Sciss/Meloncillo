@@ -2,7 +2,7 @@
  *  MeterFrame.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -36,6 +36,7 @@ package de.sciss.meloncillo.gui;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 import java.awt.image.*;
 import java.util.*;
 import javax.swing.*;
@@ -105,14 +106,16 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 	public MeterFrame( Main root, Session doc )
 	{
 		super( PALETTE );
-		setTitle( AbstractApplication.getApplication().getResourceString( "frameMeter" ));
 
 		this.doc	= doc;
 		transport   = root.transport;
 
-		Container   cp		= getContentPane();
-		Filler		pad;
-		Dimension   d;
+		final Container		cp		= getContentPane();
+		final Application	app		= AbstractApplication.getApplication();
+		Filler				pad;
+		Dimension 			d;
+
+		setTitle( app.getResourceString( "frameMeter" ));
 
 		meterPane   = new MeterPane();
 
@@ -145,10 +148,35 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 		// --- Listener ---
         addDynamicListening( this );
 
+//        addListener( new AbstractWindow.Adapter() {
+//			public void windowClosing( AbstractWindow.Event e )
+//			{
+//				dispose();
+//			}
+//		});
+//		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+
 		// -------
 
 // 		HelpGlassPane.setHelp( getRootPane(), "LevelMeter" );	// EEE
         init();
+		app.addComponent( Main.COMP_METER, this );
+	}
+
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_METER );
+		super.dispose();
+	}
+
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
+	}
+
+	protected Point2D getPreferredLocation()
+	{
+		return new Point2D.Float( 0.6f, 0.8f );
 	}
 
 	/*

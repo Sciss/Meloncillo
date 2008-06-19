@@ -2,7 +2,7 @@
  *  Meloncillo.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -415,32 +415,14 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 
 		// ---- component views ----
 
-		TransportPalette frameTransport;
-        frameTransport = new TransportPalette( this, doc );
-		addComponent( COMP_TRANSPORT, frameTransport );
-
-		SurfaceFrame frameSurface;
-		frameSurface = new SurfaceFrame( this, doc );
-		addComponent( COMP_SURFACE, frameSurface );
-
-		ObserverPalette frameObserver;
-        frameObserver = new ObserverPalette( this, doc );
-		addComponent( COMP_OBSERVER, frameObserver );
-
-		MeterFrame frameMeter;
-        frameMeter = new MeterFrame( this, doc );
-		addComponent( COMP_METER, frameMeter );
-
-		TimelineFrame frameTimeline;
-		frameTimeline = new TimelineFrame( this, doc );
-		addComponent( COMP_TIMELINE, frameTimeline );
-		
-		RealtimeFrame frameRealtime;
-		frameRealtime = new RealtimeFrame( this, doc );
-		addComponent( COMP_REALTIME, frameRealtime );
+		new TransportPalette( this, doc );
+		new SurfaceFrame( this, doc );
+		new ObserverPalette( this, doc );
+		new MeterFrame( this, doc );
+		new TimelineFrame( this, doc );
+		new RealtimeFrame( this, doc );
 
 		mainFrame   = new MainFrame( this, doc );
-		addComponent( COMP_MAIN, mainFrame );
 
 		// ----
 // EEE

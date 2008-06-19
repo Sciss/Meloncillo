@@ -2,7 +2,7 @@
  *  SurfacePane.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -225,7 +225,7 @@ implements  VirtualSurface, TimelineListener,
 		this.doc	= doc;
 		transport   = root.transport;
 		
-		setPreferredSize( new Dimension( 640, 640 ));
+		setPreferredSize( new Dimension( 480, 640 ));
 
 		WritableRaster rast = Raster.createInterleavedRaster(
 			DataBuffer.TYPE_BYTE, bufImgExtent, bufImgExtent, 1, new Point( 0, 0 ));

@@ -2,7 +2,7 @@
  *  SurfaceFrame.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -63,7 +63,7 @@ import de.sciss.gui.*;
  *  to deal with cut / copy / paste operations.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  */
 public class SurfaceFrame
 extends AppWindow
@@ -89,16 +89,19 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 
 		this.doc	= doc;
 		
-		final Container					cp		= getContentPane();
-		final JSplitPane				split	= new JSplitPane( JSplitPane.HORIZONTAL_SPLIT );
-		final JSplitPane				split2	= new JSplitPane( JSplitPane.VERTICAL_SPLIT );
-		final JPanel					sp		= new JPanel( new BorderLayout() );
-		final VectorSpace				space	= VectorSpace.createLinSpace( 0.0, 1.0, 0.0, 1.0, null, null, null, null );	// XXX
-		final SurfaceToolBar			stb		= new SurfaceToolBar( root );
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+		final Container			cp		= getContentPane();
+		final JSplitPane		split	= new JSplitPane( JSplitPane.HORIZONTAL_SPLIT );
+		final JSplitPane		split2	= new JSplitPane( JSplitPane.VERTICAL_SPLIT );
+		final JPanel			sp		= new JPanel( new BorderLayout() );
+		final VectorSpace		space	= VectorSpace.createLinSpace( 0.0, 1.0, 0.0, 1.0, null, null, null, null );	// XXX
+		final SurfaceToolBar	stb		= new SurfaceToolBar( root );
+		final Application		app		= AbstractApplication.getApplication();
+		final JPanel			gp		= GUIUtil.createGradientPanel();
 
 		setTitle( app.getResourceString( "frameSurface" ));
 
+		stb.setOpaque( false );
+		gp.add( stb );
 		haxisBox	= Box.createHorizontalBox();
 		haxis		= new Axis( Axis.HORIZONTAL );
 		vaxis		= new Axis( Axis.VERTICAL | Axis.MIRROIR );
@@ -145,25 +148,50 @@ implements EditMenuListener, ClipboardOwner, PreferenceChangeListener
 		split.setDividerLocation( 0 );		// when showing up, the group component is hidden
 //		split.setDividerSize( 4 );
 		cp.add( split, BorderLayout.CENTER );
-		cp.add( stb, BorderLayout.NORTH );
+		cp.add( gp, BorderLayout.NORTH );
         if( app.getUserPrefs().getBoolean( PrefsUtil.KEY_INTRUDINGSIZE, false )) {
             cp.add( Box.createVerticalStrut( 16 ), BorderLayout.SOUTH );
         }
 
 		// -------
 
+//        addListener( new AbstractWindow.Adapter() {
+//			public void windowClosing( AbstractWindow.Event e )
+//			{
+//				dispose();
+//			}
+//		});
+//		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+
 //        HelpGlassPane.setHelp( getRootPane(), "SurfaceFrame" ); // EEE
-		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
+		AbstractWindowHandler.setDeepFont( cp );
         
         addDynamicListening( new DynamicPrefChangeManager( app.getUserPrefs().node( PrefsUtil.NODE_SHARED ),
 			new String[] { PrefsUtil.KEY_VIEWRULERS }, this ));
 		
         init();
+		app.addComponent( Main.COMP_SURFACE, this );
+	}
+
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_SURFACE );
+		super.dispose();
+	}
+
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
 	}
 
 	protected boolean alwaysPackSize()
 	{
 		return false;
+	}
+
+	protected Point2D getPreferredLocation()
+	{
+		return new Point2D.Float( 0.05f, 0.7f );
 	}
 
 	/** 

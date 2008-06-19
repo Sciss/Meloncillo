@@ -2,7 +2,7 @@
  *  MainFrame.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -66,7 +66,7 @@ import de.sciss.gui.*;
  *  </ul>
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.70, 26-Dec-04
+ *  @version	0.75, 19-Jun-08
  *
  *  @see	javax.swing.AbstractButton#doClick()
  */
@@ -77,8 +77,8 @@ implements ProgressComponent, EditMenuListener
 	private final ProgressBar	pb;
 	private final LogTextArea	lta;
 	private final PrintStream	logStream;
-	private static final Font	fnt		= GraphicsUtil.smallGUIFont;
 	private final Session		doc;
+	private final Font			fntMonoSpaced;
 
 	public MainFrame( final Main root, final Session doc )
 	{
@@ -88,26 +88,39 @@ implements ProgressComponent, EditMenuListener
 		
 		// ---- own gui ----
 
-		Container   cp  = getContentPane();
-		Box			b	= Box.createHorizontalBox();
-		pb				= new ProgressBar();
-		lta				= new LogTextArea( 6, 40, false, null );
+		pb					= new ProgressBar();
+		lta					= new LogTextArea( 6, 72, false, null );
+
+		final Container		cp  	= getContentPane();
+		final Box			b		= Box.createHorizontalBox();
+		final String[]		fntNames;
 //		HelpGlassPane.setHelp( lta, "MainLogPane" );	// EEE
 //		HelpGlassPane.setHelp( pb, "MainProgressBar" );	// EEE
-        JScrollPane ggScroll = new JScrollPane( lta, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-													 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
+        final JScrollPane	ggScroll= new JScrollPane( lta, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                         	                            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
+        final Application	app		= AbstractApplication.getApplication();
+        
 		logStream		= lta.getLogStream();
 		System.setOut( logStream );
 		System.setErr( logStream );
 		b.add( pb );
-        if( AbstractApplication.getApplication().getUserPrefs().getBoolean( PrefsUtil.KEY_INTRUDINGSIZE, false )) {
+        if( app.getUserPrefs().getBoolean( PrefsUtil.KEY_INTRUDINGSIZE, false )) {
     		b.add( Box.createHorizontalStrut( 16 )); // RigidArea( new Dimension( 16, 16 )));
         }
-        cp.setLayout( new BorderLayout() );
 		cp.add( ggScroll, BorderLayout.CENTER );
 		cp.add( b, BorderLayout.SOUTH );
-		GUIUtil.setDeepFont( cp, fnt );
-		
+		AbstractWindowHandler.setDeepFont( cp );
+
+		fntNames = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+		if( contains( fntNames, "Monaco" )) {							// Mac OS
+			fntMonoSpaced = new Font( "Monaco", Font.PLAIN, 9 );		// looks bigger than it is
+		} else if( contains( fntNames, "Lucida Sans Unicode" )) {		// Windows XP
+			fntMonoSpaced = new Font( "Lucida Sans Unicode", Font.PLAIN, 9 );
+		} else {
+			fntMonoSpaced = new Font( "Monospaced", Font.PLAIN, 10 );
+		}
+		lta.setFont( fntMonoSpaced );
+
 		// ---- listeners ----
 
 		this.addListener( new AbstractWindow.Adapter() {
@@ -115,17 +128,13 @@ implements ProgressComponent, EditMenuListener
 				root.quit();
 			}
 		});
-		// if user cancels confirm dlg, the window has to stay open
-		// if user confirms quit, VM will close all windows anyway
-		setDefaultCloseOperation( JFrame.DO_NOTHING_ON_CLOSE );
 		
-		// ---- layout ----
-
-//      classPrefs.putBoolean( PrefsUtil.KEY_VISIBLE, true );
+		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
+		
 		init();
 		updateTitle();
-        setVisible( true );
-        toFront();
+		app.addComponent( Main.COMP_MAIN, this );
+		setVisible( true );
 	}
     
 //    /**
@@ -238,6 +247,14 @@ implements ProgressComponent, EditMenuListener
 	public void displayError( Exception e, String processName )
 	{
 		GUIUtil.displayError( getWindow(), e, processName );
+	}
+
+	private static boolean contains( String[] array, String name )
+	{
+		for( int i = 0; i < array.length; i++ ) {
+			if( array[ i ].equals( name )) return true;
+		}
+		return false;
 	}
 
 // ---------------- EditMenuListener interface ---------------- 

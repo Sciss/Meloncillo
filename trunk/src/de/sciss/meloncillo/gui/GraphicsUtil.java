@@ -2,7 +2,7 @@
  *  GraphicsUtil.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -34,6 +34,8 @@ import java.awt.*;
 import java.awt.geom.*;
 import java.awt.image.*;
 import javax.swing.*;
+
+import de.sciss.gui.TiledImage;
 
 /**
  *  This is a helper class containing utility static functions
@@ -79,7 +81,8 @@ public class GraphicsUtil
 	 *
 	 *  @see	#createToolIcons( int )
 	 */
-	protected static final TiledImage  imgToolIcons	= new TiledImage( "images/toolicons.png", 16, 16 );
+//	protected static final TiledImage  imgToolIcons	= new TiledImage( "images/toolicons.png", 16, 16 );
+	protected static final TiledImage  imgToolIcons	= new TiledImage( GraphicsUtil.class.getResource( "toolicons.png" ), 16, 16 );
 	
 	/**
 	 *  Tool icon ID: transport play
@@ -201,7 +204,7 @@ public class GraphicsUtil
 		Icon[] icons = new Icon[ 4 ];
 	
 		for( int i = 0; i < 4; i++ ) {
-			icons[i]	= new TiledImageIcon( imgToolIcons, ID, i );
+			icons[i]	= imgToolIcons.createIcon( ID, i );
 		}
 		return icons;
 	}

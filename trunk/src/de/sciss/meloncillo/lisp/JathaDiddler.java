@@ -2,7 +2,7 @@
  *  JathaDiddler.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -33,20 +33,30 @@
 
 package de.sciss.meloncillo.lisp;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import javax.swing.*;
-import javax.swing.text.*;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.IOException;
 
-import org.jatha.dynatype.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.Box;
+import javax.swing.JCheckBox;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.text.BadLocationException;
 
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.util.*;
+import org.jatha.dynatype.LispValue;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
 import de.sciss.common.AppWindow;
-import de.sciss.gui.*;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  A simple frame that contains
@@ -60,7 +70,7 @@ import de.sciss.gui.*;
  *  console frame.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  *  @see		de.sciss.meloncillo.lisp.AdvancedJatha
  */
 public class JathaDiddler
@@ -88,10 +98,10 @@ extends AppWindow
 			}
 		});
 		
-		final Container					cp		= getContentPane();
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
-		final JScrollPane				scroll;
-		final Box						box		= Box.createHorizontalBox();
+		final Container		cp		= getContentPane();
+		final Application	app		= AbstractApplication.getApplication();
+		final JScrollPane	scroll;
+		final Box			box		= Box.createHorizontalBox();
 
 		setTitle( app.getResourceString( "frameJatha" ));
 
@@ -117,11 +127,12 @@ extends AppWindow
 			box.add( Box.createVerticalStrut( 16 ));
         }
 
-		cp.setLayout( new BorderLayout() );
 		cp.add( scroll, BorderLayout.CENTER );
 		cp.add( box, BorderLayout.SOUTH );
 
-		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
+		AbstractWindowHandler.setDeepFont( cp );
+//		prompt.setFont( app.getGraphicsHandler().getFont( GraphicsHandler.XXX )
+		prompt.setFont( new Font( "Monospaced", Font.PLAIN, 11 ));
 
 //        HelpGlassPane.setHelp( prompt, "JathaPrompt" );	// EEE
 	
@@ -130,6 +141,16 @@ extends AppWindow
         toFront();
 	}
 	
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
+	}
+
+	protected boolean alwaysPackSize()
+	{
+		return false;
+	}
+
 	/**
 	 *  @param  root	application root
 	 *  @param  doc		session object

@@ -2,7 +2,7 @@
  *  AbstractPlugInFrame.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -195,11 +195,16 @@ implements PreferenceChangeListener
 		cp.add( ggSettingsPane, BorderLayout.CENTER );
 		if( bottomPanel != null ) cp.add( bottomPanel, BorderLayout.SOUTH );
 		
-		GUIUtil.setDeepFont( cp, fnt );
+		AbstractWindowHandler.setDeepFont( cp );
 		
 		// --- Listener ---
-//        addDynamicListening( new DynamicPrefChangeManager( classPrefs,
-//			new String[] { KEY_PLUGIN, KEY_SELECTIONONLY }, this ));
+//		addListener( new AbstractWindow.Adapter() {
+//			public void windowClosing( AbstractWindow.Event e )
+//			{
+//				dispose();
+//			}
+//		});
+//		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
 
 // SUBCLASSES NEED TO DO THIS
 //		init();
@@ -241,6 +246,11 @@ implements PreferenceChangeListener
 	 */
 	protected abstract void switchPlugIn( String className );
 
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
+	}
+	
 	/**
 	 *	Requests the display to "freeze",
 	 *	i.e. paint in a ghosted mode and not

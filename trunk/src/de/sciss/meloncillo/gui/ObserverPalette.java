@@ -2,7 +2,7 @@
  *  ObserverPalette.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -34,22 +34,47 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.undo.*;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.geom.Point2D;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.timeline.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
+import javax.swing.RootPaneContainer;
+import javax.swing.undo.CompoundEdit;
+
 import de.sciss.util.NumberSpace;
 
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
 import de.sciss.common.AppWindow;
-import de.sciss.gui.*;
-import de.sciss.io.*;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.NumberEvent;
+import de.sciss.gui.NumberField;
+import de.sciss.gui.NumberListener;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.EditSetSessionObjectName;
+import de.sciss.meloncillo.edit.EditSetTimelineSelection;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.session.SessionObject;
+import de.sciss.meloncillo.session.SessionObjectTable;
+import de.sciss.meloncillo.timeline.TimelineEvent;
+import de.sciss.meloncillo.timeline.TimelineListener;
+import de.sciss.meloncillo.util.LockManager;
 
 /**
  *  The <code>ObserverPalette</code> is a
@@ -67,7 +92,7 @@ import de.sciss.io.*;
  *  resonsible for calling <code>showCursorInfo</code>.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  */
 public class ObserverPalette
 extends AppWindow
@@ -100,12 +125,11 @@ implements NumberListener, TimelineListener, DynamicListening
 	public ObserverPalette( Main root, final Session doc )
 	{
 		super( PALETTE );
-		setTitle( AbstractApplication.getApplication().getResourceString( "paletteObserver" ));
 		
 		this.doc	= doc;
 
 		final Container					cp		= getContentPane();
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+		final Application				app		= AbstractApplication.getApplication();
 		JPanel							c;
 		JLabel							lb;
 		GridBagLayout					lay;
@@ -116,6 +140,8 @@ implements NumberListener, TimelineListener, DynamicListening
 		SessionObjectTable				ggTable;
 		SessionCollection				scSel, scAll;
 //		final JRootPane					rp		= getRootPane();
+
+		setTitle( app.getResourceString( "paletteObserver" ));
 
 		ggTabPane = new JTabbedPane();
 //		HelpGlassPane.setHelp( ggTabPane, "ObserverPalette" );	// EEE
@@ -224,17 +250,37 @@ implements NumberListener, TimelineListener, DynamicListening
 		ggTabPane.addTab( app.getResourceString( "observerTimeline" ), null, c, null );
 //        HelpGlassPane.setHelp( c, "ObserverTimeline" );	// EEE
         
-		cp.setLayout( new BorderLayout() );
 		cp.add( BorderLayout.CENTER, ggTabPane );
 		
-		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
+		AbstractWindowHandler.setDeepFont( ggTabPane );
 		
 		// --- Listener ---
 		addDynamicListening( this );
 		
+//		addListener( new AbstractWindow.Adapter() {
+//			public void windowClosing( AbstractWindow.Event e )
+//			{
+//				dispose();
+//			}
+//		});
+//		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+
+		setPreferredSize( new Dimension( 272, 180 ));
 		init();
+		app.addComponent( Main.COMP_OBSERVER, this );
 	}
 	
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_OBSERVER );
+		super.dispose();
+	}
+
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
+	}
+
 	// XXX EEE XXX
 	private JComponent getMyRooty()
 	{
@@ -253,6 +299,11 @@ implements NumberListener, TimelineListener, DynamicListening
 	protected boolean alwaysPackSize()
 	{
 		return false;
+	}
+
+	protected Point2D getPreferredLocation()
+	{
+		return new Point2D.Float( 0.95f, 0.8f );
 	}
 
 	/**
@@ -411,7 +462,11 @@ implements NumberListener, TimelineListener, DynamicListening
 			}
 		}
 		
-		public void sessionObjectMapChanged( SessionCollection.Event e ) {}
+		public void sessionObjectMapChanged( SessionCollection.Event e )
+		{
+//			System.out.println( "KUUKA" );
+//			pack();
+		}
 
 		public void sessionObjectChanged( SessionCollection.Event e )
 		{

@@ -2,7 +2,7 @@
  *  MenuFactory.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -1083,7 +1083,6 @@ extends BasicMenuFactory
 			if( bounceFrame == null ) {
 				final Main root = (Main) AbstractApplication.getApplication();
 				bounceFrame = new BounceDialog( root, doc );
-				getApplication().addComponent( Main.COMP_BOUNCE, bounceFrame );
 			}
 			bounceFrame.setVisible( true );
 			bounceFrame.toFront();
@@ -1768,7 +1767,6 @@ extends BasicMenuFactory
 			if( filterFrame == null ) {
 				final Main root = (Main) AbstractApplication.getApplication();
 				filterFrame = new FilterDialog( root, doc );
-				root.addComponent( Main.COMP_FILTER, filterFrame );
 			}
 			filterFrame.setVisible( true );
 			filterFrame.toFront();

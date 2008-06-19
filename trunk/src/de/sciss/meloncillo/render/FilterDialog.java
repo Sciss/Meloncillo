@@ -2,7 +2,7 @@
  *  FilterDialog.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -87,6 +87,20 @@ implements RenderConsumer
 	{
 		super( root, doc, AbstractApplication.getApplication().getResourceString( "frameFilter" ), GADGET_RESAMPLING );
 //		HelpGlassPane.setHelp( this.getRootPane(), "FilterDialog" );	// EEE
+		addListener( new AbstractWindow.Adapter() {
+			public void windowClosing( AbstractWindow.Event e )
+			{
+				dispose();
+			}
+		});
+		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+		AbstractApplication.getApplication().addComponent( Main.COMP_FILTER, this );
+	}
+
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_FILTER );
+		super.dispose();
 	}
 
 	protected java.util.List getProducerTypes()

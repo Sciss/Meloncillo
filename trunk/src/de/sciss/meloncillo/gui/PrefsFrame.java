@@ -2,7 +2,7 @@
  *  PrefsFrame.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -32,20 +32,53 @@
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.prefs.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.prefs.Preferences;
 
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.timeline.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingConstants;
+import javax.swing.UIManager;
+import javax.swing.WindowConstants;
+
+import de.sciss.util.Flag;
 import de.sciss.util.NumberSpace;
 
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
+import de.sciss.app.Application;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.PreferenceEntrySync;
 import de.sciss.common.AppWindow;
-import de.sciss.gui.*;
+import de.sciss.common.BasicWindowHandler;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.CoverGrowBox;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.HelpButton;
+import de.sciss.gui.KeyStrokeTextField;
+import de.sciss.gui.NumberEvent;
+import de.sciss.gui.NumberListener;
+import de.sciss.gui.PathField;
+import de.sciss.gui.PrefCheckBox;
+import de.sciss.gui.PrefComboBox;
+import de.sciss.gui.PrefNumberField;
+import de.sciss.gui.PrefPathField;
+import de.sciss.gui.PrefTextField;
+import de.sciss.gui.SpringPanel;
+import de.sciss.gui.StringItem;
 import de.sciss.io.IOUtil;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.timeline.TimelineEvent;
+import de.sciss.meloncillo.timeline.TimelineListener;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  This is the frame that
@@ -53,11 +86,11 @@ import de.sciss.io.IOUtil;
  *  application and session preferences
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  */
 public class PrefsFrame
 extends AppWindow
-implements TimelineListener, DynamicListening
+implements SwingConstants, TimelineListener, DynamicListening
 {
 	private final PrefNumberField ggRate;
 	
@@ -76,11 +109,10 @@ implements TimelineListener, DynamicListening
 		this.doc	= doc;
 
 		final Container					cp		= getContentPane();
-		SpringLayout					lay;
-        final Font						fnt     = GraphicsUtil.smallGUIFont;
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+		final Application				app		= AbstractApplication.getApplication();
+		final Flag						haveWarned			= new Flag( false );
+		final String					txtWarnLookAndFeel	= getResourceString( "warnLookAndFeelUpdate" );
 
-		JPanel							tab, tabWrap, buttonPanel;
 		PrefTextField					ggText;
 		KeyStrokeTextField				ggKeyStroke;
 		PrefTextArea					ggArea;
@@ -88,283 +120,271 @@ implements TimelineListener, DynamicListening
 		PrefPathField					ggPath;
 		PrefCheckBox					ggCheckBox;
         PrefComboBox					ggChoice;
-		JButton							ggButton;
 		JTabbedPane						ggTabPane;
 		JLabel							lb;
         UIManager.LookAndFeelInfo[]		lafInfos;
+		SpringPanel						tab;
 
 		Preferences						prefs;
-		String							key, key2;
-		int								rows;
+		String							key, key2, title;
+		int								row;
 
 		ggTabPane			= new JTabbedPane();
 
-    	setTitle( app.getResourceString( "framePrefs" ));
+    	setTitle( getResourceString( "framePrefs" ));
 
     	// ---------- global pane ----------
 
-		tab		= new JPanel();
-		lay		= new SpringLayout();
-		tab.setLayout( lay );
-		rows	= 0;
+		tab		= createTab();
 
+		row	= 0;
 		prefs   = IOUtil.getUserPrefs();
 		key		= IOUtil.KEY_TEMPDIR;
 		key2	= "prefsTmpDir";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
-		ggPath = new PrefPathField( PathField.TYPE_FOLDER, app.getResourceString( key2 ));
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
+		ggPath = new PrefPathField( PathField.TYPE_FOLDER, getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
-		tab.add( ggPath );
-		lb.setLabelFor( ggPath );
-		rows++;
+		tab.gridAdd( ggPath, 1, row );
 
+		row++;
 		prefs   = app.getUserPrefs();
 		key		= PrefsUtil.KEY_RECALLFRAMES;
 		key2	= "prefsRecallFrames";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggCheckBox  = new PrefCheckBox();
 		ggCheckBox.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggCheckBox, key2 );	// EEE
-		tab.add( ggCheckBox );
-		lb.setLabelFor( ggCheckBox );
-		rows++;
+		tab.gridAdd( ggCheckBox, 1, row );
 		
+		row++;
+		prefs   = app.getUserPrefs();
         key     = PrefsUtil.KEY_LOOKANDFEEL;
 		key2	= "prefsLookAndFeel";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		title	= getResourceString( key2 );
+		lb		= new JLabel( title, TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggChoice = new PrefComboBox();
-        lafInfos = UIManager.getInstalledLookAndFeels();
+		lafInfos = UIManager.getInstalledLookAndFeels();
         for( int i = 0; i < lafInfos.length; i++ ) {
             ggChoice.addItem( new StringItem( lafInfos[i].getClassName(), lafInfos[i].getName() ));
         }
 		ggChoice.setPreferences( prefs, key );
-//        HelpGlassPane.setHelp( ggChoice, key2 );	// EEE
-		tab.add( ggChoice );
-		lb.setLabelFor( ggChoice );
-		rows++;
+		ggChoice.addActionListener( new WarnPrefsChange( ggChoice, ggChoice, haveWarned, txtWarnLookAndFeel, title ));
+		
+		tab.gridAdd( ggChoice, 1, row, -1, 1 );
 
-       	key		= PrefsUtil.KEY_INTRUDINGSIZE;
-		key2	= "prefsIntrudingSize";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
-		ggCheckBox  = new PrefCheckBox();
+		row++;
+       	key		= BasicWindowHandler.KEY_LAFDECORATION;
+		key2	= "prefsLAFDecoration";
+		title	= getResourceString( key2 );
+		ggCheckBox  = new PrefCheckBox( title );
 		ggCheckBox.setPreferences( prefs, key );
-//        HelpGlassPane.setHelp( ggCheckBox, key2 );	// EEE
-		tab.add( ggCheckBox );
-		lb.setLabelFor( ggCheckBox );
-		rows++;
+		tab.gridAdd( ggCheckBox, 1, row, -1, 1 );
+		ggCheckBox.addActionListener( new WarnPrefsChange( ggCheckBox, ggCheckBox, haveWarned, txtWarnLookAndFeel, title ));
 
+		row++;
+       	key		= BasicWindowHandler.KEY_INTERNALFRAMES;
+		key2	= "prefsInternalFrames";
+		title	= getResourceString( key2 );
+		ggCheckBox  = new PrefCheckBox( title );
+		ggCheckBox.setPreferences( prefs, key );
+		tab.gridAdd( ggCheckBox, 1, row, -1, 1 );
+		ggCheckBox.addActionListener( new WarnPrefsChange( ggCheckBox, ggCheckBox, haveWarned, txtWarnLookAndFeel, title ));
+
+		row++;
+       	key		= CoverGrowBox.KEY_INTRUDINGSIZE;
+		key2	= "prefsIntrudingSize";
+		ggCheckBox  = new PrefCheckBox( getResourceString( key2 ));
+		ggCheckBox.setPreferences( prefs, key );
+		tab.gridAdd( ggCheckBox, 1, row, -1, 1 );
+
+		row++;
+       	key		= BasicWindowHandler.KEY_FLOATINGPALETTES;
+		key2	= "prefsFloatingPalettes";
+		ggCheckBox  = new PrefCheckBox( getResourceString( key2 ));
+		ggCheckBox.setPreferences( prefs, key );
+		tab.gridAdd( ggCheckBox, 1, row, -1, 1 );
+		ggCheckBox.addActionListener( new WarnPrefsChange( ggCheckBox, ggCheckBox, haveWarned, txtWarnLookAndFeel, title ));
+
+		row++;
 		prefs   = GUIUtil.getUserPrefs();
-//       	key		= HelpGlassPane.KEY_KEYSTROKE_HELP;	// EEE
+//     	key		= HelpGlassPane.KEY_KEYSTROKE_HELP;	// EEE
 		key2	= "prefsKeyStrokeHelp";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggKeyStroke = new KeyStrokeTextField();
 		ggKeyStroke.setPreferences( prefs, key );
-//        HelpGlassPane.setHelp( ggKeyStroke, key2 );	// EEE
-		tab.add( ggKeyStroke );
-		lb.setLabelFor( ggKeyStroke );
-		rows++;
+//      HelpGlassPane.setHelp( ggKeyStroke, key2 );	// EEE
+		tab.gridAdd( ggKeyStroke, 1, row );
 		
-		prefs   = app.getUserPrefs();
-		key2	= "prefsGeneral";
-		GUIUtil.makeCompactSpringGrid( tab, rows, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
-		tabWrap = new JPanel( new BorderLayout() );
-		tabWrap.add( tab, BorderLayout.NORTH );
-//        HelpGlassPane.setHelp( tabWrap, key2 );	// EEE
-		ggTabPane.addTab( app.getResourceString( key2 ), null, tabWrap, null );
+		addTab( ggTabPane, tab, "prefsGeneral" );
 
 		// ---------- plug-ins pane ----------
 
 		prefs   = app.getUserPrefs().node( PrefsUtil.NODE_PLUGINS );
-		tab		= new JPanel();
-		lay		= new SpringLayout();
-		tab.setLayout( lay );
-		rows	= 0;
+		tab		= createTab();
 
+		row	= 0;
 		key		= PrefsUtil.KEY_LISPREALTIMELIST;
 		key2	= "prefsLispRealtimeList";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
-		ggPath	= new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
+		ggPath	= new PrefPathField( PathField.TYPE_INPUTFILE, getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
-		tab.add( ggPath );
-		lb.setLabelFor( ggPath );
-		rows++;
+		tab.gridAdd( ggPath, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_LISPBOUNCELIST;
 		key2	= "prefsLispBounceList";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
-		ggPath	= new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
+		ggPath	= new PrefPathField( PathField.TYPE_INPUTFILE, getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
-		tab.add( ggPath );
-		lb.setLabelFor( ggPath );
-		rows++;
+		tab.gridAdd( ggPath, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_LISPFILTERLIST;
 		key2	= "prefsLispFilterList";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
-		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
+		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
-		tab.add( ggPath );
-		lb.setLabelFor( ggPath );
-		rows++;
+		tab.gridAdd( ggPath, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_SUPERCOLLIDEROSC;
 		key2	= "prefsSuperColliderOSC";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggText  = new PrefTextField( 32 );
 		ggText.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggText, key2 );	// EEE
-		tab.add( ggText );
-		lb.setLabelFor( ggText );
-		rows++;
+		tab.gridAdd( ggText, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_SUPERCOLLIDERAPP;
 		key2	= "prefsSuperColliderApp";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
-		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
+		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
-		tab.add( ggPath );
-		lb.setLabelFor( ggPath );
-		rows++;
+		tab.gridAdd( ggPath, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_CSOUNDAPP;
 		key2	= "prefsCSoundApp";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
-		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, app.getResourceString( key2 ));
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
+		ggPath = new PrefPathField( PathField.TYPE_INPUTFILE, getResourceString( key2 ));
 		ggPath.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggPath, key2 );	// EEE
-		tab.add( ggPath );
-		lb.setLabelFor( ggPath );
-		rows++;
+		tab.gridAdd( ggPath, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_AUDIOINPUTS;
 		key2	= "prefsAudioInputChannels";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggNumber  = new PrefNumberField();
 		ggNumber.setSpace( NumberSpace.createIntSpace( 0, 16384 ));
-//		ggNumber.setUnit( app.getResourceString( "labelUnitChannels" ));	// EEE
+//		ggNumber.setUnit( getResourceString( "labelUnitChannels" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
-		tab.add( ggNumber );
-		lb.setLabelFor( ggNumber );
-		rows++;
+		tab.gridAdd( ggNumber, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_AUDIOOUTPUTS;
 		key2	= "prefsAudioOutputChannels";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggNumber  = new PrefNumberField();
 		ggNumber.setSpace( NumberSpace.createIntSpace( 0, 16384 ));
-//		ggNumber.setUnit( app.getResourceString( "labelUnitChannels" ));	// EEE
+//		ggNumber.setUnit( getResourceString( "labelUnitChannels" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
-		tab.add( ggNumber );
-		lb.setLabelFor( ggNumber );
-		rows++;
+		tab.gridAdd( ggNumber, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_AUDIORATE;
 		key2	= "prefsAudioRate";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggNumber  = new PrefNumberField();
 		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 768000 ));
-//		ggNumber.setUnit( app.getResourceString( "labelUnitHertz" ));	// EEE
+//		ggNumber.setUnit( getResourceString( "labelUnitHertz" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
-		tab.add( ggNumber );
-		lb.setLabelFor( ggNumber );
-		rows++;
+		tab.gridAdd( ggNumber, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_RTSENSEBUFSIZE;
 		key2	= "prefsRTSenseBufSize";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggNumber  = new PrefNumberField();
 		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 60000 ));
-//		ggNumber.setUnit( app.getResourceString( "labelUnitMillisec" ));	// EEE
+//		ggNumber.setUnit( getResourceString( "labelUnitMillisec" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
-		tab.add( ggNumber );
-		lb.setLabelFor( ggNumber );
-		rows++;
+		tab.gridAdd( ggNumber, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_RTMAXSENSERATE;
 		key2	= "prefsRTMaxSenseRate";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggNumber  = new PrefNumberField();
 		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 768000 ));
-//		ggNumber.setUnit( app.getResourceString( "labelUnitHertz" ));	// EEE
+//		ggNumber.setUnit( getResourceString( "labelUnitHertz" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
-		tab.add( ggNumber );
-		lb.setLabelFor( ggNumber );
-		rows++;
+		tab.gridAdd( ggNumber, 1, row );
 
+		row++;
 		key		= PrefsUtil.KEY_OLSENSEBUFSIZE;
 		key2	= "prefsOLSenseBufSize";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggNumber  = new PrefNumberField();
 		ggNumber.setSpace( NumberSpace.createIntSpace( 1, 60000 ));
-//		ggNumber.setUnit( app.getResourceString( "labelUnitMillisec" ));	// EEE
+//		ggNumber.setUnit( getResourceString( "labelUnitMillisec" ));	// EEE
 		ggNumber.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggNumber, key2 );	// EEE
-		tab.add( ggNumber );
-		lb.setLabelFor( ggNumber );
-		rows++;
+		tab.gridAdd( ggNumber, 1, row );
 
-		key2	= "prefsPlugIns";
-		GUIUtil.makeCompactSpringGrid( tab, rows, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
-		tabWrap = new JPanel( new BorderLayout() );
-		tabWrap.add( tab, BorderLayout.NORTH );
-//        HelpGlassPane.setHelp( tabWrap, key2 );	// EEE
-		ggTabPane.addTab( app.getResourceString( key2 ), null, tabWrap, null );
+		addTab( ggTabPane, tab, "prefsPlugIns" );
 
-       // ---------- session pane ----------
+		// ---------- session pane ----------
 
 		prefs   = app.getUserPrefs().node( PrefsUtil.NODE_SESSION );
-		tab		= new JPanel();
-		lay		= new SpringLayout();
-		tab.setLayout( lay );
-		rows	= 0;
+		tab		= createTab();
+		row	= 0;
 
 		key		= PrefsUtil.KEY_COMMENT;
 		key2	= "prefsComment";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggArea  = new PrefTextArea( 6, 32 );
 		ggArea.setPreferences( prefs, key );
 //        HelpGlassPane.setHelp( ggArea, key2 );	// EEE
-		tab.add( ggArea );
-		lb.setLabelFor( ggArea );
-		rows++;
+		tab.gridAdd( ggArea, 1, row );
 
+		row++;
 		key2	= "prefsSenseRate";
-		lb		= new JLabel( app.getResourceString( key2 ), JLabel.TRAILING );
-		tab.add( lb );
+		lb		= new JLabel( getResourceString( key2 ), JLabel.TRAILING );
+		tab.gridAdd( lb, 0, row );
 		ggRate  = new PrefNumberField();
 		ggRate.setSpace( NumberSpace.createIntSpace( 1, 768000 ));
-//		ggRate.setUnit( app.getResourceString( "labelUnitHertz" ));	// EEE
+//		ggRate.setUnit( getResourceString( "labelUnitHertz" ));	// EEE
 //		ggNumber.setPreferences( prefs, key );
-		tab.add( ggRate );
-		lb.setLabelFor( ggRate );
+		tab.gridAdd( ggRate, 1, row );
 		ggRate.addListener( new NumberListener() {
 			public void numberChanged( NumberEvent e )
 			{
@@ -384,41 +404,64 @@ implements TimelineListener, DynamicListening
 			}
 		});
 //        HelpGlassPane.setHelp( ggRate, key2 );	// EEE
-		tab.add( ggRate );
-		lb.setLabelFor( ggRate );
-		rows++;
+		tab.gridAdd( ggRate, 1, row );
 
-		key2	= "prefsSession";
-		GUIUtil.makeCompactSpringGrid( tab, rows, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
-		tabWrap = new JPanel( new BorderLayout() );
-		tabWrap.add( tab, BorderLayout.NORTH );
-//        HelpGlassPane.setHelp( tabWrap, key2 );	// EEE
-		ggTabPane.addTab( app.getResourceString( key2 ), null, tabWrap, null );
+		addTab( ggTabPane, tab, "prefsSession" );
 
 		// ---------- generic gadgets ----------
 
-        ggButton	= new JButton( app.getResourceString( "buttonClose" ));
-        buttonPanel = new JPanel( new FlowLayout( FlowLayout.RIGHT, 4, 4 ));
-        buttonPanel.add( ggButton );
-        ggButton.addActionListener( new ActionListener() {
-			public void actionPerformed( ActionEvent newEvent )
-			{
-				setVisible( false );
-                dispose();
-			}	
-		});
-
-		cp.setLayout( new BorderLayout() );
 		cp.add( ggTabPane, BorderLayout.CENTER );
-        cp.add( buttonPanel, BorderLayout.SOUTH );
-		GUIUtil.setDeepFont( cp, fnt );
+		AbstractWindowHandler.setDeepFont( cp );
 
 		// ---------- listeners ----------
 		addDynamicListening( this );
 		
+		addListener( new AbstractWindow.Adapter() {
+			public void windowClosing( AbstractWindow.Event e )
+			{
+				setVisible( false );
+				dispose();
+			}
+		});
+
+		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
 		init();
-		pack();
+		app.addComponent( Main.COMP_PREFS, this );
+  	}
+
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_PREFS );
+		super.dispose();
+	}
+
+    private SpringPanel createTab()
+    {
+    	return new SpringPanel( 2, 1, 4, 2 );
     }
+    
+    private void addTab( JTabbedPane ggTabPane, SpringPanel tab, String key )
+    {
+    	final JPanel tabWrap, p;
+    	
+		tab.makeCompactGrid();
+		tabWrap = new JPanel( new BorderLayout() );
+		tabWrap.add( tab, BorderLayout.NORTH );
+		p		= new JPanel( new FlowLayout( FlowLayout.RIGHT ));
+		p.add( new HelpButton( key ));
+		tabWrap.add( p, BorderLayout.SOUTH );
+		ggTabPane.addTab( getResourceString( key ), null, tabWrap, null );
+    }
+	
+    protected boolean autoUpdatePrefs()
+	{
+		return true;
+	}
+
+	protected static String getResourceString( String key )
+	{
+		return AbstractApplication.getApplication().getResourceString( key );
+	}
 
 	private void updateRateGadget()
 	{
@@ -460,4 +503,40 @@ implements TimelineListener, DynamicListening
 	public void timelineSelected( TimelineEvent e ) {}
 	public void timelinePositioned( TimelineEvent e ) {}
     public void timelineScrolled( TimelineEvent e ) {}
+
+ // ---------------- internal classes ---------------- 
+
+	private static class WarnPrefsChange
+	implements ActionListener
+	{
+		private final PreferenceEntrySync	pes;
+		private final Component				c;
+		private final Flag					haveWarned;
+		private final String				text;
+		private final String				title;
+		private final String				initialValue;
+	
+		protected WarnPrefsChange( PreferenceEntrySync pes, Component c, Flag haveWarned, String text, String title )
+		{
+			this.pes		= pes;
+			this.c			= c;
+			this.haveWarned	= haveWarned;
+			this.text		= text;
+			this.title		= title;
+			
+			initialValue	= pes.getPreferenceNode().get( pes.getPreferenceKey(), null );
+		}
+
+		public void actionPerformed( ActionEvent e )
+		{
+			final String newValue = pes.getPreferenceNode().get( pes.getPreferenceKey(), initialValue );
+		
+			if( !newValue.equals( initialValue ) && !haveWarned.isSet() ) {
+				final JOptionPane op = new JOptionPane( text, JOptionPane.INFORMATION_MESSAGE );
+//				JOptionPane.showMessageDialog( c, text, title, JOptionPane.INFORMATION_MESSAGE );
+				BasicWindowHandler.showDialog( op, c, title );
+				haveWarned.set( true );
+			}
+		}
+	}
 }

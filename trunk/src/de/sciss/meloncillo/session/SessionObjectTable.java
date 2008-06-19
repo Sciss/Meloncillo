@@ -2,7 +2,7 @@
  *  SessionObjectTable.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -33,22 +33,48 @@
 
 package de.sciss.meloncillo.session;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.table.*;
-import javax.swing.undo.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.AbstractCellEditor;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.undo.CompoundEdit;
+
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Document;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.NumberEvent;
+import de.sciss.gui.NumberField;
+import de.sciss.gui.NumberListener;
+import de.sciss.gui.PathEvent;
+import de.sciss.gui.PathField;
+import de.sciss.gui.PathListener;
+import de.sciss.gui.StringItem;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.EditPutMapValue;
+import de.sciss.meloncillo.util.LockManager;
+import de.sciss.meloncillo.util.MapManager;
 import de.sciss.util.NumberSpace;
-
-import de.sciss.app.*;
-import de.sciss.gui.*;
 
 /**
  *	This class is used to display a session object's
@@ -68,13 +94,13 @@ extends JTable
 implements DynamicListening
 {
 	private final Main					root;
-	private final de.sciss.app.Document	doc;
+	private final Document				doc;
 	private final LockManager			lm;
 	private final int					doors;
 	private final Object				sync		= new Object();
-	private final java.util.List		keys		= new ArrayList();
-	private final java.util.Map			contexts	= new HashMap();
-	private final java.util.List		collObjects	= new ArrayList();
+	private final List					keys		= new ArrayList();
+	private final Map					contexts	= new HashMap();
+	private final List					collObjects	= new ArrayList();
 	private final AbstractTableModel	model;
 	private final TableCellEditor		editor;
 	
@@ -415,7 +441,8 @@ implements DynamicListening
 			if( ggNumberField == null ) {
 				ggNumberField = new NumberField( NumberSpace.genericDoubleSpace );
 				ggNumberField.addListener( this );
-				GUIUtil.setDeepFont( ggNumberField, GraphicsUtil.smallGUIFont );
+//				GUIUtil.setDeepFont( ggNumberField, GraphicsUtil.smallGUIFont );
+				AbstractWindowHandler.setDeepFont( ggNumberField );
 			}
 		}
 		
@@ -471,7 +498,8 @@ implements DynamicListening
 						if( ggCheckBox == null ) {
 							ggCheckBox = new JCheckBox();
 							ggCheckBox.setFocusable( false );
-							GUIUtil.setDeepFont( ggCheckBox, GraphicsUtil.smallGUIFont );
+//							GUIUtil.setDeepFont( ggCheckBox, GraphicsUtil.smallGUIFont );
+							AbstractWindowHandler.setDeepFont( ggCheckBox );
 						} else {
 							ggCheckBox.removeActionListener( this );
 						}
@@ -484,7 +512,8 @@ implements DynamicListening
 						if( c.typeConstraints != null && (c.typeConstraints instanceof StringItem[]) ) {
 							if( ggComboBox == null ) {
 								ggComboBox		= new JComboBox();
-								GUIUtil.setDeepFont( ggComboBox, GraphicsUtil.smallGUIFont );
+//								GUIUtil.setDeepFont( ggComboBox, GraphicsUtil.smallGUIFont );
+								AbstractWindowHandler.setDeepFont( ggComboBox );
 								panelComboBox	= new JPanel( new BorderLayout() );
 								panelComboBox.add( ggComboBox, BorderLayout.WEST );
 								ggComboBox.setFocusable( false );	// because on Aqua it looks truncated
@@ -506,9 +535,8 @@ implements DynamicListening
 								ggTextField		= new JTextField();
 								panelTextField	= new JPanel( new BorderLayout() );
 								panelTextField.add( ggTextField, BorderLayout.NORTH );
-								GUIUtil.setDeepFont( ggTextField, GraphicsUtil.smallGUIFont );
-//								ggTextField.setMaximumSize( new Dimension(
-//									ggTextField.getMaximumSize().width, ggTextField.getPreferredSize().height ));
+//								GUIUtil.setDeepFont( ggTextField, GraphicsUtil.smallGUIFont );
+								AbstractWindowHandler.setDeepFont( ggTextField );
 								ggTextField.addActionListener( this );
 							}
 							ggTextField.setText( (value == null) ? "" : value.toString() );
@@ -527,7 +555,8 @@ implements DynamicListening
 						if( ggPath == null ) {
 							ggPath = new PathField( type.intValue(), c.label );
 							ggPath.addPathListener( this );
-							GUIUtil.setDeepFont( ggPath, GraphicsUtil.smallGUIFont );
+//							GUIUtil.setDeepFont( ggPath, GraphicsUtil.smallGUIFont );
+							AbstractWindowHandler.setDeepFont( ggPath );
 							mapPathFields.put( type, ggPath );
 						}
 						ggPath.setPath( (value == null) || !(value instanceof File) ?
@@ -537,7 +566,8 @@ implements DynamicListening
 					default:
 						if( ggLabel == null ) {
 							ggLabel = new JLabel();
-							GUIUtil.setDeepFont( ggLabel, GraphicsUtil.smallGUIFont );
+//							GUIUtil.setDeepFont( ggLabel, GraphicsUtil.smallGUIFont );
+							AbstractWindowHandler.setDeepFont( ggLabel );
 						}
 						ggLabel.setText( keys.get( row ).toString() );
 						return ggLabel;

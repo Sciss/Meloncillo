@@ -2,7 +2,7 @@
  *  LispPlugIn.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -35,31 +35,72 @@
 
 package de.sciss.meloncillo.plugin;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.*;
-import java.util.prefs.*;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.Point;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PushbackReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
+import java.util.prefs.Preferences;
 
-import javax.swing.*;
-import javax.xml.parsers.*;
-import org.w3c.dom.*;
-import org.xml.sax.*;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SpringLayout;
+import javax.swing.SwingUtilities;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
-import org.jatha.compile.*;
-import org.jatha.dynatype.*;
-import org.jatha.machine.*;
-import org.jatha.read.*;
+import org.jatha.compile.CompilerException;
+import org.jatha.compile.LispCompiler;
+import org.jatha.dynatype.LispHashTable;
+import org.jatha.dynatype.LispNumber;
+import org.jatha.dynatype.LispString;
+import org.jatha.dynatype.LispValue;
+import org.jatha.machine.SECDMachine;
+import org.jatha.read.LispParser;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.lisp.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
-import de.sciss.gui.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicPrefChangeManager;
+import de.sciss.app.EventManager;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.PrefCheckBox;
+import de.sciss.gui.PrefComboBox;
+import de.sciss.gui.StringItem;
 import de.sciss.io.IOUtil;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.lisp.AdvancedJatha;
+import de.sciss.meloncillo.lisp.BasicLispPrimitive;
+import de.sciss.meloncillo.lisp.ExecutePrimitive;
+import de.sciss.meloncillo.lisp.GadgetMakePrimitive;
+import de.sciss.meloncillo.lisp.SessionPropAddPrimitive;
+import de.sciss.meloncillo.lisp.TempFileMakePrimitive;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionGroup;
+import de.sciss.meloncillo.session.SessionObject;
+import de.sciss.meloncillo.util.MapManager;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  A basic superclass for all lisp code executing
@@ -163,11 +204,10 @@ implements PlugIn, PreferenceChangeListener
 	private PrefCheckBox			ggVerbose;
 	private JButton					ggReload;
 	private JPanel					panelLispGUI			= null;
-	private static final Font		fnt						= GraphicsUtil.smallGUIFont;
 
 	// ----------- lisp related -----------
 	private File					synthControlListFile	= null;
-	private java.util.List			collSynthControls		= new ArrayList();
+	private List					collSynthControls		= new ArrayList();
 
 	private String					lispSourceName			= null;
 	private boolean					contextKnown			= false;
@@ -697,7 +737,7 @@ implements PlugIn, PreferenceChangeListener
 				if( node.hasAttribute( "name" ) && node.hasAttribute( "screenname" )) {
 					collSynthControls.add( node );
 					ggLispSource.addItem( new StringItem( node.getAttribute( "name" ),
-															node.getAttribute( "screenname" )));
+					                                      node.getAttribute( "screenname" )));
 				}
 			}
 		}
@@ -746,7 +786,8 @@ implements PlugIn, PreferenceChangeListener
 //		if( (numGadgets & 1) == 1 ) {   // fill to even number of gadgets because of two column display
 //			panelLispGUI.add( new JLabel() );
 //		}
-		GUIUtil.setDeepFont( panelLispGUI, fnt );
+//		GUIUtil.setDeepFont( panelLispGUI, fnt );
+		AbstractWindowHandler.setDeepFont( panelLispGUI );
 //		GUIUtil.makeCompactSpringGrid( panelLispGUI, numGadgets >> 1, 2, 4, 2, 4, 2 );	// #row #col initx inity padx pady
 		ancestor = (Window) SwingUtilities.getAncestorOfClass( Window.class, this );
 		if( ancestor != null ) ancestor.pack();

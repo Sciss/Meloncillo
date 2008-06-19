@@ -2,7 +2,7 @@
  *  TimelineFrame.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -40,6 +40,7 @@ package de.sciss.meloncillo.timeline;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 import java.io.*;
 import java.util.*;
 import javax.swing.*;
@@ -94,7 +95,7 @@ import de.sciss.io.*;
  *	</pre>
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 19-Jun-08
  *
  *  @see	de.sciss.meloncillo.transmitter.TransmitterRowHeader
  *  @see	de.sciss.meloncillo.transmitter.TransmitterEditor
@@ -190,17 +191,18 @@ implements  TimelineListener, ToolActionListener,
 		this.doc	= doc;
 		transport   = root.transport;
 
-		final Container					cp		= getContentPane();
-//		final JRootPane					rp		= getRootPane();
-		final InputMap					imap	= getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW );
-		final ActionMap					amap	= getActionMap();
-//		final JSplitPane				split	= new JSplitPane( JSplitPane.HORIZONTAL_SPLIT );
-		final Box						box		= Box.createHorizontalBox();
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+		final Container			cp		= getContentPane();
+		final InputMap			imap	= getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW );
+		final ActionMap			amap	= getActionMap();
+		final Box				box		= Box.createHorizontalBox();
+		final Application		app		= AbstractApplication.getApplication();
+		final JPanel			gp		= GUIUtil.createGradientPanel();
 
 		setTitle( app.getResourceString( "frameTimeline" ));
 
 		ttb			= new TimelineToolBar( root );
+		ttb.setOpaque( false );
+		gp.add( ttb );
 
 		lim			= new LaterInvocationManager( new LaterInvocationManager.Listener() {
 			// o egal
@@ -210,12 +212,11 @@ implements  TimelineListener, ToolActionListener,
 			}
 		});
 
-		cp.setLayout( new BorderLayout() );
 //		rp.setPreferredSize( new Dimension( 640, 640 )); // XXX
 		
         axis        = new TimelineAxis( root, doc );
 		ggTrackPanel= new TrackPanel();
-ggTrackPanel.setPreferredSize( new Dimension( 640, 640 ));
+ggTrackPanel.setPreferredSize( new Dimension( 640, 320 ));
 		ggTrackPanel.setOpaque( false );	// crucial for correct TimelineViewport() paint update calls!
 		ggTrackPanel.setLayout( new SpringLayout() );
 		ggTrackRowHeaderPanel = new JPanel();
@@ -241,7 +242,7 @@ ggTrackPanel.setPreferredSize( new Dimension( 640, 640 ));
 //		cp.add( split, BorderLayout.CENTER );
 		cp.add( ggScrollPane, BorderLayout.CENTER );
         cp.add( box, BorderLayout.SOUTH );
-		cp.add( ttb, BorderLayout.NORTH );
+		cp.add( gp, BorderLayout.NORTH );
 		
 		// --- Tools ---
 		
@@ -341,6 +342,14 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 			}
 		};
 
+//		addListener( new AbstractWindow.Adapter() {
+//			public void windowClosing( AbstractWindow.Event e )
+//			{
+//				dispose();
+//			}
+//		});
+//		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+
 		// --- Actions ---
 		actionPaste			= new actionPasteClass( app.getResourceString( "menuPaste" ));
 		actionClear			= new actionClearClass( app.getResourceString( "menuClear" ));
@@ -377,13 +386,30 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		// -------
 
 //	    HelpGlassPane.setHelp( getRootPane(), "TimelineFrame" );	// EEE
-		GUIUtil.setDeepFont( cp, GraphicsUtil.smallGUIFont );
+		AbstractWindowHandler.setDeepFont( cp );
 		init();
+		app.addComponent( Main.COMP_TIMELINE, this );
+	}
+
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_TIMELINE );
+		super.dispose();
+	}
+
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
 	}
 
 	protected boolean alwaysPackSize()
 	{
 		return false;
+	}
+
+	protected Point2D getPreferredLocation()
+	{
+		return new Point2D.Float( 0.95f, 0.25f );
 	}
 
 	private void revalidateView()

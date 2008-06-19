@@ -2,7 +2,7 @@
  *  VectorTransformFilter.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -37,24 +37,44 @@
 
 package de.sciss.meloncillo.render;
 
-import java.awt.*;
-import java.io.*;
-import java.util.*;
-import java.util.prefs.*;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Window;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
+import java.util.prefs.Preferences;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.math.*;
-import de.sciss.meloncillo.plugin.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicPrefChangeManager;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.PrefComboBox;
+import de.sciss.gui.PrefCheckBox;
+import de.sciss.gui.PrefNumberField;
+import de.sciss.gui.StringItem;
+import de.sciss.io.AudioFile;
+import de.sciss.io.AudioFileDescr;
+import de.sciss.io.IOUtil;
+import de.sciss.io.InterleavedStreamFile;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.math.VectorTransformer;
+import de.sciss.meloncillo.plugin.PlugInContext;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
 import de.sciss.util.NumberSpace;
-
-import de.sciss.app.*;
-import de.sciss.gui.*;
-import de.sciss.io.*;
 
 /**
  *	A trajectory filter plug-in
@@ -101,7 +121,6 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 	private PrefComboBox		ggTransformX, ggTransformY, ggMode;
 	private PrefNumberField		ggCenterX, ggCenterY;
 	private JScrollPane			funcGUIX, funcGUIY;
-	private static final Font	fnt			= GraphicsUtil.smallGUIFont;
 	private int					modeState   = -1;   // GUI display state: 0 for cartesian, 1 for polar
 
 	// option map keys
@@ -332,7 +351,8 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 					((VectorTransformer) producer).setPreferences( classPrefs.node( trnsPrefsNode ).node(
 						className.substring( className.lastIndexOf( '.' ) + 1 )));
 					view	= producer.getSettingsView( null );		// XXX shouldn't be null
-					GUIUtil.setDeepFont( view, fnt );
+//					GUIUtil.setDeepFont( view, fnt );
+					AbstractWindowHandler.setDeepFont( view );
 					pane.setViewportView( view );
 					ancestor = (Window) SwingUtilities.getAncestorOfClass( Window.class, this );
 					if( ancestor != null ) ancestor.pack();

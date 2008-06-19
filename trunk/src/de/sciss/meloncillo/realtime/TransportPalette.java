@@ -2,7 +2,7 @@
  *  TransportPalette.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -41,10 +41,11 @@ package de.sciss.meloncillo.realtime;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 import java.text.*;
 import java.util.*;
 import javax.swing.*;
-import javax.swing.border.*;
+//import javax.swing.border.*;
 import javax.swing.event.*;
 
 import de.sciss.meloncillo.*;
@@ -89,7 +90,6 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 
 	private final ToolBar			toolBar;
 	private final TimeLabel			lbTime;
-	private static final Font		fntMono			= new Font( "monospaced", Font.PLAIN, 12 );
 	
 	private int						rate;
 	private int						customGroup		= 3;
@@ -114,19 +114,23 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 	public TransportPalette( final Main root, final Session doc )
 	{
 		super( PALETTE );
-		setTitle( AbstractApplication.getApplication().getResourceString( "paletteTransport" ));
+		setResizable( false );
 		
 		this.doc	= doc;
 		transport   = root.transport;
 
 //        final int		ctrlShift   = KeyEvent.CTRL_MASK + KeyEvent.SHIFT_MASK;
         final Container	cp			= getContentPane();
-		final Box		b			= Box.createHorizontalBox();
 
 		final AbstractAction	actionPlay, actionStop, actionGoToTime;
 		final JButton			ggFFwd, ggRewind;
+		final JPanel			gp	= GUIUtil.createGradientPanel();
+		final Application		app	= AbstractApplication.getApplication();
+
+		setTitle( app.getResourceString( "paletteTransport" ));
 
 		toolBar			= new ToolBar( root, ToolBar.HORIZONTAL );
+		toolBar.setOpaque( false );
 
         ggRewind		= new JButton();
 		GraphicsUtil.setToolIcons( ggRewind, GraphicsUtil.createToolIcons( GraphicsUtil.ICON_REWIND ));
@@ -168,13 +172,11 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 //        HelpGlassPane.setHelp( toolBar, "TransportTools" );	// EEE
         
 		actionGoToTime  = new actionGoToTimeClass( KeyStroke.getKeyStroke( KeyEvent.VK_G, 0 ));
-//		lbTime			= new JLabel( " " );	// occupy same space for the pack() call
-//		lbTime.setBorder( new EmptyBorder( 0, 8, 0, 8 ));
+		
 		lbTime			= new TimeLabel();
-//        HelpGlassPane.setHelp( lbTime, "TransportPosition" );	// EEE
-        lbTime.setBorder( new EmptyBorder( 1, 24, 1, 8 ));
+		lbTime.setOpaque( false );
+//      HelpGlassPane.setHelp( lbTime, "TransportPosition" );
 		lbTime.setCursor( new Cursor( Cursor.HAND_CURSOR ));
-		lbTime.setForeground( Color.black );
 		lbTime.addMouseListener( new MouseAdapter() {
 			public void mouseClicked( MouseEvent e )
 			{
@@ -193,15 +195,22 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 			}
 		});
 //		root.menuFactory.addGlobalKeyCommand( actionGoToTime );	// EEE
-		b.add( lbTime );
-		b.add( Box.createRigidArea( new Dimension( 16, 16 )));
 		
-        cp.setLayout( new BorderLayout() );
-		cp.add( toolBar, BorderLayout.NORTH );
-		cp.add( b, BorderLayout.SOUTH );
+		gp.add( toolBar );
+		gp.add( Box.createHorizontalStrut( 8 ));
+		gp.add( lbTime );
+		cp.add( gp );
 		
 		// --- Listener ---
 		addDynamicListening( this );
+
+//		addListener( new AbstractWindow.Adapter() {
+//			public void windowClosing( AbstractWindow.Event e )
+//			{
+//				dispose();
+//			}
+//		});
+//		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
 
 		cueTimer = new javax.swing.Timer( 25, new ActionListener() {
 			public void actionPerformed( ActionEvent e )
@@ -218,15 +227,22 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 		});
 
 		init();
+		app.addComponent( Main.COMP_TRANSPORT, this );
 	}
-	
+
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_OBSERVER );
+		super.dispose();
+	}
+
 	/**
 	 *	Causes the timeline position label
 	 *	to blink red to indicate a dropout error
 	 */
 	public void blink()
 	{
-		lbTime.blink();
+//		lbTime.blink();	// EEE
 	}
 
 	/**
@@ -242,6 +258,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 		} else {
 			toolBar.addButton( b );
 		}
+		pack();
 	}
 
 // ---------------- DynamicListening interface ---------------- 
@@ -262,6 +279,16 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 		transport.removeRealtimeConsumer( this );
     }
     
+	protected boolean autoUpdatePrefs()
+	{
+		return true;
+	}
+
+	protected Point2D getPreferredLocation()
+	{
+		return new Point2D.Float( 0.65f, 0.05f );
+	}
+
 // ---------------- RealtimeConsumer interface ---------------- 
 
 	/**
@@ -279,15 +306,17 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 		return request;
 	}
 	
-	public void realtimeTick( RealtimeContext context, RealtimeProducer.Source source, long currentPos )
+	public void realtimeTick( RealtimeContext context, RealtimeProducer.Source source, long pos )
 	{
-		lbTime.wahrnehmungsApparillo( (int) ((double) (currentPos * 1000) / context.getSourceRate() + 0.5 ));
+//		lbTime.wahrnehmungsApparillo( (int) ((double) (pos * 1000) / context.getSourceRate() + 0.5 ));
+		lbTime.setTime( new Double( (double) pos / context.getSourceRate() ));
 	}
 
-	public void offhandTick( RealtimeContext context, RealtimeProducer.Source source, long currentPos )
+	public void offhandTick( RealtimeContext context, RealtimeProducer.Source source, long pos )
 	{
-		lbTime.wahrnehmungsApparillo( (int) ((double) (currentPos * 1000) / context.getSourceRate() + 0.5 ));
-		if( !isCueing ) cuePos = currentPos;
+//		lbTime.wahrnehmungsApparillo( (int) ((double) (pos * 1000) / context.getSourceRate() + 0.5 ));
+		lbTime.setTime( new Double( (double) pos / context.getSourceRate() ));
+		if( !isCueing ) cuePos = pos;
 	}
 
 	public void realtimeBlock( RealtimeContext context, RealtimeProducer.Source source, boolean even ) {}
@@ -339,82 +368,6 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 	}
 	
 	public void transportPosition( long pos ) {}
-
-// ---------------- time label class ---------------- 
-
-	private class TimeLabel
-	extends JComponent
-	{
-		private byte[]		wahrnehmung		= {
-			0x20, 0x20, 0x020, 0x3A, 0x20, 0x20, 0x2E, 0x20, 0x20, 0x20
-		};
-		private Dimension   preferredSize   = new Dimension( 100, 14 ); // XXX Test
-		private Color		colr;
-		private long		resetWhen;
-	
-		private TimeLabel()
-		{
-			super();
-
-			setFont( fntMono );
-		}
-		
-		private void blink()
-		{
-			colr		= Color.red;
-			resetWhen   = System.currentTimeMillis() + 150;
-			repaint();
-		}
-		
-		private void blue()
-		{
-			colr		= Color.blue;
-			repaint();
-		}
-		
-		private void black()
-		{
-			colr		= Color.black;
-			repaint();
-		}
-		
-		public Dimension getPreferredSize()
-		{
-			return preferredSize;
-		}
-		
-		private void wahrnehmungsApparillo( int millis )
-		{
-			int mins, secs, msecs;
-		
-			secs	= millis / 1000;
-			mins	= secs / 60;
-			msecs   = millis - secs * 1000;
-			secs   -= mins * 60;
-
-			wahrnehmung[ 9 ] = (byte) ((msecs % 10) + 0x30);
-			wahrnehmung[ 8 ] = (byte) (((msecs/10) % 10) + 0x30);
-			wahrnehmung[ 7 ] = (byte) (((msecs/100) % 10 ) + 0x30);
-			wahrnehmung[ 5 ] = (byte) ((secs % 10 ) + 0x30);
-			wahrnehmung[ 4 ] = (byte) (((secs/10) % 10 ) + 0x30);
-			wahrnehmung[ 2 ] = (byte) ((mins % 10 ) + 0x30);
-			wahrnehmung[ 1 ] = (byte) (mins >= 10 ? ((mins/10) % 10 ) + 0x30 : 0x20);
-			wahrnehmung[ 0 ] = (byte) (mins >= 100 ? ((mins/100) % 10 ) + 0x30 : 0x20);
-			
-			repaint();
-		}
-		
-		public void paintComponent( Graphics g )
-		{
-			super.paintComponent( g );
-			
-			if( colr == Color.red && System.currentTimeMillis() >= resetWhen ) {
-				colr = Color.black;
-			}
-			g.setColor( colr );
-			g.drawBytes( wahrnehmung, 0, 10, 0, 10 );
-		}
-	}
 
 // ---------------- actions ---------------- 
 

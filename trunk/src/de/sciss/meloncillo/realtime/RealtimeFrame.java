@@ -2,7 +2,7 @@
  *  RealtimeFrame.java
  *  Meloncillo
  *
- *  Copyright (c) 2004-2005 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2004-2008 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -34,6 +34,7 @@
 package de.sciss.meloncillo.realtime;
 
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 import java.io.*;
 import java.util.*;
 import javax.swing.*;
@@ -91,6 +92,19 @@ extends AbstractPlugInFrame
 //		HelpGlassPane.setHelp( this.getRootPane(), "RealtimeDialog" );	// EEE
 		
 		init();
+		AbstractApplication.getApplication().addComponent( Main.COMP_REALTIME, this );
+	}
+
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_REALTIME );
+		super.dispose();
+	}
+
+	protected Point2D getPreferredLocation()
+	{
+		return new Point2D.Float( 0.58f, 0.68f );
+//		return new Point2D.Float( 0.7f, 0.05f );
 	}
 
 	protected void checkReContext()
@@ -114,7 +128,7 @@ extends AbstractPlugInFrame
 //System.err.println( "reContext(). context = "+context+"; plugIn = "+plugIn );
 		if( context != null && plugIn != null ) {
 			view	= plugIn.getSettingsView( context );
-			if( view != null ) GUIUtil.setDeepFont( view, fnt );
+			if( view != null ) AbstractWindowHandler.setDeepFont( view );
 			ggSettingsPane.setViewportView( view );
 			pack();
 			return( view != null );
