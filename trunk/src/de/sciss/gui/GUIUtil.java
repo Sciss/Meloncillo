@@ -58,7 +58,6 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JViewport;
 import javax.swing.KeyStroke;
 import javax.swing.LookAndFeel;
@@ -76,7 +75,7 @@ import de.sciss.app.PreferenceEntrySync;
  *  for common Swing / GUI operations
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.38, 19-Jun-08
+ *  @version	0.38, 20-Jun-08
  */
 public class GUIUtil
 {
@@ -440,7 +439,7 @@ public class GUIUtil
 		return icnNoWrite;
 	}
 	
-	public static JPanel createGradientPanel()
+	public static GradientPanel createGradientPanel()
 	{
 		final GradientPanel		gp		= new GradientPanel();
 		final LookAndFeel		laf		= UIManager.getLookAndFeel();
