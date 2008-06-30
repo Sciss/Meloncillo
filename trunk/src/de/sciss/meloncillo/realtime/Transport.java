@@ -117,8 +117,6 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
 	
 	private final Preferences			plugInPrefs;
 	
-	private final Transport				enc_this	= this;
-
 	// sync : call in event thread!
 	/**
 	 *	Creates a new transport. The thread will
@@ -138,14 +136,12 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
 		rt_context		= null;
 //		calcSenseBufSize();
 //		createContext();
-        
-		final Transport enc_this = this;
-		
+        		
 		// listeners
 		doc.transmitters.addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				synchronized( enc_this ) {
+				synchronized( Transport.this ) {
 					createContext();
 				}
 			}
@@ -153,7 +149,7 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
 			public void sessionObjectChanged( SessionCollection.Event e )
 			{
 				if( e.getModificationType() == Transmitter.OWNER_TRAJ ) {
-					synchronized( enc_this ) {
+					synchronized( Transport.this ) {
 						if( !isRunning() ) {
 							if( rt_context == null ) {
 								createContext();	// will invoke offhandProduction!
@@ -171,7 +167,7 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
 		doc.receivers.addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				synchronized( enc_this ) {
+				synchronized( Transport.this ) {
 					createContext();
 				}
 			}
@@ -181,7 +177,7 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
 				switch( e.getModificationType() ) {
 				case Receiver.OWNER_SENSE:
 				case SessionObject.OWNER_VISUAL:
-					synchronized( enc_this ) {
+					synchronized( Transport.this ) {
 						if( !isRunning() ) {
 							if( rt_context == null ) {
 								createContext();	// will invoke offhandProduction!
@@ -1057,7 +1053,7 @@ ourLp:		for( i = 0; i < rt_numConsumers; i++ ) {
 			boolean					requestSense, requestTraj;
 			RealtimeConsumerRequest req;
 
-			synchronized( enc_this) {
+			synchronized( Transport.this) {
 				System.err.println( "List of realtime consumers:\n" );
 				for( i = 0; i < rt_numConsumers; i++ ) {
 					System.err.println( "  "+rt_consumers[ i ].getClass().getName() );

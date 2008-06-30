@@ -54,7 +54,6 @@ import javax.swing.UIManager;
 
 import de.sciss.app.DocumentHandler;
 import de.sciss.common.BasicApplication;
-import de.sciss.common.BasicDocument;
 import de.sciss.common.BasicMenuFactory;
 import de.sciss.common.BasicWindowHandler;
 import de.sciss.common.ProcessingThread;
@@ -590,7 +589,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 
 		if( pt != null ) {
 			pt.addListener( quitAfterSaveListener );
-			((BasicDocument) pt.getClientArg( "doc" )).start( pt );
+			((Session) pt.getClientArg( "doc" )).start( pt );
 		} else if( confirmed.isSet() ) {
 //			OSCRoot.getInstance().quit();
 //			SuperColliderClient.getInstance().quit();

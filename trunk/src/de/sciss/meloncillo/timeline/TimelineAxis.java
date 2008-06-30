@@ -79,7 +79,7 @@ implements TimelineListener, MouseListener, MouseMotionListener, DynamicListenin
 	 */
 	public TimelineAxis( Main root, Session doc )
 	{
-		super( HORIZONTAL | TIMEFORMAT );
+		super( HORIZONTAL, TIMEFORMAT );
         
         this.doc    = doc;
 		

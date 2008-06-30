@@ -278,7 +278,8 @@ implements  TimelineListener, ToolActionListener,
 		
         axis        = new TimelineAxis( root, doc );
 		ggTrackPanel= new TrackPanel();
-ggTrackPanel.setPreferredSize( new Dimension( 640, 320 ));
+// produces weird scroll bars
+//ggTrackPanel.setPreferredSize( new Dimension( 640, 320 ));
 		ggTrackPanel.setOpaque( false );	// crucial for correct TimelineViewport() paint update calls!
 		ggTrackPanel.setLayout( new SpringLayout() );
 		ggTrackRowHeaderPanel = new JPanel();
@@ -295,13 +296,6 @@ ggTrackPanel.setPreferredSize( new Dimension( 640, 320 ));
             box.add( Box.createHorizontalStrut( 16 ));
         }
         
-//		split.setLeftComponent( new SessionGroupTable( root, doc, doc, SessionGroupTable.VIEW_GROUPS ));
-//		split.setRightComponent( ggScrollPane );
-//		split.setOneTouchExpandable( true );
-//		split.setContinuousLayout( false );
-//		split.setLastDividerLocation( 80 );
-//		split.setDividerLocation( 0 );
-//		cp.add( split, BorderLayout.CENTER );
 		cp.add( ggScrollPane, BorderLayout.CENTER );
         cp.add( box, BorderLayout.SOUTH );
 		cp.add( gp, BorderLayout.NORTH );

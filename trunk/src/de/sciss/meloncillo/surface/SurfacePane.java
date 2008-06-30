@@ -264,8 +264,6 @@ implements  VirtualSurface, TimelineListener,
 //			}
 //		});
 
-		final SurfacePane enc_this = this;
-		
 		cursorListener = new MouseMotionAdapter() {
 			public void mouseMoved( MouseEvent e )
 			{
@@ -287,7 +285,7 @@ implements  VirtualSurface, TimelineListener,
 			
 			public void sessionObjectChanged( SessionCollection.Event e )
 			{
-				if( e.getSource() != enc_this && e.getSource() != activeTool ) {
+				if( e.getSource() != SurfacePane.this && e.getSource() != activeTool ) {
 					switch( e.getModificationType() ) {
 					case SessionObject.OWNER_RENAMED:
 						updateReceiverShapes();
@@ -326,7 +324,7 @@ implements  VirtualSurface, TimelineListener,
 		doc.selectedReceivers.addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				if( e.getSource() != enc_this && e.getSource() != activeTool ) {
+				if( e.getSource() != SurfacePane.this && e.getSource() != activeTool ) {
 					updateReceiverShapes();
 					redrawImage();
 					repaint();
@@ -351,8 +349,8 @@ implements  VirtualSurface, TimelineListener,
 			{
 				if( rt_valid ) {
 					rt_valid = false;
-					transport.removeRealtimeConsumer( enc_this );
-					transport.addRealtimeConsumer( enc_this );
+					transport.removeRealtimeConsumer( SurfacePane.this );
+					transport.addRealtimeConsumer( SurfacePane.this );
 				}
 			}
 			
