@@ -49,9 +49,9 @@ import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
 import de.sciss.meloncillo.gui.AbstractGeomTool;
 import de.sciss.meloncillo.gui.MenuFactory;
 import de.sciss.meloncillo.gui.VirtualSurface;
+import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.BlendSpan;
-import de.sciss.meloncillo.io.MultirateTrackEditor;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.transmitter.Transmitter;
 
@@ -257,7 +257,7 @@ implements ProcessingThread.Client
 	public int processRun( ProcessingThread context ) throws IOException
 	{
 		Transmitter						trns;
-		MultirateTrackEditor			mte;
+		AudioTrail						at;
 		float[][]						interpBuf;
 		float[]							warpedTime;
 		int								i, len;
@@ -290,20 +290,20 @@ implements ProcessingThread.Client
 		try {
 			for( i = 0; i < collTransmitters.size(); i++ ) {
 				trns	= (Transmitter) collTransmitters.get( i );
-				mte		= trns.getTrackEditor();
+				at		= trns.getTrackEditor();
 
-				bs = mte.beginOverwrite( span, bc, edit );
+				bs = at.beginOverwrite( span, bc, edit );
 				for( start = span.getStart(), interpOff = 0; start < span.getStop();
 					 start += len, interpOff += len ) {
 
 					len = (int) Math.min( 4096, span.getStop() - start );
 					calcWarpedTime( warpedTime, interpOff * t_norm, t_norm, len );
 					evaluateFunction( warpedTime, interpBuf, len );
-					mte.continueWrite( bs, interpBuf, 0, len );
+					at.continueWrite( bs, interpBuf, 0, len );
 					progress += len;
 					context.setProgression( (float) progress / (float) progressLen );
 				}
-				mte.finishWrite( bs, edit );
+				at.finishWrite( bs, edit );
 			} // for( i = 0; i < collTransmitters.size(); i++ )
 			
 			edit.end(); // fires doc.tc.modified()

@@ -32,6 +32,7 @@ package de.sciss.meloncillo.edit;
 import java.awt.geom.*;
 import javax.swing.undo.*;
 
+import de.sciss.app.BasicUndoableEdit;
 import de.sciss.meloncillo.receiver.*;
 import de.sciss.meloncillo.session.*;
 

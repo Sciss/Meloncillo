@@ -257,7 +257,7 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 					// change via timelineScrolled might be two big, causing setPosition
 					// to fire more than one edit!
 					timelineVis = new Span( start, stop );
-					doc.getUndoManager().addEdit( new EditSetTimelineScroll( this, doc, timelineVis ));
+					doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( this, doc, timelineVis ));
 					return;
 				}
 			}
@@ -301,7 +301,7 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 					long stop	= Math.min( timelineLen, start + timelineVis.getLength() );
 					start		= Math.max( 0, stop - timelineVis.getLength() );
 					if( stop > start ) {
-						doc.getUndoManager().addEdit( new EditSetTimelineScroll( this, doc, new Span( start, stop )));
+						doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( this, doc, new Span( start, stop )));
 					}
 				}
 				finally {
@@ -376,7 +376,7 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 						AbstractApplication.getApplication().getUserPrefs().node(
 							PrefsUtil.NODE_SHARED ).putBoolean( PrefsUtil.KEY_CATCH, false );
 					}
-					doc.getUndoManager().addEdit( new EditSetTimelineScroll( adjustmentSource, doc, newVisi ));
+					doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( adjustmentSource, doc, newVisi ));
 				}
 			}
 			finally {

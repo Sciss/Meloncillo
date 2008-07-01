@@ -875,7 +875,7 @@ implements  VirtualSurface, TimelineListener,
         float[]					x, y;
         GeneralPath				path	= null;
 		SubsampleInfo			info;
-		MultirateTrackEditor	mte;
+		AudioTrail				at;
 		float					lx, ly;
 		java.util.List			collTrns;
         
@@ -890,7 +890,7 @@ implements  VirtualSurface, TimelineListener,
 			
 			for( i = 0; i < collTrns.size(); i++ ) {
 				trns	= (Transmitter) collTrns.get( i );
-				mte		= trns.getTrackEditor();
+				at		= trns.getTrackEditor();
 				// performance measures show that this routine is
 				// vey fast, like one or two millisecs, while the draw method
 				// of the Graphics2D called in redrawImage() becomes hell
@@ -902,7 +902,7 @@ implements  VirtualSurface, TimelineListener,
 				// it actually contains, and if these exceed 256 we'll restart
 				// with a smaller subsample.
 				for( reqLen = 1024, pathLen = 257, len = -1; pathLen > 256; reqLen >>= 1 ) {
-					info	= mte.getBestSubsample( span, reqLen );
+					info	= at.getBestSubsample( span, reqLen );
 					lastLen = len;
 					len		= (int) info.sublength;
 					if( lastLen == len ) continue;
@@ -910,7 +910,7 @@ implements  VirtualSurface, TimelineListener,
 					if( frames == null || frames[0].length < len ) {
 						frames = new float[2][len];
 					}
-					mte.read( info, frames, 0 );
+					at.read( info, frames, 0 );
 					x		= frames[0];
 					y		= frames[1];
 					path	= new GeneralPath( GeneralPath.WIND_EVEN_ODD, len );
@@ -2450,7 +2450,7 @@ implements  VirtualSurface, TimelineListener,
 		public int processRun( ProcessingThread context )
 		{
 			Transmitter						trns;
-			MultirateTrackEditor			mte;
+			AudioTrail						at;
 			float[][]						interpBuf;
 			float[]							warpedTime;
 			int								i, j, len;
@@ -2492,9 +2492,9 @@ implements  VirtualSurface, TimelineListener,
 			try {
 				for( i = 0; i < collTransmitters.size(); i++ ) {
 					trns	= (Transmitter) collTransmitters.get( i );
-					mte		= trns.getTrackEditor();
+					at		= trns.getTrackEditor();
 
-					bs = mte.beginOverwrite( span, bc, edit );
+					bs = at.beginOverwrite( span, bc, edit );
 					for( start = span.getStart(), interpOff = 0; start < span.getStop();
 						 start += len, interpOff += len ) {
 						 
@@ -2505,11 +2505,11 @@ implements  VirtualSurface, TimelineListener,
 //							warpedTime[j]   = (v_start_norm * t + dv_norm * tt) * 1.5f - 0.25f;  // extrap. 
 						}
 						evaluateFunction( warpedTime, interpBuf, len );
-						mte.continueWrite( bs, interpBuf, 0, len );
+						at.continueWrite( bs, interpBuf, 0, len );
 						progress += len;
 						context.setProgression( (float) progress / (float) progressLen );
 					}
-					mte.finishWrite( bs, edit );
+					at.finishWrite( bs, edit );
 				} // for( i = 0; i < collTransmitters.size(); i++ )
 				
 				edit.end(); // fires doc.tc.modified()

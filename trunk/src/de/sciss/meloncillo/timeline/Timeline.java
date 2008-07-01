@@ -30,15 +30,19 @@
 
 package de.sciss.meloncillo.timeline;
 
-import java.io.*;
-import java.util.*;
-import org.w3c.dom.*;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
+import org.w3c.dom.Element;
 
-import de.sciss.app.*;
-import de.sciss.io.*;
+import de.sciss.app.BasicEvent;
+import de.sciss.app.EventManager;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.edit.TimelineVisualEdit;
+import de.sciss.meloncillo.session.AbstractSessionObject;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.MapManager;
 
 /**
  *  This class describes the document's timeline
@@ -68,7 +72,9 @@ implements EventManager.Processor
     private Span visibleSpan;		// what's being viewed in the TimelineFrame
     private Span selectionSpan;
 
-	/**
+    protected final Session				doc;
+
+    /**
 	 *	Name attribute of the object
 	 *	element in a session's XML file
 	 */
@@ -81,9 +87,11 @@ implements EventManager.Processor
 	/**
 	 *  Creates a new empty timeline
 	 */
-	public Timeline()
+	public Timeline( Session doc )
 	{
 		super();
+
+		this.doc		= doc;
 
 		MapManager	map	= getMap();
 
@@ -319,6 +327,21 @@ implements EventManager.Processor
 	public void removeTimelineListener( TimelineListener listener )
 	{
 		elm.removeListener( listener );
+	}
+
+	public void editPosition( Object source, long pos )
+	{
+		doc.getUndoManager().addEdit( TimelineVisualEdit.position( source, doc, pos ).perform() );	
+	}
+
+	public void editScroll( Object source, Span span )
+	{
+		doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( source, doc, span ).perform() );	
+	}
+
+	public void editSelect( Object source, Span span )
+	{
+		doc.getUndoManager().addEdit( TimelineVisualEdit.select( source, doc, span ).perform() );
 	}
 
 	/**

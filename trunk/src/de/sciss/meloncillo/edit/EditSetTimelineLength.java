@@ -24,16 +24,17 @@
  *
  *
  *  Changelog:
- *		29-Jul-04   commented
+ *		07-Feb-05	created from de.sciss.meloncillo.edit.EditSetTimelineLength
+ *		27-Apr-06	deferred perform
+ *		30-Jun-08	copied back from Eisenkraut
  */
 
 package de.sciss.meloncillo.edit;
 
-import javax.swing.undo.*;
+import de.sciss.app.BasicUndoableEdit;
+import de.sciss.app.PerformableEdit;
 
-import de.sciss.meloncillo.session.*;
-
-import de.sciss.app.*;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  An <code>UndoableEdit</code> that
@@ -41,10 +42,8 @@ import de.sciss.app.*;
  *  to session's <code>Timeline</code> duration.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 27-Apr-06
  *  @see		UndoManager
- *  @see		EditInsertTimeSpan
- *  @see		EditRemoveTimeSpan
  */
 public class EditSetTimelineLength
 extends BasicUndoableEdit
@@ -74,16 +73,8 @@ extends BasicUndoableEdit
 		super();
 		this.source			= source;
 		this.doc			= doc;
-		this.newLength		= length;
-		try {
-			doc.bird.waitExclusive( Session.DOOR_TIME );
-			this.oldLength	= doc.timeline.getLength();
-			doc.timeline.setLength( source, newLength );
-			this.source		= this;
-		}
-		finally {
-			doc.bird.releaseExclusive( Session.DOOR_TIME );
-		}
+		newLength			= length;
+		oldLength			= doc.timeline.getLength();
 	}
 
 	/**
@@ -96,13 +87,14 @@ extends BasicUndoableEdit
 	public void undo()
 	{
 		super.undo();
-		try {
-			doc.bird.waitExclusive( Session.DOOR_TIME );
-			doc.timeline.setLength( source, oldLength );
-		}
-		finally {
-			doc.bird.releaseExclusive( Session.DOOR_TIME );
-		}
+		doc.timeline.setLength( source, oldLength );
+	}
+	
+	public PerformableEdit perform()
+	{
+		doc.timeline.setLength( source, newLength );
+		source		= this;
+		return this;
 	}
 	
 	/**
@@ -118,13 +110,7 @@ extends BasicUndoableEdit
 	public void redo()
 	{
 		super.redo();
-		try {
-			doc.bird.waitExclusive( Session.DOOR_TIME );
-			doc.timeline.setLength( source, newLength );
-		}
-		finally {
-			doc.bird.releaseExclusive( Session.DOOR_TIME );
-		}
+		perform();
 	}
 
 	public String getPresentationName()

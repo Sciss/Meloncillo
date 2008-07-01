@@ -85,14 +85,15 @@ extends CompoundEdit
 			length  = span.getLength();
 			this.addEdit( new EditSetTimelineLength( source, doc, doc.timeline.getLength() + length ));
 			if( doc.timeline.getPosition() > span.getStart() ) {
-				this.addEdit( new EditSetTimelinePosition( source, doc, doc.timeline.getPosition() + length ));
+//				this.addEdit( new EditSetTimelinePosition( source, doc, doc.timeline.getPosition() + length ));
+				this.addEdit( TimelineVisualEdit.position( source, doc, doc.timeline.getPosition() + length ));
 			}
 			selectionSpan = doc.timeline.getSelectionSpan();
 			if( selectionSpan.contains( span.getStart() )) {
-				this.addEdit( new EditSetTimelineSelection( source, doc,
+				this.addEdit( TimelineVisualEdit.select( source, doc,
 					new Span( selectionSpan.getStart(), selectionSpan.getStop() + length )));
 			} else if( selectionSpan.getStart() > span.getStart() ) {
-				this.addEdit( new EditSetTimelineSelection( source, doc,
+				this.addEdit( TimelineVisualEdit.select( source, doc,
 					new Span( selectionSpan.getStart() + length, selectionSpan.getStop() + length )));
 			}
 			this.end();

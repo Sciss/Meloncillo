@@ -92,27 +92,27 @@ extends CompoundEdit
 			visibleSpan = doc.timeline.getVisibleSpan();
 			newLength   = doc.timeline.getLength() - spanLength;
 			if( visibleSpan.getStop() > newLength ) {
-				this.addEdit( new EditSetTimelineScroll( source, doc,
+				this.addEdit( TimelineVisualEdit.scroll( source, doc,
 					new Span( Math.max( 0, newLength - visibleSpan.getLength() ), newLength )));
 			}
 			selectionSpan = doc.timeline.getSelectionSpan();
 			if( selectionSpan.contains( span.getStart() )) {
 				if( selectionSpan.contains( span.getStop() )) {
-					this.addEdit( new EditSetTimelineSelection( source, doc,
+					this.addEdit( TimelineVisualEdit.select( source, doc,
 						new Span( selectionSpan.getStart(), selectionSpan.getStop() - spanLength )));
 				} else {
-					this.addEdit( new EditSetTimelineSelection( source, doc,
+					this.addEdit( TimelineVisualEdit.select( source, doc,
 						new Span( selectionSpan.getStart(), span.getStart() )));
 				}
 			} else if( selectionSpan.getStart() > span.getStart() ) {
-				this.addEdit( new EditSetTimelineSelection( source, doc,
+				this.addEdit( TimelineVisualEdit.select( source, doc,
 					new Span( selectionSpan.getStart() - spanLength, selectionSpan.getStop() - spanLength )));
 			}
 			position = doc.timeline.getPosition();
 			if( span.contains( position )) {
-				this.addEdit( new EditSetTimelinePosition( source, doc, span.getStart() ));
+				this.addEdit( TimelineVisualEdit.position( source, doc, span.getStart() ));
 			} else if( position >= span.getStop() ) {
-				this.addEdit( new EditSetTimelinePosition( source, doc, position - spanLength ));
+				this.addEdit( TimelineVisualEdit.position( source, doc, position - spanLength ));
 			}
 			this.addEdit( new EditSetTimelineLength( source, doc, newLength ));
 			this.end();

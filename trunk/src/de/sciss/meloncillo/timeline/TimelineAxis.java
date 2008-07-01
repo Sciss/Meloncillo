@@ -140,16 +140,16 @@ implements TimelineListener, MouseListener, MouseMotionListener, DynamicListenin
 				}
 				span	= new Span( Math.min( position, selectionStart ),
 									Math.max( position, selectionStart ));
-				edit	= new EditSetTimelineSelection( this, doc, span );
+				edit	= TimelineVisualEdit.select( this, doc, span );
             } else {
 				if( altDrag ) {
 					edit	= new CompoundEdit();
-					edit.addEdit( new EditSetTimelineSelection( this, doc, new Span() ));
-					edit.addEdit( new EditSetTimelinePosition( this, doc, position ));
+					edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ));
+					edit.addEdit( TimelineVisualEdit.position( this, doc, position ));
 					((CompoundEdit) edit).end();
 					altDrag = false;
 				} else {
-					edit	= new EditSetTimelinePosition( this, doc, position );
+					edit	= TimelineVisualEdit.position( this, doc, position );
 				}
             }
 			doc.getUndoManager().addEdit( edit );

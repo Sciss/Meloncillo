@@ -55,7 +55,7 @@ extends AbstractTransmitter
 
 	private static final Class	defaultEditor		= SimpleTransmitterEditor.class;
     
-    private final MultirateTrackEditor mte;
+    private final AudioTrail at;
 	private static final int[] decimations	= { 0, 2, 4, 6, 8, 10, 12 };
 
 	/**
@@ -64,7 +64,7 @@ extends AbstractTransmitter
 	public SimpleTransmitter()
 	{
 		super();
-		mte = new MultirateTrackEditor( 2, 1000, MultirateTrackEditor.MODEL_MEDIAN, decimations );	// XXX rate
+		at = new AudioTrail( 2, 1000, AudioTrail.MODEL_MEDIAN, decimations );	// XXX rate
 	}
 
 	public Class getDefaultEditor()
@@ -72,9 +72,9 @@ extends AbstractTransmitter
 		return defaultEditor;
 	}
 	
-	public MultirateTrackEditor getTrackEditor()
+	public AudioTrail getTrackEditor()
 	{
-		return mte;
+		return at;
 	}
 
 // ---------------- XMLRepresentation imterface ---------------- 
@@ -124,14 +124,14 @@ extends AbstractTransmitter
 		}
 		afd					= new AudioFileDescr();
 		afd.type			= AudioFileDescr.TYPE_AIFF;
-		afd.rate			= mte.getRate();
+		afd.rate			= at.getRate();
 		afd.channels		= 2;
 		afd.bitsPerSample	= 32;
 		afd.sampleFormat	= AudioFileDescr.FORMAT_FLOAT;
 		afd.file			= f;
 
 		iff					= AudioFile.openAsWrite( afd );
-		mte.flatten( iff );
+		at.flatten( iff );
 		iff.truncate();
 		iff.close();
 		
@@ -162,7 +162,7 @@ extends AbstractTransmitter
 		InterleavedStreamFile iff = AudioFile.openAsRead( new File( new File(
 			(File) options.get( XMLRepresentation.KEY_BASEPATH ), SUBDIR ), getName() + SUFFIX_TRAJECTORY ));
 			
-		mte.clear();
-		mte.insert( iff, 0, new Span( 0, iff.getFrameNum() ), null, 0.0f, 1.0f );		// XXX edit ?
+		at.clear();
+		at.insert( iff, 0, new Span( 0, iff.getFrameNum() ), null, 0.0f, 1.0f );		// XXX edit ?
 	}
 }

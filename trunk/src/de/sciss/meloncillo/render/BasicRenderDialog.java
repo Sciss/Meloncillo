@@ -57,7 +57,7 @@ import de.sciss.gui.GUIUtil;
 import de.sciss.gui.ProgressComponent;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.math.NearestNeighbour;
 import de.sciss.meloncillo.math.Resampling;
 import de.sciss.meloncillo.plugin.AbstractPlugInFrame;
@@ -354,7 +354,7 @@ implements  RenderHost, ProcessingThread.Client,
 		int								minBlockSize, maxBlockSize, prefBlockSize;
 		int								i, numTrns, numRcv, trnsIdx, rcvIdx, readLen, writeLen;
 		Transmitter						trns;
-		MultirateTrackEditor			mte;
+		AudioTrail						at;
 		boolean[]						trnsRequest;
 		Object							val;
 		long							readOffset, remainingRead, remainingWrite;
@@ -501,8 +501,8 @@ implements  RenderHost, ProcessingThread.Client,
 					
 					// --- read transmitter trajectory data ---
 					trns		= (Transmitter) context.getTransmitters().get( trnsIdx );
-					mte			= trns.getTrackEditor();
-					mte.read( source.blockSpan, inTrnsFrames, inOff );
+					at			= trns.getTrackEditor();
+					at.read( source.blockSpan, inTrnsFrames, inOff );
 					for( i = inOff + readLen; i < inTrnsLen; i++ ) {
 						inTrnsFrames[0][i] = 0.0f;		// zero pad in the end 
 						inTrnsFrames[1][i] = 0.0f;		// XXX actually the last sample should be repeated!

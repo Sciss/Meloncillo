@@ -42,6 +42,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -49,6 +50,7 @@ import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Stroke;
+import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.Transferable;
@@ -58,6 +60,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
@@ -79,6 +82,7 @@ import javax.swing.JViewport;
 import javax.swing.KeyStroke;
 import javax.swing.SpringLayout;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
 
@@ -88,23 +92,25 @@ import de.sciss.app.DynamicListening;
 import de.sciss.app.LaterInvocationManager;
 import de.sciss.common.ProcessingThread;
 import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.ComponentHost;
 import de.sciss.gui.GUIUtil;
 import de.sciss.gui.MenuAction;
+import de.sciss.gui.TopPainter;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditRemoveTimeSpan;
 import de.sciss.meloncillo.edit.EditSetTimelineLength;
-import de.sciss.meloncillo.edit.EditSetTimelinePosition;
-import de.sciss.meloncillo.edit.EditSetTimelineScroll;
-import de.sciss.meloncillo.edit.EditSetTimelineSelection;
 import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.gui.AbstractTool;
 import de.sciss.meloncillo.gui.GraphicsUtil;
 import de.sciss.meloncillo.gui.MenuFactory;
 import de.sciss.meloncillo.gui.ToolAction;
 import de.sciss.meloncillo.gui.ToolActionEvent;
 import de.sciss.meloncillo.gui.ToolActionListener;
-import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.gui.WaveformView;
+import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.TrackList;
 import de.sciss.meloncillo.io.TrackSpan;
 import de.sciss.meloncillo.realtime.RealtimeConsumer;
@@ -184,11 +190,24 @@ implements  TimelineListener, ToolActionListener,
 			RealtimeConsumer
 {
 	private final Main				root;
-    private final TimelineAxis		axis;
+    private final TimelineAxis		timeAxis;
     private final TimelineScroll	scroll;
 	private final Transport			transport;
 	
 	private final TimelineToolBar	ttb;
+
+	protected Span							timelineSel;
+	protected Span							timelineVis;
+	protected long							timelinePos;
+	protected long							timelineLen;
+//	protected double						timelineRate;
+	protected int							timelineRate;
+
+	private final JPanel					ggTrackPanel;
+	protected final WaveformView			waveView;
+	protected final ComponentHost			wavePanel;
+	private final JPanel					waveHeaderPanel;
+	protected final JPanel					channelHeaderPanel;
 
 	// --- collections ---
 	private final List				collTransmitterEditors		= new ArrayList();
@@ -196,12 +215,34 @@ implements  TimelineListener, ToolActionListener,
 	// maps transmitters (keys) to editors (values)
  	private final Map				hashTransmittersToEditors   = new HashMap();
 
-	// --- table handling ---
-	private final JScrollPane		ggScrollPane;
-	private final JPanel			ggTrackPanel;
-	private final JPanel			ggTrackRowHeaderPanel;
-	private final TimelineViewport	vpTrackPanel;
+	// --------- former viewport ---------
+	// --- painting ---
+	private final Color colrSelection			= GraphicsUtil.colrSelection;
+//	private final Color colrSelection2			= new Color( 0xB0, 0xB0, 0xB0, 0x3F );  // selected timeline span over unselected trns
+	private final Color colrSelection2			= new Color( 0x00, 0x00, 0x00, 0x20 );  // selected timeline span over unselected trns
+//	private final Color colrPosition			= new Color( 0xFF, 0x00, 0x00, 0x4F );
+	protected final Color colrPosition			= new Color( 0xFF, 0x00, 0x00, 0x7F );
+	protected final Color colrZoom				= new Color( 0xA0, 0xA0, 0xA0, 0x7F );
+//	private final Color colrPosition			= Color.red;
+	protected Rectangle	vpRecentRect			= new Rectangle();
+	protected int		vpPosition				= -1;
+	private Rectangle   vpPositionRect			= new Rectangle();
+	protected final ArrayList vpSelections		= new ArrayList();
+	protected final ArrayList vpSelectionColors	= new ArrayList();
+	protected Rectangle	vpSelectionRect			= new Rectangle();
 	
+	private Rectangle   vpUpdateRect			= new Rectangle();
+	protected Rectangle	vpZoomRect				= null;
+	private float[]		vpDash					= { 3.0f, 5.0f };
+	private float		vpScale;
+
+	protected final Stroke[] vpZoomStroke			= {
+		new BasicStroke( 2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER, 1.0f, vpDash, 0.0f ),
+		new BasicStroke( 2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER, 1.0f, vpDash, 4.0f ),
+		new BasicStroke( 2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER, 1.0f, vpDash, 6.0f ),
+	};
+	protected int		vpZoomStrokeIdx			= 0;
+
 	// --- tools ---
 	
 	private final   Map				tools						= new HashMap();
@@ -218,6 +259,22 @@ implements  TimelineListener, ToolActionListener,
 	private final LaterInvocationManager  lim;
 	
 	private final ComponentListener	rowHeightListener;
+
+	private final Timer						playTimer;
+	private double							playRate		= 1.0;
+
+	protected static final Cursor[]			zoomCsr;
+	
+	static {
+		final Toolkit tk		= Toolkit.getDefaultToolkit();
+		final Point   hotSpot	= new Point( 6, 6 );
+		zoomCsr					= new Cursor[] {
+			tk.createCustomCursor( tk.createImage(
+			    ToolAction.class.getResource( "zoomin.png" )), hotSpot, "zoom-in" ),
+			tk.createCustomCursor( tk.createImage(
+				ToolAction.class.getResource( "zoomout.png" )), hotSpot, "zoom-out" )
+		};
+	}
 
 /* mimic shortcuts from ProTools (6.4):
 (ok)	left / right : scroll to selection start/end when selection exceeds window view
@@ -259,8 +316,15 @@ implements  TimelineListener, ToolActionListener,
 		final Box				box		= Box.createHorizontalBox();
 		final Application		app		= AbstractApplication.getApplication();
 		final JPanel			gp		= GUIUtil.createGradientPanel();
+		final TopPainter		trackPainter;
 
 		setTitle( app.getResourceString( "frameTimeline" ));
+
+		timelinePos			= doc.timeline.getPosition();
+		timelineSel			= doc.timeline.getSelectionSpan();
+		timelineVis			= doc.timeline.getVisibleSpan();
+		timelineRate		= doc.timeline.getRate();
+		timelineLen			= doc.timeline.getLength();
 
 		ttb			= new TimelineToolBar( root );
 		ttb.setOpaque( false );
@@ -270,25 +334,25 @@ implements  TimelineListener, ToolActionListener,
 			// o egal
 			public void laterInvocation( Object o )
 			{
-				vpTrackPanel.updatePositionAndRepaint();
+				wavePanel.updatePositionAndRepaint();
 			}
 		});
 
 //		rp.setPreferredSize( new Dimension( 640, 640 )); // XXX
 		
-        axis        = new TimelineAxis( root, doc );
-		ggTrackPanel= new TrackPanel();
+        timeAxis        = new TimelineAxis( root, doc );
+		waveView		= new TrackPanel();
 // produces weird scroll bars
 //ggTrackPanel.setPreferredSize( new Dimension( 640, 320 ));
-		ggTrackPanel.setOpaque( false );	// crucial for correct TimelineViewport() paint update calls!
-		ggTrackPanel.setLayout( new SpringLayout() );
+		waveView.setOpaque( false );	// crucial for correct TimelineViewport() paint update calls!
+		waveView.setLayout( new SpringLayout() );
 		ggTrackRowHeaderPanel = new JPanel();
 		ggTrackRowHeaderPanel.setLayout( new SpringLayout() );
 		ggScrollPane= new JScrollPane();
-		vpTrackPanel= new TimelineViewport();
-		vpTrackPanel.setView( ggTrackPanel );
-		ggScrollPane.setViewport( vpTrackPanel );
-		ggScrollPane.setColumnHeaderView( axis );
+		wavePanel= new TimelineViewport();
+		wavePanel.setView( waveView );
+		ggScrollPane.setViewport( wavePanel );
+		ggScrollPane.setColumnHeaderView( timeAxis );
 		ggScrollPane.setRowHeaderView( ggTrackRowHeaderPanel );
         scroll      = new TimelineScroll( root, doc );
 		box.add( scroll );
@@ -306,6 +370,40 @@ implements  TimelineListener, ToolActionListener,
 		tools.put( new Integer( ToolAction.POINTER ), pointerTool );
 		tools.put( new Integer( ToolAction.ZOOM ),		new TimelineZoomTool() );
 
+		// ---- TopPainter ----
+
+		trackPainter	= new TopPainter() {
+			public void paintOnTop( Graphics2D g2 )
+			{
+				Rectangle r;
+
+				r = new Rectangle( 0, 0, wavePanel.getWidth(), wavePanel.getHeight() ); // getViewRect();
+				if( !vpRecentRect.equals( r )) {
+					recalcTransforms( r );
+				}
+
+				for( int i = 0; i < vpSelections.size(); i++ ) {
+					r = (Rectangle) vpSelections.get( i );
+					g2.setColor( (Color) vpSelectionColors.get( i ));
+					g2.fillRect( vpSelectionRect.x, r.y - vpRecentRect.y, vpSelectionRect.width, r.height );
+				}
+				
+//				if( markVisible ) {
+//					markAxis.paintFlagSticks( g2, vpRecentRect );
+//				}
+				
+				g2.setColor( colrPosition );
+				g2.drawLine( vpPosition, 0, vpPosition, vpRecentRect.height );
+
+				if( vpZoomRect != null ) {
+					g2.setColor( colrZoom );
+					g2.setStroke( vpZoomStroke[ vpZoomStrokeIdx ]);
+					g2.drawRect( vpZoomRect.x, vpZoomRect.y, vpZoomRect.width, vpZoomRect.height );
+				}
+			}
+		};
+		wavePanel.addTopPainter( trackPainter );
+
 		// --- Listener ---
 		addDynamicListening( this );
 
@@ -320,7 +418,8 @@ implements  TimelineListener, ToolActionListener,
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
 				syncEditors();
-				vpTrackPanel.updateAndRepaint();
+// EEE
+//				wavePanel.updateAndRepaint();
 			}
 			
 			public void sessionObjectChanged( SessionCollection.Event e ) {}
@@ -375,7 +474,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
         doc.selectedTransmitters.addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				vpTrackPanel.updateAndRepaint();
+				wavePanel.updateAndRepaint();
 			}
 			
 			public void sessionObjectChanged( SessionCollection.Event e ) {}
@@ -386,15 +485,15 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		
 		rowHeightListener	= new ComponentAdapter() {
 			public void componentResized( ComponentEvent e ) {
-				vpTrackPanel.updateSelectionAndRepaint();
+				wavePanel.updateSelectionAndRepaint();
 			}
 
 			public void componentShown( ComponentEvent e ) {
-				vpTrackPanel.updateSelectionAndRepaint();
+				wavePanel.updateSelectionAndRepaint();
 			}
 
 			public void componentHidden( ComponentEvent e ) {
-				vpTrackPanel.updateSelectionAndRepaint();
+				wavePanel.updateSelectionAndRepaint();
 			}
 		};
 
@@ -405,6 +504,15 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 //			}
 //		});
 //		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+
+		playTimer = new Timer( 33, new ActionListener() {
+			public void actionPerformed( ActionEvent e )
+			{
+				timelinePos = transport.getCurrentFrame();
+				updatePositionAndRepaint();
+				scroll.setPosition( timelinePos, 50, TimelineScroll.TYPE_TRANSPORT );
+			}
+		});
 
 		// --- Actions ---
 		actionClear			= new ActionDelete();
@@ -438,6 +546,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		imap.put( KeyStroke.getKeyStroke( KeyEvent.VK_ENTER, KeyEvent.SHIFT_MASK + KeyEvent.ALT_MASK ), "seltoend" );
 		amap.put( "seltoend", new ActionSelect( SELECT_TO_SESSION_END ));
 
+		updateEditEnabled( false );
 		// -------
 
 //	    HelpGlassPane.setHelp( getRootPane(), "TimelineFrame" );	// EEE
@@ -448,8 +557,26 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 	public void dispose()
 	{
+		playTimer.stop();
+
 		AbstractApplication.getApplication().removeComponent( Main.COMP_TIMELINE );
 		super.dispose();
+	}
+
+	private void updateEditEnabled( boolean enabled )
+	{
+		Action ma;
+		ma			= doc.getCutAction();
+		if( ma != null ) ma.setEnabled( enabled );
+		ma			= doc.getCopyAction();
+		if( ma != null ) ma.setEnabled( enabled );
+		ma			= doc.getDeleteAction();
+		if( ma != null ) ma.setEnabled( enabled );
+		ma			= doc.getTrimAction();
+		if( ma != null ) ma.setEnabled( enabled );
+//		actionProcess.setEnabled( enabled );
+//		actionNewFromSel.setEnabled( enabled );
+//		actionSaveSelectionAs.setEnabled( enabled );
 	}
 
 	protected boolean autoUpdatePrefs()
@@ -467,14 +594,184 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		return new Point2D.Float( 0.95f, 0.25f );
 	}
 
+	/**
+	 *  Only call in the Swing thread!
+	 */
+	protected void updatePositionAndRepaint()
+	{
+		boolean pEmpty, cEmpty;
+		int		x, x2;
+		
+		pEmpty = (vpPositionRect.x + vpPositionRect.width < 0) || (vpPositionRect.x > vpRecentRect.width);
+		if( !pEmpty ) vpUpdateRect.setBounds( vpPositionRect );
+
+//			recalcTransforms();
+		if( vpScale > 0f ) {
+			vpPosition	= (int) ((timelinePos - timelineVis.getStart()) * vpScale + 0.5f);
+//				positionRect.setBounds( position, 0, 1, recentRect.height );
+			// choose update rect such that even a paint manager delay of 200 milliseconds
+			// will still catch the (then advanced) position so we don't see flickering!
+			// XXX this should take playback rate into account, though
+			vpPositionRect.setBounds( vpPosition, 0, Math.max( 1, (int) (vpScale * timelineRate * 0.2f) ), vpRecentRect.height );
+		} else {
+			vpPosition	= -1;
+			vpPositionRect.setBounds( 0, 0, 0, 0 );
+		}
+
+		cEmpty = (vpPositionRect.x + vpPositionRect.width <= 0) || (vpPositionRect.x > vpRecentRect.width);
+		if( pEmpty ) {
+			if( cEmpty ) return;
+			x   = Math.max( 0, vpPositionRect.x );
+			x2  = Math.min( vpRecentRect.width, vpPositionRect.x + vpPositionRect.width );
+			vpUpdateRect.setBounds( x, vpPositionRect.y, x2 - x, vpPositionRect.height );
+		} else {
+			if( cEmpty ) {
+				x   = Math.max( 0, vpUpdateRect.x );
+				x2  = Math.min( vpRecentRect.width, vpUpdateRect.x + vpUpdateRect.width );
+				vpUpdateRect.setBounds( x, vpUpdateRect.y, x2 - x, vpUpdateRect.height );
+			} else {
+				x   = Math.max( 0, Math.min( vpUpdateRect.x, vpPositionRect.x ));
+				x2  = Math.min( vpRecentRect.width, Math.max( vpUpdateRect.x + vpUpdateRect.width,
+															vpPositionRect.x + vpPositionRect.width ));
+				vpUpdateRect.setBounds( x, vpUpdateRect.y, x2 - x, vpUpdateRect.height );
+			}
+		}
+		if( !vpUpdateRect.isEmpty() ) {
+			wavePanel.repaint( vpUpdateRect );
+//ggTrackPanel.repaint( updateRect );
+		}
+//			if( !updateRect.isEmpty() ) paintImmediately( updateRect );
+//			Graphics g = getGraphics();
+//			if( g != null ) {
+//				paintDirty( g, updateRect );
+//				g.dispose();
+//			}
+	}
+
+	/**
+	 *  Only call in the Swing thread!
+	 */
+	protected void updateSelectionAndRepaint()
+	{
+		final Rectangle r = new Rectangle( 0, 0, wavePanel.getWidth(), wavePanel.getHeight() );
+	
+		vpUpdateRect.setBounds( vpSelectionRect );
+		recalcTransforms( r );
+//			try {
+//				doc.bird.waitShared( Session.DOOR_TIMETRNS | Session.DOOR_GRP );
+			updateSelection();
+//			}
+//			finally {
+//				doc.bird.releaseShared( Session.DOOR_TIMETRNS | Session.DOOR_GRP );
+//			}
+		if( vpUpdateRect.isEmpty() ) {
+			vpUpdateRect.setBounds( vpSelectionRect );
+		} else if( !vpSelectionRect.isEmpty() ) {
+			vpUpdateRect = vpUpdateRect.union( vpSelectionRect );
+		}
+		vpUpdateRect = vpUpdateRect.intersection( new Rectangle( 0, 0, wavePanel.getWidth(), wavePanel.getHeight() ));
+		if( !vpUpdateRect.isEmpty() ) {
+			wavePanel.repaint( vpUpdateRect );
+//ggTrackPanel.repaint( updateRect );
+		}
+//			if( !updateRect.isEmpty() ) {
+//				Graphics g = getGraphics();
+//				if( g != null ) {
+//					paintDirty( g, updateRect );
+//				}
+//				g.dispose();
+//			}
+	}
+	
+	/**
+	 *  Only call in the Swing thread!
+	 */
+	private void updateTransformsAndRepaint( boolean verticalSelection )
+	{
+		final Rectangle r = new Rectangle( 0, 0, wavePanel.getWidth(), wavePanel.getHeight() );
+
+		vpUpdateRect = vpSelectionRect.union( vpPositionRect );
+		recalcTransforms( r );
+		if( verticalSelection ) updateSelection();
+		vpUpdateRect = vpUpdateRect.union( vpPositionRect ).union( vpSelectionRect ).intersection( r );
+		if( !vpUpdateRect.isEmpty() ) {
+			wavePanel.repaint( vpUpdateRect );	// XXX ??
+//ggTrackPanel.repaint( updateRect );
+		}
+	}
+	
+	protected void recalcTransforms( Rectangle newRect )
+	{
+		int x, w;
+		
+		vpRecentRect = newRect; // getViewRect();
+	
+		if( !timelineVis.isEmpty() ) {
+			vpScale			= (float) vpRecentRect.width / (float) timelineVis.getLength(); // - 1;
+			playTimer.setDelay( Math.min( (int) (1000 / (vpScale * timelineRate * playRate)), 33 ));
+			vpPosition		= (int) ((timelinePos - timelineVis.getStart()) * vpScale + 0.5f);
+			vpPositionRect.setBounds( vpPosition, 0, 1, vpRecentRect.height );
+			if( !timelineSel.isEmpty() ) {
+				x			= (int) ((timelineSel.getStart() - timelineVis.getStart()) * vpScale + 0.5f) + vpRecentRect.x;
+				w			= Math.max( 1, (int) ((timelineSel.getStop() - timelineVis.getStart()) * vpScale + 0.5f) - x );
+				vpSelectionRect.setBounds( x, 0, w, vpRecentRect.height );
+			} else {
+				vpSelectionRect.setBounds( 0, 0, 0, 0 );
+			}
+		} else {
+			vpScale			= 0.0f;
+			vpPosition		= -1;
+			vpPositionRect.setBounds( 0, 0, 0, 0 );
+			vpSelectionRect.setBounds( 0, 0, 0, 0 );
+		}
+	}
+
+	// sync: caller must sync on timeline + grp + tc
+	private void updateSelection()
+	{
+		Rectangle		r;
+//		Track			t;
+		SessionObject	t;
+		int				x, y;
+
+		vpSelections.clear();
+		vpSelectionColors.clear();
+		if( !timelineSel.isEmpty() ) {
+			x			= waveView.getX();
+			y			= waveView.getY();
+			vpSelections.add( timeAxis.getBounds() );
+			vpSelectionColors.add( colrSelection );
+//			t			= doc.markerTrack;
+//			vpSelections.add( markAxis.getBounds() );
+//			vpSelectionColors.add( doc.selectedTracks.contains( t ) ? colrSelection : colrSelection2 );
+			for( int ch = 0; ch < waveView.getNumChannels(); ch++ ) {
+				r		= new Rectangle( waveView.rectForChannel( ch ));
+				r.translate( x, y );
+//				t		= (Track) doc.audioTracks.get( ch );
+				t		= doc.transmitters.get( ch );
+				vpSelections.add( r );
+//				vpSelectionColors.add( doc.selectedTracks.contains( t ) ? colrSelection : colrSelection2 );
+				vpSelectionColors.add( doc.selectedTransmitters.contains( t ) ? colrSelection : colrSelection2 );
+			}
+		}
+	}
+
+	protected void setZoomRect( Rectangle r )
+	{
+		vpZoomRect		= r;
+		vpZoomStrokeIdx	= (vpZoomStrokeIdx + 1) % vpZoomStroke.length;
+
+		wavePanel.repaint();
+	}
+
 	private void revalidateView()
 	{
 		ggTrackRowHeaderPanel.setLayout( new SpringLayout() );
-		ggTrackPanel.setLayout( new SpringLayout() );
+		waveView.setLayout( new SpringLayout() );
 		GUIUtil.makeCompactSpringGrid( ggTrackRowHeaderPanel, ggTrackRowHeaderPanel.getComponentCount(), 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
-		GUIUtil.makeCompactSpringGrid( ggTrackPanel, ggTrackPanel.getComponentCount(), 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
+		GUIUtil.makeCompactSpringGrid( waveView, waveView.getComponentCount(), 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
 		ggTrackRowHeaderPanel.revalidate();
-		ggTrackPanel.revalidate();
+		waveView.revalidate();
 	}
 	
 	/*
@@ -508,7 +805,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 					rows--;
                     // XXX : dispose trnsEdit (e.g. free vectors, remove listeners!!)
 					hashTransmittersToEditors.remove( trns );
-					ggTrackPanel.remove( trnsEdit.getView() );
+					waveView.remove( trnsEdit.getView() );
 					ggTrackRowHeaderPanel.remove( trnsHead );
 					row--;
 				}
@@ -531,7 +828,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 						setRowHeight( trnsHead, 64 ); // XXX
 						setRowHeight( trnsEdit.getView(), 64 ); // XXX
 						ggTrackRowHeaderPanel.add( trnsHead, i );
-						ggTrackPanel.add( trnsEdit.getView(), i );
+						waveView.add( trnsEdit.getView(), i );
 					}
 					catch( InstantiationException e1 ) {
 						System.err.println( e1.getLocalizedMessage() );
@@ -551,14 +848,14 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		
 		if( revalidate ) {
 			GUIUtil.makeCompactSpringGrid( ggTrackRowHeaderPanel, rows, 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
-			GUIUtil.makeCompactSpringGrid( ggTrackPanel, rows, 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
+			GUIUtil.makeCompactSpringGrid( waveView, rows, 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
 			ggTrackRowHeaderPanel.revalidate();
-			ggTrackPanel.revalidate();
+			waveView.revalidate();
 		}
 
 		if( activeTool != null ) {	// re-set tool to update mouse listeners
-			activeTool.toolDismissed( ggTrackPanel );
-			activeTool.toolAcquired( ggTrackPanel );
+			activeTool.toolDismissed( waveView );
+			activeTool.toolAcquired( waveView );
 		}
 	}
 
@@ -596,7 +893,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 	public void offhandTick( RealtimeContext context, RealtimeProducer.Source source, long currentPos )
 	{
 		this.currentPos = currentPos;
-		vpTrackPanel.updatePositionAndRepaint();
+		wavePanel.updatePositionAndRepaint();
 		scroll.setPosition( currentPos, 0, pointerTool.validDrag ?
 			TimelineScroll.TYPE_DRAG : TimelineScroll.TYPE_UNKNOWN );
 	}
@@ -610,7 +907,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
         doc.timeline.addTimelineListener( this );
 		transport.addRealtimeConsumer( this );
 //		syncEditors();
-		vpTrackPanel.updateAndRepaint();
+		wavePanel.updateAndRepaint();
     }
 
     public void stopListening()
@@ -628,7 +925,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		TransmitterEditor	trnsEdit;
 	
 		if( activeTool != null ) {
-			activeTool.toolDismissed( ggTrackPanel );
+			activeTool.toolDismissed( waveView );
 //			removeMouseMotionListener( cursorListener );
 		}
 
@@ -649,12 +946,12 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 		activeTool = (AbstractTool) tools.get( new Integer( e.getToolAction().getID() ));
 		if( activeTool != null ) {
-			ggTrackPanel.setCursor( e.getToolAction().getDefaultCursor() );
-			activeTool.toolAcquired( ggTrackPanel );
+			waveView.setCursor( e.getToolAction().getDefaultCursor() );
+			activeTool.toolAcquired( waveView );
 //			showCursorTab();
 //			addMouseMotionListener( cursorListener );
 		} else {
-			ggTrackPanel.setCursor( null );
+			waveView.setCursor( null );
 		}
 	}
 
@@ -662,12 +959,26 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 	public void timelineSelected( TimelineEvent e )
     {
-		vpTrackPanel.updateSelectionAndRepaint();
+		final boolean	wasEmpty = timelineSel.isEmpty();
+		final boolean	isEmpty;
+	
+		timelineSel	= doc.timeline.getSelectionSpan();
+
+		updateSelectionAndRepaint();
+		isEmpty	= timelineSel.isEmpty();
+		if( wasEmpty != isEmpty ) {
+			updateEditEnabled( !isEmpty );
+		}
     }
     
 	public void timelineChanged( TimelineEvent e )
     {
-		vpTrackPanel.updateAndRepaint();
+		timelineRate				= doc.timeline.getRate();
+		timelineLen					= doc.timeline.getLength();
+		playTimer.setDelay( Math.min( (int) (1000 / (vpScale * timelineRate * playRate)), 33 ));
+//		updateAFDGadget();
+//		updateOverviews( false, true );
+		wavePanel.updateAndRepaint();
     }
 
 	/**
@@ -678,30 +989,14 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
     public void timelineScrolled( TimelineEvent e )
     {
-		vpTrackPanel.updateAndRepaint();
+       	timelineVis	= doc.timeline.getVisibleSpan();
+
+//		updateOverviews( false, true );
+		wavePanel.updateAndRepaint();
+		updateTransformsAndRepaint( false );
     }
 
  // ---------------- EditMenuListener interface ---------------- 
-
-	/*
-	 *  Selects the whole timeline, does not
-	 *  alter the transmitter selection
-	 */
-	private void editSelectAll()
-	{
-		Span			span;
-		UndoableEdit	edit;
-	
-		if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-		try {
-			span	= new Span( 0, doc.timeline.getLength() );
-			edit	= new EditSetTimelineSelection( this, doc, span );
-			doc.getUndoManager().addEdit( edit );
-		}
-		finally {
-			doc.bird.releaseExclusive( Session.DOOR_TIME );
-		}
-	}
 
 	/*
 	 *  Copies the selected timespan of the selected
@@ -716,9 +1011,9 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 	private boolean editCopy()
 	{
 		Span							span;
-		java.util.List					collAffectedTransmitters;
-		final java.util.List			v		= new ArrayList();
-		MultirateTrackEditor			mte;
+		List							collAffectedTransmitters;
+		final List						v		= new ArrayList();
+		AudioTrail						at;
 		boolean							success = false;
 		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
 
@@ -731,8 +1026,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 			if( collAffectedTransmitters.isEmpty() ) return false;
 
 			for( int i = 0; i < collAffectedTransmitters.size(); i++ ) {
-				mte = ((Transmitter) collAffectedTransmitters.get( i )).getTrackEditor();
-				v.add( mte.getTrackList( span ));
+				at = ((Transmitter) collAffectedTransmitters.get( i )).getTrackEditor();
+				v.add( at.getTrackList( span ));
 			}
 			if( !v.isEmpty() ) {
 				app.getClipboard().setContents( new TransferableCollection( v ), this );
@@ -830,8 +1125,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 			long							position, docLength, pasteLength, start;
 			Transmitter						trns;
 			TrackList						tl;
-			MultirateTrackEditor			mte;
-			SyncCompoundSessionObjEdit	edit;
+			AudioTrail						at;
+			SyncCompoundSessionObjEdit		edit;
 			Span							oldSelSpan, newSelSpan, span;
 			long[]							trnsLen;
 			long							maxTrnsLen  = 0;
@@ -855,7 +1150,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 			try {
 				if( !oldSelSpan.isEmpty() ) { // deselect
-					edit.addEdit( new EditSetTimelineSelection( this, doc, new Span() ));
+					edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ));
 //							position = oldSelSpan.getStart();
 				}
 				newSelSpan = new Span( position, position );
@@ -865,7 +1160,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 					trns		= (Transmitter) collAffectedTransmitters.get( i );
 					trnsLen[i]  = docLength;
 					if( doc.selectedTransmitters.contains( trns )) {
-						mte	= trns.getTrackEditor();
+						at	= trns.getTrackEditor();
 //									if( oldSelSpan != null && !oldSelSpan.isEmpty() ) { // remove old selected span
 //										mte.remove( oldSelSpan, edit );
 //										trnsLen[i] -= oldSelSpan.getLength();
@@ -876,7 +1171,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 								coll.remove( j );
 								tl		= (TrackList) t.getTransferData( TrackList.trackListFlavor );
 // tl.debugDump();
-								mte.insert( position, tl, edit ); // insert clipboard content
+								at.insert( position, tl, edit ); // insert clipboard content
 								pasteLength	= tl.getSpan().getLength();
 								trnsLen[i] += pasteLength;
 								newSelSpan	= new Span( newSelSpan.getStart(),
@@ -897,9 +1192,9 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				for( i = 0; i < collAffectedTransmitters.size(); i++ ) {
 					if( trnsLen[i] < maxTrnsLen ) {
 						trns	= (Transmitter) collAffectedTransmitters.get( i );
-						mte		= trns.getTrackEditor();
+						at		= trns.getTrackEditor();
 						if( trnsLen[i] > 0 ) {
-							mte.read( new Span( trnsLen[i] - 1, trnsLen[i] ), frameBuf, 0 );
+							at.read( new Span( trnsLen[i] - 1, trnsLen[i] ), frameBuf, 0 );
 							f1 = frameBuf[0][0];
 							f2 = frameBuf[1][0];
 						} else {
@@ -911,12 +1206,12 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 							frameBuf[0][j] = f1;
 							frameBuf[1][j] = f2;
 						}
-						ts		= mte.beginInsert( span, edit );
+						ts		= at.beginInsert( span, edit );
 						for( start = span.getStart(); start < span.getStop(); start += j ) {
 							j		= (int) Math.min( 4096, span.getStop() - start );
-							mte.continueWrite( ts, frameBuf, 0, j );
+							at.continueWrite( ts, frameBuf, 0, j );
 						}
-						mte.finishWrite( ts, edit );
+						at.finishWrite( ts, edit );
 
 					} // if( trnsLen[i] < maxTrnsLen )
 					progress++;
@@ -927,7 +1222,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 					edit.addEdit( new EditSetTimelineLength( this, doc, maxTrnsLen ));
 				}
 				if( !newSelSpan.isEmpty() ) {
-					edit.addEdit( new EditSetTimelineSelection( this, doc, newSelSpan ));
+					edit.addEdit( TimelineVisualEdit.select( this, doc, newSelSpan ));
 				}
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
@@ -956,7 +1251,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 
 		public void actionPerformed( ActionEvent e )
 		{
-			editSelectAll();
+			doc.timeline.editSelect( this, new Span( 0, timelineLen ));
 		}
 	}
 
@@ -1026,7 +1321,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			SyncCompoundSessionObjEdit	edit;
 			int								i, j;
 			Transmitter						trns;
-			MultirateTrackEditor			mte;
+			AudioTrail						at;
 			float[][]						frameBuf	= new float[2][4096];
 			int								progress, progressLen;
 			boolean							success		= false;
@@ -1047,8 +1342,8 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				if( collUnaffectedTransmitters.isEmpty() ) {
 					edit.addEdit( new EditRemoveTimeSpan( this, doc, span ));
 					for( i = 0; i < collAffectedTransmitters.size(); i++ ) {
-						mte = ((Transmitter) collAffectedTransmitters.get( i )).getTrackEditor();
-						mte.remove( span, edit );
+						at = ((Transmitter) collAffectedTransmitters.get( i )).getTrackEditor();
+						at.remove( span, edit );
 						progress++;
 						context.setProgression( (float) progress / (float) progressLen );
 					}
@@ -1058,24 +1353,24 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 					span3 = new Span( doc.timeline.getLength() - 1, doc.timeline.getLength() );
 					assert doc.timeline.getLength() > 0 : doc.timeline.getLength();
 
-					edit.addEdit( new EditSetTimelineSelection( this, doc, new Span() ));
+					edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ));
 					for( i = 0; i < collAffectedTransmitters.size(); i++ ) {
 						trns	= (Transmitter) collAffectedTransmitters.get( i );
-						mte		= trns.getTrackEditor();
-						mte.read( span3, frameBuf, 0 );
+						at		= trns.getTrackEditor();
+						at.read( span3, frameBuf, 0 );
 						f1		= frameBuf[0][0];
 						f2		= frameBuf[1][0];
 						for( j = 1; j < 4096; j++ ) {
 							frameBuf[0][j] = f1;
 							frameBuf[1][j] = f2;
 						}
-						ts		= mte.beginInsert( span2, edit );
+						ts		= at.beginInsert( span2, edit );
 						for( start = span2.getStart(); start < span2.getStop(); start += j ) {
 							j		= (int) Math.min( 4096, span2.getStop() - start );
-							mte.continueWrite( ts, frameBuf, 0, j );
+							at.continueWrite( ts, frameBuf, 0, j );
 						}
-						mte.finishWrite( ts, edit );
-						mte.remove( span, edit );
+						at.finishWrite( ts, edit );
+						at.remove( span, edit );
 						progress++;
 						context.setProgression( (float) progress / (float) progressLen );
 					}
@@ -1135,7 +1430,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				}
 				if( revalidate ) {
 					ggTrackRowHeaderPanel.revalidate();
-					ggTrackPanel.revalidate();
+					waveView.revalidate();
 					// XXX need to update vpTrackPanel!
 				}
 			}
@@ -1157,8 +1452,9 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		/**
 		 *  @param  factor  factors > 1 increase the span width (zoom out)
 		 *					factors < 1 decrease (zoom in).
+		 *					special value 0.0 means zoom to sample level
 		 */
-		private ActionSpanWidth( float factor )
+		protected ActionSpanWidth( float factor )
 		{
 			super();
 			this.factor = factor;
@@ -1171,42 +1467,38 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		
 		public void perform()
 		{
-			Span			visiSpan;
-			long			pos, visiLen, start, stop;
-			UndoableEdit	edit;
+			long	pos, visiLen, start, stop;
+			Span	visiSpan;
 			
-			if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-			try {
-				visiSpan	= doc.timeline.getVisibleSpan();
-				visiLen		= visiSpan.getLength();
-				pos			= doc.timeline.getPosition();
-				if( factor < 1.0f ) {		// zoom in
-					if( visiLen < 4 ) return;
-					// if timeline pos visible -> try to keep it's relative position constant
-					if( visiSpan.contains( pos )) {
-						start	= pos - (long) ((pos - visiSpan.getStart()) * factor + 0.5f);
-						stop    = start + (long) (visiLen * factor + 0.5f);
-					// if timeline pos before visible span, zoom left hand
-					} else if( visiSpan.getStart() > pos ) {
-						start	= visiSpan.getStart();
-						stop    = start + (long) (visiLen * factor + 0.5f);
-					// if timeline pos after visible span, zoom right hand
-					} else {
-						stop	= visiSpan.getStop();
-						start   = stop - (long) (visiLen * factor + 0.5f);
-					}
-				} else {			// zoom out
-					start   = Math.max( 0, visiSpan.getStart() - (long) (visiLen * factor/4 + 0.5f) );
-					stop    = Math.min( doc.timeline.getLength(), start + (long) (visiLen * factor + 0.5f) );
+			visiSpan	= timelineVis;
+			visiLen		= visiSpan.getLength();
+			pos			= timelinePos; // doc.timeline.getPosition();
+			if( factor == 0.0f ) {				// to sample level
+				start	= Math.max( 0, pos - (wavePanel.getWidth() >> 1) );
+				stop	= Math.min( timelineLen, start + wavePanel.getWidth() );
+			} else if( factor < 1.0f ) {		// zoom in
+				if( visiLen < 4 ) return;
+				// if timeline pos visible -> try to keep it's relative position constant
+				if( visiSpan.contains( pos )) {
+					start	= pos - (long) ((pos - visiSpan.getStart()) * factor + 0.5f);
+					stop    = start + (long) (visiLen * factor + 0.5f);
+				// if timeline pos before visible span, zoom left hand
+				} else if( visiSpan.getStart() > pos ) {
+					start	= visiSpan.getStart();
+					stop    = start + (long) (visiLen * factor + 0.5f);
+				// if timeline pos after visible span, zoom right hand
+				} else {
+					stop	= visiSpan.getStop();
+					start   = stop - (long) (visiLen * factor + 0.5f);
 				}
-				visiSpan	= new Span( start, stop );
-				if( !visiSpan.isEmpty() ) {
-					edit	= new EditSetTimelineScroll( this, doc, new Span( start, stop ));
-					doc.getUndoManager().addEdit( edit );
-				}
+			} else {			// zoom out
+				start   = Math.max( 0, visiSpan.getStart() - (long) (visiLen * factor/4 + 0.5f) );
+				stop    = Math.min( timelineLen, start + (long) (visiLen * factor + 0.5f) );
 			}
-			finally {
-				doc.bird.releaseExclusive( Session.DOOR_TIME );
+			visiSpan	= new Span( start, stop );
+			if( !visiSpan.isEmpty() ) {
+				doc.timeline.editScroll( this, visiSpan );
+//					doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( this, doc, visiSpan ));
 			}
 		}
 	} // class actionSpanWidthClass
@@ -1222,7 +1514,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 	{
 		private final int mode;
 	
-		private ActionScroll( int mode )
+		protected ActionScroll( int mode )
 		{
 			super();
 			
@@ -1231,70 +1523,83 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 	
 		public void actionPerformed( ActionEvent e )
 		{
+			perform();
+		}
+		
+		public void perform()
+		{
 			UndoableEdit	edit	= null;
-			Span			selSpan, visiSpan, newSpan;
+			Span			selSpan, newSpan;
 			long			start, stop;
 		
 			if( mode == SCROLL_SESSION_START && transport.isRunning() ) {
-				transport.stopAndWait();
+//				transport.stop();
+				transport.goStop();	// EEE
 			}
-			if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-			try {
-				selSpan		= doc.timeline.getSelectionSpan();
-				visiSpan	= doc.timeline.getVisibleSpan();
-				
-				switch( mode ) {
-				case SCROLL_SESSION_START:
-					if( doc.timeline.getPosition() != 0 ) {
-						edit	= new EditSetTimelinePosition( this, doc, 0 );
+			selSpan		= timelineSel; // doc.timeline.getSelectionSpan();
+			
+			switch( mode ) {
+			case SCROLL_SESSION_START:
+				if( timelinePos != 0 ) {
+					edit	= TimelineVisualEdit.position( this, doc, 0 ).perform();
+					if( !timelineVis.contains( 0 )) {
+						final CompoundEdit ce	= new BasicCompoundEdit();
+						ce.addEdit( edit );
+						newSpan	= new Span( 0, timelineVis.getLength() );
+						ce.addEdit( TimelineVisualEdit.scroll( this, doc, newSpan ).perform() );
+						ce.end();
+						edit	= ce;
 					}
-					break;
-					
-				case SCROLL_SELECTION_START:
-					if( !selSpan.isEmpty() && !visiSpan.contains( selSpan.getStart() )) {
-						start	= Math.max( 0, selSpan.getStart() - (visiSpan.getLength() >> 3) );
-						stop	= Math.min( doc.timeline.getLength(), start + visiSpan.getLength() );
-						newSpan	= new Span( start, stop );
-						if( !visiSpan.equals( newSpan ) && !newSpan.isEmpty() ) {
-							edit	= new EditSetTimelineScroll( this, doc, newSpan );
-						}
-					}
-					break;
-
-				case SCROLL_SELECTION_STOP:
-					if( !selSpan.isEmpty() && !visiSpan.contains( selSpan.getStop() )) {
-						stop	= Math.min( doc.timeline.getLength(), selSpan.getStop() + (visiSpan.getLength() >> 3) );
-						start	= Math.max( 0, stop - visiSpan.getLength() );
-						newSpan	= new Span( start, stop );
-						if( !visiSpan.equals( newSpan ) && !newSpan.isEmpty() ) {
-							edit	= new EditSetTimelineScroll( this, doc, newSpan );
-						}
-					}
-					break;
-
-				case SCROLL_FIT_TO_SELECTION:
-					newSpan		= selSpan;
-					if( !visiSpan.equals( newSpan ) && !newSpan.isEmpty() ) {
-						edit	= new EditSetTimelineScroll( this, doc, newSpan );
-					}
-					break;
-
-				case SCROLL_ENTIRE_SESSION:
-					newSpan		= new Span( 0, doc.timeline.getLength() );
-					if( !visiSpan.equals( newSpan ) && !newSpan.isEmpty() ) {
-						edit	= new EditSetTimelineScroll( this, doc, newSpan );
-					}
-					break;
-
-				default:
-					assert false : mode;
-					break;
 				}
-				if( edit != null ) doc.getUndoManager().addEdit( edit );
+				break;
+				
+			case SCROLL_SELECTION_START:
+				if( selSpan.isEmpty() ) selSpan = new Span( timelinePos, timelinePos );
+				if( timelineVis.contains( selSpan.getStart() )) {
+					start = Math.max( 0, selSpan.getStart() - (timelineVis.getLength() >> 1) );
+				} else {
+					start = Math.max( 0, selSpan.getStart() - (timelineVis.getLength() >> 3) );
+				}
+				stop	= Math.min( timelineLen, start + timelineVis.getLength() );
+				newSpan	= new Span( start, stop );
+				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
+					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+				}
+				break;
+
+			case SCROLL_SELECTION_STOP:
+				if( selSpan.isEmpty() ) selSpan = new Span( timelinePos, timelinePos );
+				if( timelineVis.contains( selSpan.getStop() )) {
+					stop = Math.min( timelineLen, selSpan.getStop() + (timelineVis.getLength() >> 1) );
+				} else {
+					stop = Math.min( timelineLen, selSpan.getStop() + (timelineVis.getLength() >> 3) );
+				}
+				start	= Math.max( 0, stop - timelineVis.getLength() );
+				newSpan	= new Span( start, stop );
+				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
+					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+				}
+				break;
+
+			case SCROLL_FIT_TO_SELECTION:
+				newSpan		= selSpan;
+				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
+					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+				}
+				break;
+
+			case SCROLL_ENTIRE_SESSION:
+				newSpan		= new Span( 0, timelineLen );
+				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
+					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+				}
+				break;
+
+			default:
+				assert false : mode;
+				break;
 			}
-			finally {
-				doc.bird.releaseExclusive( Session.DOOR_TIME );
-			}
+			if( edit != null ) doc.getUndoManager().addEdit( edit );
 		}
 	} // class actionScrollClass
 	
@@ -1306,7 +1611,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 	{
 		private final int mode;
 	
-		private ActionSelect( int mode )
+		protected ActionSelect( int mode )
 		{
 			super();
 			
@@ -1317,36 +1622,31 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		{
 			Span			selSpan, newSpan = null;
 		
-			if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-			try {
-				selSpan		= doc.timeline.getSelectionSpan();
-				if( selSpan.isEmpty() ) {
-					selSpan	= new Span( currentPos, currentPos );
-				}
-				
-				switch( mode ) {
-				case SELECT_TO_SESSION_START:
-					if( selSpan.getStop() > 0 ){
-						newSpan = new Span( 0, selSpan.getStop() );
-					}
-					break;
-
-				case SELECT_TO_SESSION_END:
-					if( selSpan.getStart() < doc.timeline.getLength() ){
-						newSpan = new Span( selSpan.getStart(), doc.timeline.getLength() );
-					}
-					break;
-
-				default:
-					assert false : mode;
-					break;
-				}
-				if( newSpan != null && !newSpan.equals( selSpan )) {
-					doc.getUndoManager().addEdit( new EditSetTimelineSelection( this, doc, newSpan ));
-				}
+			selSpan		= timelineSel; // doc.timeline.getSelectionSpan();
+			if( selSpan.isEmpty() ) {
+				selSpan	= new Span( timelinePos, timelinePos );
 			}
-			finally {
-				doc.bird.releaseExclusive( Session.DOOR_TIME );
+			
+			switch( mode ) {
+			case SELECT_TO_SESSION_START:
+				if( selSpan.getStop() > 0 ){
+					newSpan = new Span( 0, selSpan.getStop() );
+				}
+				break;
+
+			case SELECT_TO_SESSION_END:
+				if( selSpan.getStart() < timelineLen ){
+					newSpan = new Span( selSpan.getStart(), timelineLen );
+				}
+				break;
+
+			default:
+				assert false : mode;
+				break;
+			}
+			if( newSpan != null && !newSpan.equals( selSpan )) {
+				doc.timeline.editSelect( this, newSpan );
+//					doc.getUndoManager().addEdit( TimelineVisualEdit.select( this, doc, newSpan ));
 			}
 		}
 	} // class actionSelectClass
@@ -1698,7 +1998,8 @@ timelinePos = currentPos;
 		public void mousePressed( MouseEvent e )
 		{
 			if( e.isMetaDown() ) {
-				editSelectAll();
+//				editSelectAll();
+				doc.timeline.editSelect( this, new Span( 0, timelineLen ));
 				dragStarted = false;
 				validDrag	= false;
 			} else {
@@ -1728,7 +2029,7 @@ timelinePos = currentPos;
 		
 		private void processDrag( MouseEvent e, boolean hasStarted )
 		{
-			final Point pt	= SwingUtilities.convertPoint( e.getComponent(), e.getPoint(), ggTrackPanel );
+			final Point pt	= SwingUtilities.convertPoint( e.getComponent(), e.getPoint(), waveView );
 			
 			Span			span, span2;
 			long			position;
@@ -1751,26 +2052,26 @@ timelinePos = currentPos;
 										span2.getStart() : span2.getStop();
 						span2	= new Span( Math.min( startPos, position ),
 											Math.max( startPos, position ));
-						edit	= new EditSetTimelineSelection( this, doc, span2 );
+						edit	= TimelineVisualEdit.select( this, doc, span2 );
 					} else {
 						startPos = position;
 						if( span2.isEmpty() ) {
-							edit = new EditSetTimelinePosition( this, doc, position );
+							edit = TimelineVisualEdit.position( this, doc, position );
 						} else {
 							edit = new CompoundEdit();
-							edit.addEdit( new EditSetTimelineSelection( this, doc, new Span() ));
-							edit.addEdit( new EditSetTimelinePosition( this, doc, position ));
+							edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ));
+							edit.addEdit( TimelineVisualEdit.position( this, doc, position ));
 							((CompoundEdit) edit).end();
 						}
 					}
 				} else {
 					if( ctrlDrag ) {
-						edit	= new EditSetTimelinePosition( this, doc, position );
+						edit	= TimelineVisualEdit.position( this, doc, position );
 //System.err.println( "setting to "+position );
 					} else {
 						span2	= new Span( Math.min( startPos, position ),
 											Math.max( startPos, position ));
-						edit	= new EditSetTimelineSelection( this, doc, span2 );
+						edit	= TimelineVisualEdit.select( this, doc, span2 );
 					}
 				}
 				doc.getUndoManager().addEdit( edit );
@@ -1789,7 +2090,7 @@ timelinePos = currentPos;
 				try {
 					span2 = doc.timeline.getSelectionSpan();
 					if( !span2.isEmpty() && doc.timeline.getPosition() != span2.getStart() ) {
-						doc.getUndoManager().addEdit( new EditSetTimelinePosition( this, doc, span2.getStart() ));
+						doc.getUndoManager().addEdit( TimelineVisualEdit.position( this, doc, span2.getStart() ));
 					}
 				}
 				finally {
@@ -1827,6 +2128,7 @@ timelinePos = currentPos;
 		}
 	}
 
+/*
 	private class TimelineZoomTool
 	extends TimelineTool
 	{
@@ -1942,6 +2244,187 @@ timelinePos = currentPos;
 			vpTrackPanel.setZoomRect( null );
 			dragStarted = false;
 			validDrag	= false;
+		}
+	}
+*/
+
+	private class TimelineZoomTool
+	extends TimelineTool
+	{
+		private boolean					validDrag	= false, dragStarted = false;
+		private long					startPos;
+		private Point					startPt;
+		private long					position;
+		private final javax.swing.Timer	zoomTimer;
+		protected final Rectangle		zoomRect	= new Rectangle();
+		private MenuAction actionZoomIn		= null;
+		private MenuAction actionZoomOut	= null;
+
+		protected TimelineZoomTool()
+		{
+			zoomTimer = new javax.swing.Timer( 250, new ActionListener() {
+				public void actionPerformed( ActionEvent e )
+				{
+					setZoomRect( zoomRect );
+				}
+			});
+		}
+
+		public void toolAcquired( final Component c )
+		{
+			super.toolAcquired( c );
+			c.setCursor( zoomCsr[ 0 ]);
+//			c.addKeyListener( this );
+			if( c instanceof JComponent ) {
+				final JComponent jc = (JComponent) c;
+				if( actionZoomOut == null ) actionZoomOut = new MenuAction( "zoomOut",
+				  KeyStroke.getKeyStroke( KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK, false )) {
+					public void actionPerformed( ActionEvent e ) {
+//						System.out.println( "DOWN" );
+						c.setCursor( zoomCsr[ 1 ]);
+					}
+				};
+				if( actionZoomIn == null ) actionZoomIn = new MenuAction( "zoomIn",
+				 	KeyStroke.getKeyStroke( KeyEvent.VK_ALT, 0, true )) {
+					public void actionPerformed( ActionEvent e ) {
+//						System.out.println( "UP" );
+						c.setCursor( zoomCsr[ 0 ]);
+					}
+				};
+				actionZoomOut.installOn( jc, JComponent.WHEN_IN_FOCUSED_WINDOW );
+				actionZoomIn.installOn( jc, JComponent.WHEN_IN_FOCUSED_WINDOW );
+			}
+		}
+
+		public void toolDismissed( Component c )
+		{
+			super.toolDismissed( c );
+			if( c instanceof JComponent ) {
+				final JComponent jc = (JComponent) c;
+				if( actionZoomOut != null ) actionZoomOut.deinstallFrom( jc, JComponent.WHEN_IN_FOCUSED_WINDOW );
+				if( actionZoomIn != null ) actionZoomIn.deinstallFrom( jc, JComponent.WHEN_IN_FOCUSED_WINDOW );
+			}
+		}
+
+		public void paintOnTop( Graphics2D g )
+		{
+			// not necessary
+		}
+		
+		public void mousePressed( MouseEvent e )
+		{
+			super.mousePressed( e );
+		
+			if( e.isAltDown() ) {
+				dragStarted = false;
+				validDrag	= false;
+				clickZoom( 2.0f, e );
+			} else {
+				dragStarted = false;
+				validDrag	= true;
+				processDrag( e, false ); 
+			}
+		}
+
+		public void mouseDragged( MouseEvent e )
+		{
+			super.mouseDragged( e );
+
+			if( validDrag ) {
+				if( !dragStarted ) {
+					if( Math.abs( e.getX() - startPt.x ) > 2 ) {
+						dragStarted = true;
+						zoomTimer.restart();
+					} else return;
+				}
+				processDrag( e, true );
+			}
+		}
+
+		protected void cancelGesture()
+		{
+			zoomTimer.stop();
+			setZoomRect( null );
+			dragStarted = false;
+			validDrag	= false;
+		}
+
+		public void mouseReleased( MouseEvent e )
+		{
+			super.mouseReleased( e );
+
+			Span span;
+
+			if( dragStarted ) {
+				cancelGesture();
+				span = new Span( Math.min( startPos, position ),
+								 Math.max( startPos, position ));
+				if( !span.isEmpty() ) {
+//						doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( this, doc, span ));
+					doc.timeline.editScroll( this, span );
+				}
+			}
+			
+			validDrag	= false;
+		}
+
+		// zoom to mouse position
+		public void mouseClicked( MouseEvent e )
+		{
+			super.mouseClicked( e );
+
+			if( !e.isAltDown() ) clickZoom( 0.5f, e );
+		}
+		
+		private void clickZoom( float factor, MouseEvent e )
+		{
+			long	pos, visiLen, start, stop;
+			Span	visiSpan;
+			
+			visiSpan	= timelineVis;
+			visiLen		= visiSpan.getLength();
+			pos			= visiSpan.getStart() + (long) ((double) e.getX() / (double) getComponent().getWidth() *
+													visiSpan.getLength());
+			visiLen		= (long) (visiLen * factor + 0.5f);
+			if( visiLen < 2 ) return;
+			
+			start		= Math.max( 0, Math.min( timelineLen, pos - (long) ((pos - visiSpan.getStart()) * factor + 0.5f) ));
+			stop		= start + visiLen;
+			if( stop > timelineLen ) {
+				stop	= timelineLen;
+				start	= Math.max( 0, stop - visiLen );
+			}
+			visiSpan	= new Span( start, stop );
+			if( !visiSpan.isEmpty() ) {
+				doc.timeline.editScroll( this, visiSpan );
+//					doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( this, doc, visiSpan ));
+			}
+		}
+
+		private void processDrag( MouseEvent e, boolean hasStarted )
+		{
+			final Point pt	= SwingUtilities.convertPoint( e.getComponent(), e.getPoint(), wavePanel );
+			
+			Span	span;
+			int		zoomX; // , zoomY;
+		   
+			span        = timelineVis; // doc.timeline.getVisibleSpan();
+			position    = span.getStart() + (long) (pt.getX() / getComponent().getWidth() *
+													span.getLength());
+			position    = Math.max( 0, Math.min( timelineLen, position ));
+			if( !hasStarted ) {
+				startPos= position;
+				startPt	= pt;
+			} else {
+				zoomX	= Math.min( startPt.x, pt.x );
+//					zoomY	= Math.min( startPt.y, pt.y );
+//					zoomRect.setBounds( zoomX, zoomY, Math.abs( startPt.x - pt.x ),
+//													  Math.abs( startPt.y - pt.y ));
+//				zoomRect.setBounds( zoomX, 6, Math.abs( startPt.x - pt.x ),
+//											   wavePanel.getHeight() - 12 );
+				zoomRect.setBounds( zoomX, waveView.getY() + 6, Math.abs( startPt.x - pt.x ), waveView.getHeight() - 12 );
+				setZoomRect( zoomRect );
+			}
 		}
 	}
 }

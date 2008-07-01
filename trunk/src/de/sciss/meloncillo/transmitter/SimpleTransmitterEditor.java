@@ -64,9 +64,9 @@ import de.sciss.meloncillo.gui.ToolActionListener;
 import de.sciss.meloncillo.gui.VectorDisplay;
 import de.sciss.meloncillo.gui.VectorEditor;
 import de.sciss.meloncillo.gui.VirtualSurface;
+import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.BlendSpan;
-import de.sciss.meloncillo.io.MultirateTrackEditor;
 import de.sciss.meloncillo.io.SubsampleInfo;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
@@ -218,8 +218,8 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 	// Sync: syncs to tl / tc / mte
     private void loadFrames( boolean justBecauseOfResize )
     {
-        Span					span;
-		MultirateTrackEditor	mte		= trns.getTrackEditor();
+        Span			span;
+		AudioTrail		at		= trns.getTrackEditor();
         
         if( trns != null ) {
 			if( !doc.bird.attemptShared( Session.DOOR_TIMETRNSMTE, 200 )) return;
@@ -230,7 +230,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 				// enthaelt. dies ist ein guter kompromiss zwischen
 				// darstellungsgenauigkeit und -geschwindigkeit
 				rate = doc.timeline.getRate();
-				info = mte.getBestSubsample( span, getWidth() * 3 / 2 );
+				info = at.getBestSubsample( span, getWidth() * 3 / 2 );
 //	info = mte.getBestSubsample( span, (getWidth() * 3 / 2) / (2 * doc.transmitterCollection.indexOf( trns ) + 1) );
 				if( info.sublength != frameBuf[0].length ) {
 					frameBuf[0] = new float[(int) info.sublength];
@@ -240,7 +240,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 				}
 				try {
 // System.err.println( "read subsample idx  "+info.idx+" , len = "+info.span.getLength()+"; view = "+viewWidth );
-					mte.read( info, frameBuf, 0 );
+					at.read( info, frameBuf, 0 );
 				}
 				catch( IOException e1 ) {
 					System.err.println( e1.getLocalizedMessage() );
@@ -287,7 +287,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 	public void vectorChanged( VectorDisplay.Event e )
 	{
 // System.out.println( "vector changed" );
-		MultirateTrackEditor			mte;
+		AudioTrail						at;
 		Span							changedSpan = (Span) e.getActionObject();
 		Span							writeSpan;
 		int								i, j, k, factor, ch, start, stop, maxSource, len, interpLen;
@@ -309,21 +309,21 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 			edit	= new SyncCompoundSessionObjEdit( this, doc, collTrns, Transmitter.OWNER_TRAJ,
 													      null, null, Session.DOOR_TIMETRNSMTE );
 			try {
-				mte		= trns.getTrackEditor();
+				at		= trns.getTrackEditor();
 				factor	= info.getDecimationFactor();
 				if( factor == 1 ) {   // fullrate buffer can be written directly
 					writeSpan   = new Span( changedSpan.getStart() + info.span.getStart(),
 											changedSpan.getStop()  + info.span.getStart() );
-					bs			= mte.beginOverwrite( writeSpan, bc, edit );
-					mte.continueWrite( bs, frameBuf, (int) changedSpan.getStart(), (int) changedSpan.getLength() );
-					mte.finishWrite( bs, edit );
+					bs			= at.beginOverwrite( writeSpan, bc, edit );
+					at.continueWrite( bs, frameBuf, (int) changedSpan.getStart(), (int) changedSpan.getLength() );
+					at.finishWrite( bs, edit );
 				} else {				// subrate buffers must be upsampled
 					start		= (int) changedSpan.getStart();
 					stop		= (int) changedSpan.getStop() - 1;
 					if( start > stop ) return;
 					writeSpan   = new Span( (start * factor) + info.span.getStart(),
 											(stop  * factor) + info.span.getStart() + 1 );
-					bs			= mte.beginOverwrite( writeSpan, bc, edit );
+					bs			= at.beginOverwrite( writeSpan, bc, edit );
 					maxSource   = 4096 / factor;
 					if( maxSource > 0 ) {
 						interpBuf   = new float[2][4096];
@@ -350,17 +350,17 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 								}
 							}
 						}
-						mte.continueWrite( bs, interpBuf, 0, interpLen );
+						at.continueWrite( bs, interpBuf, 0, interpLen );
 //xxx+=(len << shift);
 //System.out.println( "  write "+interpLen );
 						start += len;
 					}
 					
-					mte.continueWrite( bs, frameBuf, stop, 1 );  // last sample not interpolated
+					at.continueWrite( bs, frameBuf, stop, 1 );  // last sample not interpolated
 //xxx++;
 //System.out.println( "  write 1" );
 					
-					mte.finishWrite( bs, edit );
+					at.finishWrite( bs, edit );
 //System.out.println( "finished "+xxx );
 				} // if( info.idx == 0 )
 				

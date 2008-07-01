@@ -64,15 +64,15 @@ extends JFrame
 				Graphics2D g2 = (Graphics2D) g;
 				Dimension d = getSize();
 				Transmitter trns;
-				MultirateTrackEditor mte;
+				AudioTrail at;
 				
 				try {
 					doc.bird.waitShared( Session.DOOR_TRNSMTE );
 					if( doc.selectedTransmitters.size() == 0 ) return;
 					trns = (Transmitter) doc.selectedTransmitters.get( 0 );
 					setTitle( "Track: "+trns.getName() );
-					mte = trns.getTrackEditor();
-					mte.debugPaint( g2, 8, 8, d.width - 16, d.height - 16 );
+					at = trns.getTrackEditor();
+					at.debugPaint( g2, 8, 8, d.width - 16, d.height - 16 );
 				}
 				finally {
 					doc.bird.releaseShared( Session.DOOR_TRNSMTE );
@@ -128,16 +128,16 @@ extends JFrame
 			public void actionPerformed( ActionEvent e )
 			{
 				Transmitter trns;
-				MultirateTrackEditor mte;
+				AudioTrail at;
 				int i;
 				
 				try {
 					doc.bird.waitShared( Session.DOOR_TRNSMTE );
 					for( i = 0; i < doc.selectedTransmitters.size(); i++ ) {
 						trns = (Transmitter) doc.selectedTransmitters.get( i );
-						mte = trns.getTrackEditor();
+						at = trns.getTrackEditor();
 						System.err.println( "------------ Track: "+trns.getName()+" ------------" );
-						mte.debugDump();
+						at.debugDump();
 					}
 				}
 				finally {

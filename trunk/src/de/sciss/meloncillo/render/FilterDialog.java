@@ -46,9 +46,9 @@ import de.sciss.app.AbstractWindow;
 import de.sciss.common.ProcessingThread;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.BlendSpan;
-import de.sciss.meloncillo.io.MultirateTrackEditor;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.transmitter.Transmitter;
 
@@ -253,7 +253,7 @@ implements RenderConsumer
 	throws IOException
 	{
 		Transmitter				trns;
-		MultirateTrackEditor	mte;
+		AudioTrail				at;
 		int						trnsIdx;
 		ConsumerContext			consc;
 		
@@ -268,8 +268,8 @@ implements RenderConsumer
 			if( !source.trajRequest[ trnsIdx ]) continue;
 			
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
-			mte					= trns.getTrackEditor();
-			consc.bs[ trnsIdx ]	= mte.beginOverwrite( context.getTimeSpan(), consc.bc, consc.edit );
+			at					= trns.getTrackEditor();
+			consc.bs[ trnsIdx ]	= at.beginOverwrite( context.getTimeSpan(), consc.bc, consc.edit );
 		}
 		
 		return true;
@@ -284,7 +284,7 @@ implements RenderConsumer
 	throws IOException
 	{
 		Transmitter				trns;
-		MultirateTrackEditor	mte;
+		AudioTrail				at;
 		int						trnsIdx;
 		ConsumerContext			consc   = (ConsumerContext) context.getOption( KEY_CONSC );
 
@@ -292,8 +292,8 @@ implements RenderConsumer
 			if( !source.trajRequest[ trnsIdx ]) continue;
 
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
-			mte					= trns.getTrackEditor();
-			mte.finishWrite( consc.bs[ trnsIdx], consc.edit );
+			at					= trns.getTrackEditor();
+			at.finishWrite( consc.bs[ trnsIdx], consc.edit );
 		}
 
 		consc.edit.end(); // fires doc.tc.modified()
@@ -310,20 +310,20 @@ implements RenderConsumer
 	{
 		ConsumerContext			consc   = (ConsumerContext) context.getOption( KEY_CONSC );
 		Transmitter				trns;
-		MultirateTrackEditor	mte;
+		AudioTrail				at;
 		int						trnsIdx;
 
 		for( trnsIdx = 0; trnsIdx < source.numTrns; trnsIdx++ ) {
 			if( !source.trajRequest[ trnsIdx ]) continue;
 
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
-			mte					= trns.getTrackEditor();
+			at					= trns.getTrackEditor();
 			if( consc.bs[ trnsIdx ] == null ) {
 				context.getHost().showMessage( JOptionPane.ERROR_MESSAGE,
 					AbstractApplication.getApplication().getResourceString( "renderEarlyConsume" ));
 				return false;
 			}
-			mte.continueWrite( consc.bs[ trnsIdx], source.trajBlockBuf[ trnsIdx ],
+			at.continueWrite( consc.bs[ trnsIdx], source.trajBlockBuf[ trnsIdx ],
 							   source.blockBufOff, source.blockBufLen );
 		}
 

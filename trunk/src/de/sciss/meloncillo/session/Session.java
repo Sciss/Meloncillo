@@ -142,7 +142,7 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	/**
 	 *  The timeline object of a session
 	 */
-	public final Timeline timeline			= new Timeline();
+	public final Timeline timeline			= new Timeline( this );
 
 	public final SessionCollection	selectedReceivers		= new SessionCollection();
 	public final SessionCollection	selectedTransmitters	= new SessionCollection();

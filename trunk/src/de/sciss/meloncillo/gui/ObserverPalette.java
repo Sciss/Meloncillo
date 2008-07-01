@@ -67,7 +67,7 @@ import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
 import de.sciss.meloncillo.edit.EditSetSessionObjectName;
-import de.sciss.meloncillo.edit.EditSetTimelineSelection;
+import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionObject;
@@ -385,7 +385,7 @@ implements NumberListener, TimelineListener, DynamicListening
 					span	= new Span( span.getStart(), Math.min( doc.timeline.getLength(),
 														 Math.max( span.getStart(), n )) );
 				}
-				doc.getUndoManager().addEdit( new EditSetTimelineSelection( this, doc, span ));
+				doc.getUndoManager().addEdit( TimelineVisualEdit.select( this, doc, span ));
 			}
 			finally {
 				doc.bird.releaseExclusive( Session.DOOR_TIME );

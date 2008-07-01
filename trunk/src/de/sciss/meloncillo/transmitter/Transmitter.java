@@ -74,5 +74,5 @@ extends SessionObject
 	 *			future a mte might have three channels for example and
 	 *			allow empty intermitting sections.
 	 */
-	public MultirateTrackEditor getTrackEditor();
+	public AudioTrail getTrackEditor();
 }

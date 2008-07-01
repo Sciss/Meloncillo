@@ -33,6 +33,7 @@ package de.sciss.meloncillo.edit;
 import java.util.*;
 import javax.swing.undo.*;
 
+import de.sciss.app.BasicUndoableEdit;
 import de.sciss.meloncillo.session.*;
 
 /**

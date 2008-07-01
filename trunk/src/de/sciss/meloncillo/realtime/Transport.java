@@ -648,7 +648,7 @@ commandLp:		do {
 						if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 200 )) return;
 						try {
 							rt_pos	= Math.max( 0, Math.min( doc.timeline.getLength(), rt_pos ));
-							edit	= new EditSetTimelinePosition( this, doc, rt_pos );
+							edit	= TimelineVisualEdit.position( this, doc, rt_pos );
 							doc.getUndoManager().addEdit( edit );
 						}
 						finally {

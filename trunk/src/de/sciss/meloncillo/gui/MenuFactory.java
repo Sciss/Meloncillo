@@ -91,12 +91,10 @@ import de.sciss.meloncillo.edit.EditAddSessionObjects;
 import de.sciss.meloncillo.edit.EditInsertTimeSpan;
 import de.sciss.meloncillo.edit.EditRemoveSessionObjects;
 import de.sciss.meloncillo.edit.EditSetSessionObjects;
-import de.sciss.meloncillo.edit.EditSetTimelinePosition;
-import de.sciss.meloncillo.edit.EditSetTimelineScroll;
-import de.sciss.meloncillo.edit.EditSetTimelineSelection;
 import de.sciss.meloncillo.edit.SyncCompoundEdit;
 import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
-import de.sciss.meloncillo.io.MultirateTrackEditor;
+import de.sciss.meloncillo.edit.TimelineVisualEdit;
+import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.TrackSpan;
 import de.sciss.meloncillo.io.XMLRepresentation;
 import de.sciss.meloncillo.lisp.JathaDiddler;
@@ -1119,7 +1117,7 @@ extends BasicMenuFactory
 		{
 			int						i, j;
 			Transmitter				trns;
-			MultirateTrackEditor	mte;
+			AudioTrail				at;
 			float[][]				buf			= new float[ 2 ][ 4096 ];
 			Class					c;
 			long					progress	= 0;
@@ -1163,14 +1161,14 @@ extends BasicMenuFactory
 							buf[0][j] = f1;
 							buf[1][j] = f2;
 						}
-						mte			= trns.getTrackEditor();
-						ts			= mte.beginInsert( span, edit );
+						at			= trns.getTrackEditor();
+						ts			= at.beginInsert( span, edit );
 						for( framesWritten = 0, frames = span.getLength(); framesWritten < frames; ) {
 							j		= (int) Math.min( 4096, frames - framesWritten );
-							mte.continueWrite( ts, buf, 0, j );
+							at.continueWrite( ts, buf, 0, j );
 							framesWritten += j;
 						}
-						mte.finishWrite( ts, edit );
+						at.finishWrite( ts, edit );
 					}
 					progress++;
 					context.setProgression( (float) progress / (float) num );
@@ -1362,7 +1360,7 @@ extends BasicMenuFactory
 		throws IOException
 		{
 			Transmitter						trns;
-			MultirateTrackEditor			mte;
+			AudioTrail						at;
 			float[][]						frameBuf	= new float[2][4096];
 			float[][]						interpBuf   = null;
 			float[]							chBuf;
@@ -1400,7 +1398,7 @@ extends BasicMenuFactory
 			try {
 				for( i = 0; i < doc.transmitters.size(); i++ ) {
 					trns	= (Transmitter) doc.transmitters.get( i );
-					mte		= trns.getTrackEditor();
+					at		= trns.getTrackEditor();
 
 					switch( interpType ) {
 					case 1: // only one neighbouring sample -> repeat it
@@ -1410,7 +1408,7 @@ extends BasicMenuFactory
 							f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
 							f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
 						} else {
-							mte.read( interpSpan, frameBuf, 0 );
+							at.read( interpSpan, frameBuf, 0 );
 							f1		= frameBuf[0][0];
 							f2		= frameBuf[1][0];
 						}
@@ -1418,20 +1416,20 @@ extends BasicMenuFactory
 							frameBuf[0][j] = f1;
 							frameBuf[1][j] = f2;
 						}
-						mte			= trns.getTrackEditor();
-						ts			= mte.beginInsert( span, edit );
+						at			= trns.getTrackEditor();
+						ts			= at.beginInsert( span, edit );
 						for( start = span.getStart(); start < span.getStop(); start += len ) {
 							len		= (int) Math.min( 4096, span.getStop() - start );
-							mte.continueWrite( ts, frameBuf, 0, len );
+							at.continueWrite( ts, frameBuf, 0, len );
 						}
-						mte.finishWrite( ts, edit );
+						at.finishWrite( ts, edit );
 						progress++;
 						context.setProgression( (float) progress / (float) progressLen );
 						break;
 
 					case 2:	// two neighbouring samples -> interpolation
-						mte.read( interpSpan, frameBuf, 0 );
-						ts = mte.beginInsert( span, edit );
+						at.read( interpSpan, frameBuf, 0 );
+						ts = at.beginInsert( span, edit );
 						for( start = span.getStart(), interpOff = 1; start < span.getStop();
 							 start += len, interpOff += len ) {
 							 
@@ -1444,11 +1442,11 @@ extends BasicMenuFactory
 									chBuf[j] = (float) (interpOff + j) * f2 + f1;
 								}
 							}
-							mte.continueWrite( ts, interpBuf, 0, len );
+							at.continueWrite( ts, interpBuf, 0, len );
 							progress += len;
 							context.setProgression( (float) progress / (float) progressLen );
 						}
-						mte.finishWrite( ts, edit );
+						at.finishWrite( ts, edit );
 						break;
 					
 					default:
@@ -1458,9 +1456,9 @@ extends BasicMenuFactory
 
 				edit.addEdit( new EditInsertTimeSpan( this, doc, span ));
 				if( visibleSpan.isEmpty() ) {
-					edit.addEdit( new EditSetTimelineScroll( this, doc, span ));
+					edit.addEdit( TimelineVisualEdit.scroll( this, doc, span ));
 				} else if( visibleSpan.contains( span.getStart() )) {
-					edit.addEdit( new EditSetTimelineScroll( this, doc,
+					edit.addEdit( TimelineVisualEdit.scroll( this, doc,
 						new Span( visibleSpan.getStart(), visibleSpan.getStop() + span.getLength() )));
 				}
 				
@@ -1518,8 +1516,8 @@ extends BasicMenuFactory
 									span.getStop() - 1 + span.getLength() ));
 
 				edit	= new CompoundEdit();
-				edit.addEdit( new EditSetTimelineSelection( this, doc, span ));
-				edit.addEdit( new EditSetTimelinePosition( this, doc, span.getStart() ));
+				edit.addEdit( TimelineVisualEdit.select( this, doc, span ));
+				edit.addEdit( TimelineVisualEdit.position( this, doc, span.getStart() ));
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
 			}
@@ -1556,8 +1554,8 @@ extends BasicMenuFactory
 				span	= new Span( Math.max( 0, span.getStart() + 1 - span.getLength() ), span.getStart() + 1 );
 
 				edit	= new CompoundEdit();
-				edit.addEdit( new EditSetTimelineSelection( this, doc, span ));
-				edit.addEdit( new EditSetTimelinePosition( this, doc, span.getStart() ));
+				edit.addEdit( TimelineVisualEdit.select( this, doc, span ));
+				edit.addEdit( TimelineVisualEdit.position( this, doc, span.getStart() ));
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
 			}
