@@ -29,10 +29,10 @@
 
 package de.sciss.meloncillo.edit;
 
-import javax.swing.undo.*;
-
 import de.sciss.app.BasicUndoableEdit;
-import de.sciss.meloncillo.session.*;
+import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionObject;
 
 /**
  *  An <code>UndoableEdit</code> that
@@ -77,20 +77,22 @@ extends BasicUndoableEdit
 		this.newName		= name;
 		this.oldName		= so.getName();
 		this.doors			= doors;
-		perform();
-		this.source			= this;
+//		perform();
+//		this.source			= this;
 	}
 
-	private void perform()
+	public PerformableEdit perform()
 	{
 		try {
 			doc.bird.waitExclusive( doors );
 			so.setName( newName );
 			so.getMap().dispatchOwnerModification( source, SessionObject.OWNER_RENAMED, newName );
+			source = this;
 		}
 		finally {
 			doc.bird.releaseExclusive( doors );
 		}
+		return this;
 	}
 
 	/**

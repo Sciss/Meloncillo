@@ -48,7 +48,6 @@ import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
-import de.sciss.meloncillo.io.BlendSpan;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.transmitter.Transmitter;
 
@@ -268,7 +267,7 @@ implements RenderConsumer
 			if( !source.trajRequest[ trnsIdx ]) continue;
 			
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
-			at					= trns.getTrackEditor();
+			at					= trns.getAudioTrail();
 			consc.bs[ trnsIdx ]	= at.beginOverwrite( context.getTimeSpan(), consc.bc, consc.edit );
 		}
 		
@@ -292,7 +291,7 @@ implements RenderConsumer
 			if( !source.trajRequest[ trnsIdx ]) continue;
 
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
-			at					= trns.getTrackEditor();
+			at					= trns.getAudioTrail();
 			at.finishWrite( consc.bs[ trnsIdx], consc.edit );
 		}
 
@@ -317,7 +316,7 @@ implements RenderConsumer
 			if( !source.trajRequest[ trnsIdx ]) continue;
 
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
-			at					= trns.getTrackEditor();
+			at					= trns.getAudioTrail();
 			if( consc.bs[ trnsIdx ] == null ) {
 				context.getHost().showMessage( JOptionPane.ERROR_MESSAGE,
 					AbstractApplication.getApplication().getResourceString( "renderEarlyConsume" ));

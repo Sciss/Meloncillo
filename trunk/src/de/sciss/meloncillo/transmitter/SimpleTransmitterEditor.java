@@ -66,8 +66,8 @@ import de.sciss.meloncillo.gui.VectorEditor;
 import de.sciss.meloncillo.gui.VirtualSurface;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
-import de.sciss.meloncillo.io.BlendSpan;
-import de.sciss.meloncillo.io.SubsampleInfo;
+import de.sciss.meloncillo.io.DecimatedTrail;
+import de.sciss.meloncillo.io.DecimationInfo;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.timeline.TimelineEvent;
@@ -106,7 +106,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 	
 	private final float[][]				frameBuf		= new float[2][0];
 	private int							rate;
-	private SubsampleInfo				info			= null;
+	private DecimationInfo				info			= null;
 
 	private ObserverPalette				observer		= null;
 	private final MouseMotionListener	cursorListener;
@@ -219,7 +219,8 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
     private void loadFrames( boolean justBecauseOfResize )
     {
         Span			span;
-		AudioTrail		at		= trns.getTrackEditor();
+//		AudioTrail		at		= trns.getTrackEditor();
+        final DecimatedTrail	dt	= trns.getDecimatedWaveTrail();
         
         if( trns != null ) {
 			if( !doc.bird.attemptShared( Session.DOOR_TIMETRNSMTE, 200 )) return;
@@ -230,7 +231,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 				// enthaelt. dies ist ein guter kompromiss zwischen
 				// darstellungsgenauigkeit und -geschwindigkeit
 				rate = doc.timeline.getRate();
-				info = at.getBestSubsample( span, getWidth() * 3 / 2 );
+				info = dt.getBestSubsample( span, getWidth() * 3 / 2 );
 //	info = mte.getBestSubsample( span, (getWidth() * 3 / 2) / (2 * doc.transmitterCollection.indexOf( trns ) + 1) );
 				if( info.sublength != frameBuf[0].length ) {
 					frameBuf[0] = new float[(int) info.sublength];
@@ -240,7 +241,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 				}
 				try {
 // System.err.println( "read subsample idx  "+info.idx+" , len = "+info.span.getLength()+"; view = "+viewWidth );
-					at.read( info, frameBuf, 0 );
+					dt.read( info, frameBuf, 0 );
 				}
 				catch( IOException e1 ) {
 					System.err.println( e1.getLocalizedMessage() );
@@ -309,7 +310,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 			edit	= new SyncCompoundSessionObjEdit( this, doc, collTrns, Transmitter.OWNER_TRAJ,
 													      null, null, Session.DOOR_TIMETRNSMTE );
 			try {
-				at		= trns.getTrackEditor();
+				at		= trns.getAudioTrail();
 				factor	= info.getDecimationFactor();
 				if( factor == 1 ) {   // fullrate buffer can be written directly
 					writeSpan   = new Span( changedSpan.getStart() + info.span.getStart(),

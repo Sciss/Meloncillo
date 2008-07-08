@@ -321,7 +321,7 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 				
 				// --- read transmitter trajectory data ---
 				if( source.trajRplc[ trnsIdx ] == -1 ) {
-					source.transmitters[ trnsIdx ].getTrackEditor().read(
+					source.transmitters[ trnsIdx ].getAudioTrail().read(
 						blockSpan, source.trajBlockBuf[ trnsIdx ], offStart );
 				} else {
 					TrajectoryReplacement	tr;
@@ -333,13 +333,13 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 					truncStop	= Math.min( blockSpan.getStop(), tr.span.getStop() );
 					
 					if( truncStart >= truncStop ) {	// no intersection
-						source.transmitters[ trnsIdx ].getTrackEditor().read(
+						source.transmitters[ trnsIdx ].getAudioTrail().read(
 							blockSpan, source.trajBlockBuf[ trnsIdx ], offStart );
 					} else {						// ok, we have to split it up
 						delta = truncStart - blockSpan.getStart();
 						if( delta > 0 ) {	// beginning not replaced
 							subSpan = new Span( blockSpan.getStart(), truncStart );
-							source.transmitters[ trnsIdx ].getTrackEditor().read(
+							source.transmitters[ trnsIdx ].getAudioTrail().read(
 								subSpan, source.trajBlockBuf[ trnsIdx ], offStart );
 						}
 						subSpan = new Span( truncStart, truncStop );
@@ -347,7 +347,7 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 						delta = blockSpan.getStop() - truncStop;
 						if( delta > 0 ) {
 							subSpan = new Span( truncStop, blockSpan.getStop() );
-							source.transmitters[ trnsIdx ].getTrackEditor().read( subSpan,
+							source.transmitters[ trnsIdx ].getAudioTrail().read( subSpan,
 								source.trajBlockBuf[ trnsIdx ], (int) (offStart + truncStop - blockSpan.getStart()) );
 						}
 					}
@@ -440,12 +440,12 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 
 				// --- read transmitter trajectory data ---
 				if( source.trajRplc[ trnsIdx ] == -1 ) {
-					source.transmitters[ trnsIdx ].getTrackEditor().read( miniSpan, offhandTempBuf, 0 );
+					source.transmitters[ trnsIdx ].getAudioTrail().read( miniSpan, offhandTempBuf, 0 );
 				} else {
 					TrajectoryReplacement tr = (TrajectoryReplacement) collReplacements.get( source.trajRplc[ trnsIdx ]);
 
 					if( tr.span.getStart() > currentPos || tr.span.getStop() < currentPos ) {
-						source.transmitters[ trnsIdx ].getTrackEditor().read( miniSpan, offhandTempBuf, 0 );
+						source.transmitters[ trnsIdx ].getAudioTrail().read( miniSpan, offhandTempBuf, 0 );
 					} else {
 						tr.tg.read( miniSpan, offhandTempBuf, 0 );
 					}

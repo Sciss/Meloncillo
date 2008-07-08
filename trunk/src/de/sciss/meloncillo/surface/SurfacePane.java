@@ -43,37 +43,105 @@
 
 package de.sciss.meloncillo.surface;
 
-import java.awt.*;
-import java.awt.color.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.awt.image.*;
-import java.io.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.Toolkit;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Area;
+import java.awt.geom.CubicCurve2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.text.*;
-import java.util.*;
-import java.util.prefs.*;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Vector;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
 
-import javax.swing.*;
-import javax.swing.undo.*;
+import javax.swing.JComponent;
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoableEdit;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.math.*;
-import de.sciss.meloncillo.realtime.*;
-import de.sciss.meloncillo.receiver.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.transmitter.*;
-import de.sciss.meloncillo.timeline.*;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.DynamicPrefChangeManager;
 import de.sciss.common.ProcessingThread;
-import de.sciss.gui.*;
-import de.sciss.io.*;
+import de.sciss.gui.StringItem;
+import de.sciss.gui.TopPainter;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.EditAddSessionObjects;
+import de.sciss.meloncillo.edit.EditSetReceiverAnchor;
+import de.sciss.meloncillo.edit.EditSetSessionObjects;
+import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.gui.AbstractTool;
+import de.sciss.meloncillo.gui.GraphicsUtil;
+import de.sciss.meloncillo.gui.ObserverPalette;
+import de.sciss.meloncillo.gui.ToolAction;
+import de.sciss.meloncillo.gui.ToolActionEvent;
+import de.sciss.meloncillo.gui.ToolActionListener;
+import de.sciss.meloncillo.gui.VirtualSurface;
+import de.sciss.meloncillo.io.AudioTrail;
+import de.sciss.meloncillo.io.BlendContext;
+import de.sciss.meloncillo.io.DecimatedTrail;
+import de.sciss.meloncillo.io.DecimationInfo;
+import de.sciss.meloncillo.math.MathUtil;
+import de.sciss.meloncillo.realtime.RealtimeConsumer;
+import de.sciss.meloncillo.realtime.RealtimeConsumerRequest;
+import de.sciss.meloncillo.realtime.RealtimeContext;
+import de.sciss.meloncillo.realtime.RealtimeProducer;
+import de.sciss.meloncillo.realtime.Transport;
+import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.receiver.ReceiverEditor;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
+import de.sciss.meloncillo.session.SessionGroup;
+import de.sciss.meloncillo.session.SessionObject;
+import de.sciss.meloncillo.timeline.TimelineEvent;
+import de.sciss.meloncillo.timeline.TimelineListener;
+import de.sciss.meloncillo.transmitter.TrajectoryGenerator;
+import de.sciss.meloncillo.transmitter.Transmitter;
+import de.sciss.meloncillo.util.MapManager;
+import de.sciss.meloncillo.util.PointInTime;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  The <code>SurfacePane</code> is one of the core GUI
@@ -165,16 +233,16 @@ implements  VirtualSurface, TimelineListener,
      *  elements are GeneralPath objects with the transmitter
      *  trajectory for the current timeline selection
      */
-    private final java.util.List	collTransmitterPath	= new ArrayList();
+    private final List	collTransmitterPath	= new ArrayList();
     /*
      *  elements are ReceiverShape objects with the receiver
      *  anchors and outlines
      */
-    private final java.util.List	collReceiverShapes	= new ArrayList();
+    private final List	collReceiverShapes	= new ArrayList();
     /*
      *  elements are Image objects with the group's background images
      */
-    private final java.util.List	collUserImages		= new ArrayList();
+    private final List	collUserImages		= new ArrayList();
     
 	// --- tools ---
 	
@@ -868,16 +936,17 @@ implements  VirtualSurface, TimelineListener,
 	 */
     private void updateTransmitterPath()
     {
-        int						i, j, reqLen, pathLen, len, lastLen;
+        int						j, reqLen, pathLen, len, lastLen;
         Transmitter				trns;
         Span					span;
         float[][]				frames  = null;
         float[]					x, y;
         GeneralPath				path	= null;
-		SubsampleInfo			info;
-		AudioTrail				at;
+		DecimationInfo			info;
+//		AudioTrail				at;
+		DecimatedTrail			dt;			
 		float					lx, ly;
-		java.util.List			collTrns;
+		List					collTrns;
         
 		try {
 			doc.bird.waitShared( Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
@@ -888,9 +957,11 @@ implements  VirtualSurface, TimelineListener,
 			collTrns	= doc.activeTransmitters.getAll();
 			collTrns.retainAll( doc.selectedTransmitters.getAll() );
 			
-			for( i = 0; i < collTrns.size(); i++ ) {
+			for( int i = 0; i < collTrns.size(); i++ ) {
 				trns	= (Transmitter) collTrns.get( i );
-				at		= trns.getTrackEditor();
+//				at		= trns.getTrackEditor();
+				dt		= trns.getDecimatedWaveTrail();
+				
 				// performance measures show that this routine is
 				// vey fast, like one or two millisecs, while the draw method
 				// of the Graphics2D called in redrawImage() becomes hell
@@ -902,7 +973,7 @@ implements  VirtualSurface, TimelineListener,
 				// it actually contains, and if these exceed 256 we'll restart
 				// with a smaller subsample.
 				for( reqLen = 1024, pathLen = 257, len = -1; pathLen > 256; reqLen >>= 1 ) {
-					info	= at.getBestSubsample( span, reqLen );
+					info	= dt.getBestSubsample( span, reqLen );
 					lastLen = len;
 					len		= (int) info.sublength;
 					if( lastLen == len ) continue;
@@ -910,7 +981,7 @@ implements  VirtualSurface, TimelineListener,
 					if( frames == null || frames[0].length < len ) {
 						frames = new float[2][len];
 					}
-					at.read( info, frames, 0 );
+					dt.read( info, frames, 0 );
 					x		= frames[0];
 					y		= frames[1];
 					path	= new GeneralPath( GeneralPath.WIND_EVEN_ODD, len );
@@ -1603,7 +1674,7 @@ implements  VirtualSurface, TimelineListener,
 							coll = doc.selectedReceivers.getAll();
 							coll.add( rcv );
 							edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
-																	   coll, Session.DOOR_RCV );
+															  coll, Session.DOOR_RCV );
 							doc.getUndoManager().addEdit( edit );
 							clipRect = rcv.getBounds();
 							updateSurfacePaneImage( clipRect );
@@ -2038,7 +2109,7 @@ implements  VirtualSurface, TimelineListener,
 		private Rectangle2D	dndRecentRect;				// for graphics rendering update
 //		private Line2D		dndLine			= new Line2D.Double();
 //		private GeneralPath dndFreehand		= new GeneralPath();
-		private Vector		dndFreehandPoints = new Vector();
+		private List		dndFreehandPoints = new ArrayList();
 		private PointInTime dndLatest;
 		private int			dndLatestIdx;
 		private ProcessingThread renderThread	= null;
@@ -2373,7 +2444,7 @@ implements  VirtualSurface, TimelineListener,
 			if( !dndDragging ) {					// test if mouse move was sufficient
 				dndDragging		= true;
 				dndRecentRect   = new Rectangle2D.Double();
-				dndLatest		= (PointInTime) dndFreehandPoints.firstElement();
+				dndLatest		= (PointInTime) dndFreehandPoints.get( 0 );
 				dndLatestIdx	= 0;
 			}
 
@@ -2381,8 +2452,8 @@ implements  VirtualSurface, TimelineListener,
 			when		= rt_pos;
 			recentLatest= dndLatest;
 			dndLatest   = new PointInTime( ptCurrentMouse, when );
-			pit			= (PointInTime) dndFreehandPoints.lastElement();
-			pit2		= (PointInTime) dndFreehandPoints.firstElement();
+			pit			= (PointInTime) dndFreehandPoints.get( dndFreehandPoints.size() - 1 );
+			pit2		= (PointInTime) dndFreehandPoints.get( 0 );
 			if( recentLatest.getWhen() < when ) {	// add after recent latest
 				dndLatestIdx++;
 				for( i = dndLatestIdx; i < dndFreehandPoints.size(); i++ ) {
@@ -2462,15 +2533,15 @@ implements  VirtualSurface, TimelineListener,
 			Span							span;
 			float							v_start_norm, dv_norm;
 			double							t_norm;
-			SyncCompoundSessionObjEdit	edit;
+			SyncCompoundSessionObjEdit		edit;
 			java.util.List					collTransmitters;
 			PointInTime						pit, pit2;
 			boolean							success		= false;
 			BlendContext					bc			= root.getBlending();
 
 			if( dndFreehandPoints.size() < 2 ) return DONE;
-			pit		= (PointInTime) dndFreehandPoints.firstElement();
-			pit2	= (PointInTime) dndFreehandPoints.lastElement();
+			pit		= (PointInTime) dndFreehandPoints.get( 0 );
+			pit2	= (PointInTime) dndFreehandPoints.get( dndFreehandPoints.size() - 1 );
 			span	= new Span( pit.getWhen(), pit2.getWhen() );
 			if( span.getLength() < 2 ) return DONE;
 				
@@ -2492,7 +2563,7 @@ implements  VirtualSurface, TimelineListener,
 			try {
 				for( i = 0; i < collTransmitters.size(); i++ ) {
 					trns	= (Transmitter) collTransmitters.get( i );
-					at		= trns.getTrackEditor();
+					at		= trns.getAudioTrail();
 
 					bs = at.beginOverwrite( span, bc, edit );
 					for( start = span.getStart(), interpOff = 0; start < span.getStop();
@@ -2531,8 +2602,8 @@ implements  VirtualSurface, TimelineListener,
 		{
 			PointInTime pit, pit2;
 
-			pit		= (PointInTime) dndFreehandPoints.firstElement();
-			pit2	= (PointInTime) dndFreehandPoints.lastElement();
+			pit		= (PointInTime) dndFreehandPoints.get( 0 );
+			pit2	= (PointInTime) dndFreehandPoints.get( dndFreehandPoints.size() - 1 );
 		
 			f_scale = (float) (pit2.getWhen() - pit.getWhen());
 			f_trans = (float) pit.getWhen();

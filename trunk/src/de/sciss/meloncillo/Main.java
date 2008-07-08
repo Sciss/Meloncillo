@@ -653,7 +653,8 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		} else {
 			blendLen = 0;
 		}
-		myBC	= new BlendContext( blendLen );
+//		myBC	= new BlendContext( blendLen );
+		myBC	= new BlendContext( blendLen, blendLen ); // ??? XXX
 		bc		= myBC;
 		
 		// return a copy of the reference because bc might be set to null in the meantime

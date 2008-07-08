@@ -29,10 +29,10 @@
 
 package de.sciss.meloncillo.edit;
 
-import javax.swing.undo.*;
-
 import de.sciss.app.BasicUndoableEdit;
-import de.sciss.meloncillo.util.*;
+import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.util.LockManager;
+import de.sciss.meloncillo.util.MapManager;
 
 /**
  *  An <code>UndoableEdit</code> that
@@ -83,19 +83,21 @@ extends BasicUndoableEdit
 		this.key			= key;
 		this.newValue		= value;
 		this.oldValue		= map.getValue( key );
-		perform();
-		this.source			= this;
+//		perform();
+//		this.source			= this;
 	}
 
-	private void perform()
+	public PerformableEdit perform()
 	{
 		try {
 			if( lm != null ) lm.waitExclusive( doors );
 			map.putValue( source, key, newValue );
+			source	= this;
 		}
 		finally {
 			if( lm != null ) lm.releaseExclusive( doors );
 		}
+		return this;
 	}
 
 	/**

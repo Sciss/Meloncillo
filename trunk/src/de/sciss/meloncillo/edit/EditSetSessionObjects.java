@@ -30,11 +30,15 @@
 
 package de.sciss.meloncillo.edit;
 
-import java.util.*;
-import javax.swing.undo.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.BasicUndoableEdit;
-import de.sciss.meloncillo.session.*;
+import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
 
 /**
  *  An <code>UndoableEdit</code> that
@@ -52,7 +56,7 @@ extends BasicUndoableEdit
 	private Object					source;
 	private final Session			doc;
 	private final SessionCollection	quoi;
-	private final java.util.List	oldSelection, newSelection;
+	private final List				oldSelection, newSelection;
 	private final int				doors;
 
 	/**
@@ -75,7 +79,7 @@ extends BasicUndoableEdit
 	 *  @synchronization			waitExclusive on doors
 	 */
 	public EditSetSessionObjects( Object source, Session doc, SessionCollection quoi,
-								  java.util.List collNewSelection, int doors )
+								  List collNewSelection, int doors )
 	{
 		super();
 		this.source			= source;
@@ -84,8 +88,8 @@ extends BasicUndoableEdit
 		this.quoi			= quoi;
 		this.oldSelection   = quoi.getAll();
 		this.newSelection   = new ArrayList( collNewSelection );
-		perform();
-		this.source			= this;
+//		perform();
+//		this.source			= this;
 	}
 
 	/**
@@ -97,16 +101,18 @@ extends BasicUndoableEdit
 		return false;
 	}
 
-	private void perform()
+	public PerformableEdit perform()
 	{
 		try {
 			doc.bird.waitExclusive( doors );
 			quoi.clear( source );
 			quoi.addAll( source, newSelection );
+			source = this;
 		}
 		finally {
 			doc.bird.releaseExclusive( doors );
 		}
+		return this;
 	}
 
 	/**

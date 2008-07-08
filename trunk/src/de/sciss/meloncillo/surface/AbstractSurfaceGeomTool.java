@@ -51,7 +51,6 @@ import de.sciss.meloncillo.gui.MenuFactory;
 import de.sciss.meloncillo.gui.VirtualSurface;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
-import de.sciss.meloncillo.io.BlendSpan;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.transmitter.Transmitter;
 
@@ -290,7 +289,7 @@ implements ProcessingThread.Client
 		try {
 			for( i = 0; i < collTransmitters.size(); i++ ) {
 				trns	= (Transmitter) collTransmitters.get( i );
-				at		= trns.getTrackEditor();
+				at		= trns.getAudioTrail();
 
 				bs = at.beginOverwrite( span, bc, edit );
 				for( start = span.getStart(), interpOff = 0; start < span.getStop();

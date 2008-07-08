@@ -29,8 +29,9 @@
 
 package de.sciss.meloncillo.transmitter;
 
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.session.*;
+import de.sciss.meloncillo.io.AudioTrail;
+import de.sciss.meloncillo.io.DecimatedWaveTrail;
+import de.sciss.meloncillo.session.SessionObject;
 
 /**
  *	A transmitter is one of the two main
@@ -74,5 +75,7 @@ extends SessionObject
 	 *			future a mte might have three channels for example and
 	 *			allow empty intermitting sections.
 	 */
-	public AudioTrail getTrackEditor();
+	public AudioTrail getAudioTrail();
+	
+	public DecimatedWaveTrail getDecimatedWaveTrail();
 }

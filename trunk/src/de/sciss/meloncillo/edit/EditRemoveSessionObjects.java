@@ -29,11 +29,13 @@
 
 package de.sciss.meloncillo.edit;
 
-import java.util.*;
-import javax.swing.undo.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import de.sciss.app.BasicUndoableEdit;
-import de.sciss.meloncillo.session.*;
+import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
 
 /**
  *  An <code>UndoableEdit</code> that
@@ -49,7 +51,7 @@ public class EditRemoveSessionObjects
 extends BasicUndoableEdit
 {
 	private final Session			doc;
-	private final java.util.List	collSessionObjects;
+	private final List				collSessionObjects;
 	private Object					source;
 	private final int				doors;
 	private final SessionCollection	quoi;
@@ -69,7 +71,7 @@ extends BasicUndoableEdit
 	 *  @synchronization		waitExclusive on doors
 	 */
 	public EditRemoveSessionObjects( Object source, Session doc, SessionCollection quoi,
-									 java.util.List collSessionObjects, int doors )
+									 List collSessionObjects, int doors )
 	{
 		super();
 		this.source				= source;
@@ -77,19 +79,21 @@ extends BasicUndoableEdit
 		this.collSessionObjects	= new ArrayList( collSessionObjects );
 		this.doors				= doors;
 		this.quoi				= quoi;
-		perform();
-		this.source				= this;
+//		perform();
+//		this.source				= this;
 	}
 
-	private void perform()
+	public PerformableEdit perform()
 	{
 		try {
 			doc.bird.waitExclusive( doors );
 			quoi.removeAll( source, collSessionObjects );
+			source = this;
 		}
 		finally {
 			doc.bird.releaseExclusive( doors );
 		}
+		return this;
 	}
 
 	/**

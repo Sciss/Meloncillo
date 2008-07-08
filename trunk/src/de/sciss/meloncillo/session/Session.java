@@ -81,6 +81,10 @@ public class Session
 extends SessionGroup
 implements FilenameFilter, EntityResolver, de.sciss.app.Document
 {
+	public static final int					EDIT_INSERT		= 0;
+	public static final int					EDIT_OVERWRITE	= 1;
+	public static final int					EDIT_MIX		= 2;
+
 	/**
 	 *	Denotes the path to this session or
 	 *	<code>null</code> if not yet saved

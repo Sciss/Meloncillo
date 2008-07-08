@@ -29,12 +29,14 @@
 
 package de.sciss.meloncillo.edit;
 
-import java.awt.geom.*;
-import javax.swing.undo.*;
+import java.awt.geom.Point2D;
+
+import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.BasicUndoableEdit;
-import de.sciss.meloncillo.receiver.*;
-import de.sciss.meloncillo.session.*;
+import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  An <code>UndoableEdit</code> that
@@ -76,10 +78,10 @@ extends BasicUndoableEdit
 		this.rcv			= rcv;
 		this.newAnchor		= anchor;
 		this.oldAnchor		= rcv.getAnchor();
-		perform();
+//		perform();
 	}
 
-	private void perform()
+	public PerformableEdit perform()
 	{
 		try {
 			doc.bird.waitExclusive( Session.DOOR_RCV );
@@ -88,6 +90,7 @@ extends BasicUndoableEdit
 		finally {
 			doc.bird.releaseExclusive( Session.DOOR_RCV );
 		}
+		return this;
 	}
 
 	/**

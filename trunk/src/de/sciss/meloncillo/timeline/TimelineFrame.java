@@ -1026,7 +1026,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 			if( collAffectedTransmitters.isEmpty() ) return false;
 
 			for( int i = 0; i < collAffectedTransmitters.size(); i++ ) {
-				at = ((Transmitter) collAffectedTransmitters.get( i )).getTrackEditor();
+				at = ((Transmitter) collAffectedTransmitters.get( i )).getAudioTrail();
 				v.add( at.getTrackList( span ));
 			}
 			if( !v.isEmpty() ) {
@@ -1160,7 +1160,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 					trns		= (Transmitter) collAffectedTransmitters.get( i );
 					trnsLen[i]  = docLength;
 					if( doc.selectedTransmitters.contains( trns )) {
-						at	= trns.getTrackEditor();
+						at	= trns.getAudioTrail();
 //									if( oldSelSpan != null && !oldSelSpan.isEmpty() ) { // remove old selected span
 //										mte.remove( oldSelSpan, edit );
 //										trnsLen[i] -= oldSelSpan.getLength();
@@ -1192,7 +1192,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				for( i = 0; i < collAffectedTransmitters.size(); i++ ) {
 					if( trnsLen[i] < maxTrnsLen ) {
 						trns	= (Transmitter) collAffectedTransmitters.get( i );
-						at		= trns.getTrackEditor();
+						at		= trns.getAudioTrail();
 						if( trnsLen[i] > 0 ) {
 							at.read( new Span( trnsLen[i] - 1, trnsLen[i] ), frameBuf, 0 );
 							f1 = frameBuf[0][0];
@@ -1342,7 +1342,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				if( collUnaffectedTransmitters.isEmpty() ) {
 					edit.addEdit( new EditRemoveTimeSpan( this, doc, span ));
 					for( i = 0; i < collAffectedTransmitters.size(); i++ ) {
-						at = ((Transmitter) collAffectedTransmitters.get( i )).getTrackEditor();
+						at = ((Transmitter) collAffectedTransmitters.get( i )).getAudioTrail();
 						at.remove( span, edit );
 						progress++;
 						context.setProgression( (float) progress / (float) progressLen );
@@ -1356,7 +1356,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 					edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ));
 					for( i = 0; i < collAffectedTransmitters.size(); i++ ) {
 						trns	= (Transmitter) collAffectedTransmitters.get( i );
-						at		= trns.getTrackEditor();
+						at		= trns.getAudioTrail();
 						at.read( span3, frameBuf, 0 );
 						f1		= frameBuf[0][0];
 						f2		= frameBuf[1][0];

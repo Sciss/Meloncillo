@@ -84,7 +84,6 @@ import de.sciss.gui.ProgressComponent;
 import de.sciss.gui.StringItem;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.debug.DebugTrackEditor;
 import de.sciss.meloncillo.debug.HRIRPrepareDialog;
 import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
 import de.sciss.meloncillo.edit.EditAddSessionObjects;
@@ -163,11 +162,11 @@ extends BasicMenuFactory
 					actionShowSurface, actionShowTimeline, actionShowTransport,
 					actionShowObserver, actionShowMeter, actionShowRealtime;
 	
-	private Action  actionDebugDumpUndo, actionDebugDumpTracks, actionDebugViewTrack,
+	private Action  actionDebugDumpUndo,
 					actionDebugDumpPrefs, actionJathaDiddler,
 					actionDebugDumpListeners, actionHRIRPrepare;
-//	private Action	actionDebugDumpRealtime;
-
+//	private Action  actionDebugDumpTracks, actionDebugViewTrack,
+	
 	// for custom JOptionPane calls (see actionNewReceiversClass )
 	private final String[]	queryOptions;
 
@@ -311,8 +310,8 @@ extends BasicMenuFactory
 		// --- debug menu ---
 		mg   = new MenuGroup( "debug", "Debug" );
 		mg.add( new MenuItem( "debugDumpUndo", actionDebugDumpUndo ));
-		mg.add( new MenuItem( "debugDumpTracks", actionDebugDumpTracks ));
-		mg.add( new MenuItem( "debugViewTrack", actionDebugViewTrack ));
+//		mg.add( new MenuItem( "debugDumpTracks", actionDebugDumpTracks ));
+//		mg.add( new MenuItem( "debugViewTrack", actionDebugViewTrack ));
 		mg.add( new MenuItem( "debugDumpPrefs", actionDebugDumpPrefs ));
 //		mg.add( new MenuItem( "debugDumpRealtime", actionDebugDumpRealtime ));
 		mg.add( new MenuItem( "debugDumpListeners", actionDebugDumpListeners ));
@@ -378,9 +377,8 @@ extends BasicMenuFactory
 		// --- debug menu ---
 		actionDebugDumpUndo		= doc.getUndoManager().getDebugDumpAction();
 		actionDebugDumpPrefs	= PrefsUtil.getDebugDumpAction( doc );
-		actionDebugDumpTracks   = DebugTrackEditor.getDebugDumpAction( doc );
-		actionDebugViewTrack	= DebugTrackEditor.getDebugViewAction( doc );
-//		actionDebugDumpRealtime	= ((Main) getApplication()).transport.getDebugDumpAction();
+//		actionDebugDumpTracks   = DebugTrackEditor.getDebugDumpAction( doc );
+//		actionDebugViewTrack	= DebugTrackEditor.getDebugViewAction( doc );
 		actionDebugDumpListeners= new ActionDebugDumpListeners();
 	}
 
@@ -1161,7 +1159,7 @@ extends BasicMenuFactory
 							buf[0][j] = f1;
 							buf[1][j] = f2;
 						}
-						at			= trns.getTrackEditor();
+						at			= trns.getAudioTrail();
 						ts			= at.beginInsert( span, edit );
 						for( framesWritten = 0, frames = span.getLength(); framesWritten < frames; ) {
 							j		= (int) Math.min( 4096, frames - framesWritten );
@@ -1398,7 +1396,7 @@ extends BasicMenuFactory
 			try {
 				for( i = 0; i < doc.transmitters.size(); i++ ) {
 					trns	= (Transmitter) doc.transmitters.get( i );
-					at		= trns.getTrackEditor();
+					at		= trns.getAudioTrail();
 
 					switch( interpType ) {
 					case 1: // only one neighbouring sample -> repeat it
@@ -1416,7 +1414,7 @@ extends BasicMenuFactory
 							frameBuf[0][j] = f1;
 							frameBuf[1][j] = f2;
 						}
-						at			= trns.getTrackEditor();
+						at			= trns.getAudioTrail();
 						ts			= at.beginInsert( span, edit );
 						for( start = span.getStart(); start < span.getStop(); start += len ) {
 							len		= (int) Math.min( 4096, span.getStop() - start );

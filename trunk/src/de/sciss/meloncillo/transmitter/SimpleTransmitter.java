@@ -56,15 +56,28 @@ extends AbstractTransmitter
 	private static final Class	defaultEditor		= SimpleTransmitterEditor.class;
     
     private final AudioTrail at;
-	private static final int[] decimations	= { 0, 2, 4, 6, 8, 10, 12 };
+    private final DecimatedWaveTrail dwt;
+//	private static final int[] decimations	= { 0, 2, 4, 6, 8, 10, 12 };
+	private static final int[] decimations	= { 2, 4, 6, 8, 10, 12 };
 
 	/**
 	 *  Creates a new SimpleTransmitter with defaults
 	 */
 	public SimpleTransmitter()
+	throws IOException
 	{
 		super();
-		at = new AudioTrail( 2, 1000, AudioTrail.MODEL_MEDIAN, decimations );	// XXX rate
+		
+		final AudioFileDescr afd = new AudioFileDescr();
+		
+//		at = new AudioTrail( 2, 1000, AudioTrail.MODEL_MEDIAN, decimations );	// XXX rate
+		afd.bitsPerSample	= 32;
+		afd.channels		= 2;
+		afd.rate			= 1000;
+		afd.sampleFormat	= AudioFileDescr.FORMAT_FLOAT;
+		afd.type			= AudioFileDescr.TYPE_AIFF;
+		at	= AudioTrail.newFrom( afd );
+		dwt	= new DecimatedWaveTrail( at, DecimatedWaveTrail.MODEL_MEDIAN, decimations );
 	}
 
 	public Class getDefaultEditor()
@@ -72,9 +85,14 @@ extends AbstractTransmitter
 		return defaultEditor;
 	}
 	
-	public AudioTrail getTrackEditor()
+	public AudioTrail getAudioTrail()
 	{
 		return at;
+	}
+
+	public DecimatedWaveTrail getDecimatedWaveTrail()
+	{
+		return dwt;
 	}
 
 // ---------------- XMLRepresentation imterface ---------------- 
@@ -125,13 +143,16 @@ extends AbstractTransmitter
 		afd					= new AudioFileDescr();
 		afd.type			= AudioFileDescr.TYPE_AIFF;
 		afd.rate			= at.getRate();
-		afd.channels		= 2;
+		afd.channels		= at.getChannelNum();
 		afd.bitsPerSample	= 32;
 		afd.sampleFormat	= AudioFileDescr.FORMAT_FLOAT;
 		afd.file			= f;
 
 		iff					= AudioFile.openAsWrite( afd );
-		at.flatten( iff );
+		
+		final int[] chanMap = new int[ at.getChannelNum() ];
+		for( int i = 0; i < chanMap.length; i++ ) chanMap[ i ] = i;
+		at.flatten( iff, at.getSpan(), chanMap );
 		iff.truncate();
 		iff.close();
 		
@@ -162,7 +183,7 @@ extends AbstractTransmitter
 		InterleavedStreamFile iff = AudioFile.openAsRead( new File( new File(
 			(File) options.get( XMLRepresentation.KEY_BASEPATH ), SUBDIR ), getName() + SUFFIX_TRAJECTORY ));
 			
-		at.clear();
+		at.clear( null );
 		at.insert( iff, 0, new Span( 0, iff.getFrameNum() ), null, 0.0f, 1.0f );		// XXX edit ?
 	}
 }

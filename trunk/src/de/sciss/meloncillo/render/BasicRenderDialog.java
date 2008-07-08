@@ -501,7 +501,7 @@ implements  RenderHost, ProcessingThread.Client,
 					
 					// --- read transmitter trajectory data ---
 					trns		= (Transmitter) context.getTransmitters().get( trnsIdx );
-					at			= trns.getTrackEditor();
+					at			= trns.getAudioTrail();
 					at.read( source.blockSpan, inTrnsFrames, inOff );
 					for( i = inOff + readLen; i < inTrnsLen; i++ ) {
 						inTrnsFrames[0][i] = 0.0f;		// zero pad in the end 

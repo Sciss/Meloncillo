@@ -103,7 +103,7 @@ extends BasicUndoableEdit
 	 *  @synchronization	waitExclusive on DOOR_RCV.
 	 */
 	public EditTableLookupRcvSense( Object source, Session doc, TableLookupReceiver rcv,
-													 float[] distTab, Span distSpan, float[] rotTab, Span rotSpan )
+									float[] distTab, Span distSpan, float[] rotTab, Span rotSpan )
 	throws IOException
 	{
 		super();
