@@ -258,8 +258,8 @@ implements RenderConsumer
 		ConsumerContext			consc;
 		
 		consc			= new ConsumerContext();
-		consc.edit		= new CompoundSessionObjEdit( this, doc, context.getTransmitters(), Transmitter.OWNER_TRAJ,
-													  null, null, Session.DOOR_TIMETRNSMTE );
+		consc.edit		= new CompoundSessionObjEdit( this, context.getTransmitters(), Transmitter.OWNER_TRAJ,
+													  null, null, "Filter" );
 //		consc.bs		= new BlendSpan[ source.numTrns ];
 		consc.bc		= root.getBlending();
 		context.setOption( KEY_CONSC, consc );
@@ -299,6 +299,7 @@ implements RenderConsumer
 //			at.finishWrite( consc.bs[ trnsIdx], consc.edit );
 		}
 
+		consc.edit.perform();
 		consc.edit.end(); // fires doc.tc.modified()
 		doc.getUndoManager().addEdit( consc.edit );
 		return true;

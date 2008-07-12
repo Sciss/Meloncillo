@@ -29,9 +29,9 @@
 
 package de.sciss.meloncillo.transmitter;
 
-import java.io.*;
+import java.io.IOException;
 
-import de.sciss.io.*;
+import de.sciss.io.Span;
 
 /**
  *  @author		Hanns Holger Rutz

@@ -626,7 +626,7 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener
         long			startTime = 0, sysTime;
         long			frameCount = 0, productionMask = 1, deadline = 0;
         int				currentRate, targetRate = 1, i;
-		UndoableEdit	edit;
+		PerformableEdit	edit;
 		RealtimeConsumerRequest	r;
 
 		do {
@@ -649,7 +649,7 @@ commandLp:		do {
 						try {
 							rt_pos	= Math.max( 0, Math.min( doc.timeline.getLength(), rt_pos ));
 							edit	= TimelineVisualEdit.position( this, doc, rt_pos );
-							doc.getUndoManager().addEdit( edit );
+							doc.getUndoManager().addEdit( edit.perform() );
 						}
 						finally {
 							doc.bird.releaseExclusive( Session.DOOR_TIME );

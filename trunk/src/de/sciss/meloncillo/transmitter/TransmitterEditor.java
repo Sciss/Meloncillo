@@ -30,10 +30,10 @@
 
 package de.sciss.meloncillo.transmitter;
 
-import javax.swing.*;
+import javax.swing.JComponent;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  The <code>TransmitterEditor</code> interface is a

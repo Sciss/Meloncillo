@@ -33,18 +33,33 @@
 
 package de.sciss.meloncillo.transmitter;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.undo.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.session.*;
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.undo.UndoableEdit;
 
-import de.sciss.app.*;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.EditSetSessionObjects;
+import de.sciss.meloncillo.gui.GraphicsUtil;
+import de.sciss.meloncillo.session.FlagsPanel;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionCollection;
 
 /**
  *	A row header in Swing's table 'ideology'
@@ -216,8 +231,8 @@ implements MouseListener, DynamicListening
 	 */
 	public void mousePressed( MouseEvent e )
     {
-		UndoableEdit	edit;
-		java.util.List	collTransmitters;
+		PerformableEdit	edit;
+		List			collTransmitters;
 	
 		if( !doc.bird.attemptExclusive( Session.DOOR_TRNS | Session.DOOR_GRP, 250 )) return;
 		try {
@@ -226,13 +241,12 @@ implements MouseListener, DynamicListening
 				if( selected ) {		// select all
 					collTransmitters = doc.activeTransmitters.getAll();
 				} else {				// deselect all
-					collTransmitters = new ArrayList( 1 );
+					collTransmitters = Collections.EMPTY_LIST;
 				}
 			} else if( e.isMetaDown() ) {
 				selected = !selected;   // toggle item
 				if( selected ) {		// deselect all except uns
-					collTransmitters = new ArrayList( 1 );
-					collTransmitters.add( trns );
+					collTransmitters = Collections.singletonList( trns );
 				} else {				// select all except us
 					collTransmitters = doc.activeTransmitters.getAll();
 					collTransmitters.remove( trns );
@@ -249,13 +263,12 @@ implements MouseListener, DynamicListening
 				} else {
 					if( selected ) return;						// no action
 					selected			= true;
-					collTransmitters	= new ArrayList( 1 );	// deselect all except uns
-					collTransmitters.add( trns );
+					collTransmitters	= Collections.singletonList( trns );	// deselect all except uns
 				}
 			}
 			edit = new EditSetSessionObjects( this, doc, doc.selectedTransmitters,
 													   collTransmitters, Session.DOOR_TRNS );
-			doc.getUndoManager().addEdit( edit );
+			doc.getUndoManager().addEdit( edit.perform() );
 			repaint();
 		}
 		finally {

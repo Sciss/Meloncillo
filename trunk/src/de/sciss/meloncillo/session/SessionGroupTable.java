@@ -265,10 +265,10 @@ extends JTable
 						}
 					}
 					if( !selected.isEmpty() ) {
-						doc.getUndoManager().addEdit( new EditAddSessionObjects( enc_table, doc, collSelected, selected, doors ));
+						doc.getUndoManager().addEdit( new EditAddSessionObjects( enc_table, doc, collSelected, selected, doors ).perform() );
 					}
 					if( !deselected.isEmpty() ) {
-						doc.getUndoManager().addEdit( new EditRemoveSessionObjects( enc_table, doc, collSelected, deselected, doors ));
+						doc.getUndoManager().addEdit( new EditRemoveSessionObjects( enc_table, doc, collSelected, deselected, doors ).perform() );
 					}
 				}
 				finally {

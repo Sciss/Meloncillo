@@ -43,6 +43,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
+import java.util.List;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -55,6 +56,7 @@ import javax.swing.undo.CompoundEdit;
 import de.sciss.util.NumberSpace;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.Application;
 import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicListening;
@@ -385,7 +387,7 @@ implements NumberListener, TimelineListener, DynamicListening
 					span	= new Span( span.getStart(), Math.min( doc.timeline.getLength(),
 														 Math.max( span.getStart(), n )) );
 				}
-				doc.getUndoManager().addEdit( TimelineVisualEdit.select( this, doc, span ));
+				doc.getUndoManager().addEdit( TimelineVisualEdit.select( this, doc, span ).perform() );
 			}
 			finally {
 				doc.bird.releaseExclusive( Session.DOOR_TIME );
@@ -500,12 +502,12 @@ implements NumberListener, TimelineListener, DynamicListening
 
 		public void actionPerformed( ActionEvent e )
 		{
-			SessionObject		so;
-			int					i, num;
-			CompoundEdit		edit;
-			String				name;
-			java.util.List		coll, coll2;
-			Object[]			args;
+			SessionObject			so;
+			int						i, num;
+			AbstractCompoundEdit	edit;
+			String					name;
+			List					coll, coll2;
+			Object[]				args;
 
 			if( e.getSource() == ggName ) {
 				if( !lm.attemptExclusive( doors, 250 )) return;
@@ -525,17 +527,18 @@ implements NumberListener, TimelineListener, DynamicListening
 							Session.makeNamePattern( name, args );
 							name = SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
 						}
-						edit.addEdit( new EditSetSessionObjectName( this, doc, (SessionObject) coll.get( 0 ),
-																	name, doors ));
+						edit.addPerform( new EditSetSessionObjectName( this, doc, (SessionObject) coll.get( 0 ),
+						                                               name, doors ));
 					} else {
 						Session.makeNamePattern( name, args );
 						for( i = 0; i < num; i++ ) {
 							so		= (SessionObject) coll.get( i );
 							name	= SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
-							edit.addEdit( new EditSetSessionObjectName( this, doc, so, name, doors ));
+							edit.addPerform( new EditSetSessionObjectName( this, doc, so, name, doors ));
 							coll2.add( so );
 						}
 					}
+					edit.perform();
 					edit.end();
 					doc.getUndoManager().addEdit( edit );
 				}

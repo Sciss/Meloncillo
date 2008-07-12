@@ -24,10 +24,9 @@
  *
  *
  *  Changelog:
- *		29-Jul-04   commented
- *		03-Aug-04   provides door param
- *		22-Jan-05	rewritten as successor of SyncCompoundTransmitterEdit
- *		26-May-05	renamed to SyncCompoundSessionObjEdit for 31-characters filename limit
+ *		15-Jul-05	copied from de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit,
+ *					added representation name, uses LockManager instead of Session
+ *		13-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.edit;
@@ -35,8 +34,9 @@ package de.sciss.meloncillo.edit;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionObject;
+
+import de.sciss.app.AbstractCompoundEdit;
 
 /**
  *  This subclass of <code>SyncCompoundEdit</code> is used
@@ -46,12 +46,12 @@ import de.sciss.meloncillo.session.SessionObject;
  *  for a given door.
  *
  *  @author			Hanns Holger Rutz
- *  @version		0.75, 10-Jun-08
+ *  @version		0.57, 28-Sep-07
  *  @see			UndoManager
- *  @see			de.sciss.meloncillo.util.LockManager
+ *  @see			de.sciss.util.LockManager
  */
 public class CompoundSessionObjEdit
-extends BasicCompoundEdit
+extends AbstractCompoundEdit
 {
 	private Object					source;
 	private final List				collSessionObjects;
@@ -67,8 +67,6 @@ extends BasicCompoundEdit
 	 *
 	 *  @param  source				Event-Source for <code>doc.transmitterCollection.modified</code>.
 	 *								Gets discarded upon undo / redo invocation.
-	 *  @param  doc					This Session's <code>bird</code> <code>LockManager</code>
-	 *								is used as the locking instance.
 	 *  @param  collSessionObjects	list of transmitters to be edited.
 	 *	@param	ownerModType		XXX
 	 *	@param	ownerModParam		XXX
@@ -76,17 +74,17 @@ extends BasicCompoundEdit
 	 *  @param  doors				doors to use for locking, usually
 	 *								Session.DOOR_TRNS or Session.DOOR_TIMETRNSMTE
 	 *
-	 *  @see	de.sciss.meloncillo.util.LockManager
-	 *  @see	de.sciss.meloncillo.session.SessionCollection
-	 *  @see	de.sciss.meloncillo.session.SessionCollection.Event
+	 *  @see	de.sciss.util.LockManager
+	 *  @see	de.sciss.eisenkraut.session.SessionCollection
+	 *  @see	de.sciss.eisenkraut.session.SessionCollection.Event
 	 *
 	 *  @synchronization			waitExclusive on the given doors
 	 */
-	public CompoundSessionObjEdit( Object source, Session doc,
-								   List collSessionObjects, int ownerModType,
-								   Object ownerModParam, Object ownerUndoParam, int doors )
+	public CompoundSessionObjEdit( Object source, List collSessionObjects,
+								   int ownerModType, Object ownerModParam,
+								   Object ownerUndoParam, String representationName )
 	{
-		super(); // super( doc.bird, doors );
+		super( representationName );
 		
 		this.source				= source;
 		this.collSessionObjects = new ArrayList( collSessionObjects );
@@ -123,7 +121,7 @@ extends BasicCompoundEdit
 		}
 	}
 
-	protected void cancelDone() {}
+	protected void cancelDone() { /* empty */ }
 	
 	/**
 	 *  Finishes the compound edit and calls

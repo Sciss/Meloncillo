@@ -56,6 +56,7 @@ import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.Application;
+import de.sciss.app.PerformableEdit;
 import de.sciss.gui.GUIUtil;
 import de.sciss.gui.MenuAction;
 import de.sciss.gui.TopPainter;
@@ -460,7 +461,7 @@ implements  VectorDisplay.Listener, ClipboardOwner, TopPainter
 		float[]				rotTab  = null;
 		Span				distSpan= null;
 		Span				rotSpan = null;
-		UndoableEdit		edit;
+		PerformableEdit		edit;
 		
 		if( doc == null || rcv == null ) return;
 		
@@ -477,7 +478,7 @@ implements  VectorDisplay.Listener, ClipboardOwner, TopPainter
 			}
 			edit = new EditTableLookupRcvSense( this, doc, rcv, distTab, distSpan,
 																 rotTab, rotSpan );
-			doc.getUndoManager().addEdit( edit );
+			doc.getUndoManager().addEdit( edit.perform() );
 		}
 		catch( IOException e1 ) {
 			System.err.println( e1.getLocalizedMessage() );

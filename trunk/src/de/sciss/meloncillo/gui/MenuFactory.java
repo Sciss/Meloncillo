@@ -69,6 +69,8 @@ import de.sciss.util.Flag;
 import de.sciss.util.NumberSpace;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
+import de.sciss.app.PerformableEdit;
 import de.sciss.common.AppWindow;
 import de.sciss.common.BasicMenuFactory;
 import de.sciss.common.ProcessingThread;
@@ -497,7 +499,6 @@ extends BasicMenuFactory
 			Point2D			anchor;
 			double			d1;
 			Class			c;
-			UndoableEdit	edit;
 			SessionGroup	group;
 
 			final List				collTypes	= Main.getReceiverTypes();
@@ -553,17 +554,21 @@ extends BasicMenuFactory
 					coll2.add( rcv );
 				}
 				if( doc.selectedGroups.size() == 0 ) {
+					final PerformableEdit edit;
 					edit = new EditAddSessionObjects( this, doc, doc.receivers, coll, Session.DOOR_RCV );
+					doc.getUndoManager().addEdit( edit.perform() );
 				} else {
+					final BasicCompoundEdit edit;
 					edit	= new BasicCompoundEdit( getValue( NAME ).toString() );
-					edit.addEdit( new EditAddSessionObjects( this, doc, doc.receivers, coll, Session.DOOR_RCV ));
+					edit.addPerform( new EditAddSessionObjects( this, doc, doc.receivers, coll, Session.DOOR_RCV ));
 					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
 						group	= (SessionGroup) doc.selectedGroups.get( i );
-						edit.addEdit( new EditAddSessionObjects( this, doc, group.receivers, coll, Session.DOOR_RCV ));
+						edit.addPerform( new EditAddSessionObjects( this, doc, group.receivers, coll, Session.DOOR_RCV ));
 					}
-					((CompoundEdit) edit).end();
+					edit.perform();
+					edit.end();
+					doc.getUndoManager().addEdit( edit );
 				}
-				doc.getUndoManager().addEdit( edit );
 			}
 			catch( InstantiationException e1 ) {
 				System.err.println( e1.getLocalizedMessage() );
@@ -599,12 +604,12 @@ extends BasicMenuFactory
 		// @synchronization waitExclusive on DOOR_RCV + DOOR_TRNS, DOOR_GRP
 		public void actionPerformed( ActionEvent e )
 		{
-			String			name;
-			boolean			b1;
-			int				result;
-			java.util.List	collSO;
-			SessionGroup	group;
-			CompoundEdit	ce;
+			String					name;
+			boolean					b1;
+			int						result;
+			List					collSO;
+			SessionGroup			group;
+			AbstractCompoundEdit	ce;
 
 			try {
 				doc.bird.waitShared( Session.DOOR_TRNS | Session.DOOR_RCV );
@@ -664,9 +669,10 @@ extends BasicMenuFactory
 					if( b1 ) {
 						collSO = new ArrayList( 1 );
 						collSO.add( group );
-						ce.addEdit( new EditAddSessionObjects( this, doc, doc.groups,
+						ce.addPerform( new EditAddSessionObjects( this, doc, doc.groups,
 																	  collSO, Session.DOOR_GRP ));
 					}
+					ce.perform();
 					ce.end();
 					doc.getUndoManager().addEdit( ce );
 					
@@ -1175,11 +1181,12 @@ extends BasicMenuFactory
 					context.setProgression( (float) progress / (float) num );
 				}
 
-				edit.addEdit( new EditAddSessionObjects( this, doc, doc.transmitters, coll, Session.DOOR_TRNS ));
+				edit.addPerform( new EditAddSessionObjects( this, doc, doc.transmitters, coll, Session.DOOR_TRNS ));
 				for( i = 0; i < doc.selectedGroups.size(); i++ ) {
 					group	= (SessionGroup) doc.selectedGroups.get( i );
-					edit.addEdit( new EditAddSessionObjects( this, doc, group.transmitters, coll, Session.DOOR_TRNS ));
+					edit.addPerform( new EditAddSessionObjects( this, doc, group.transmitters, coll, Session.DOOR_TRNS ));
 				}
+				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
 				success = true;
@@ -1247,28 +1254,28 @@ extends BasicMenuFactory
 		 */
 		public void perform()
 		{
-			java.util.List  collSelection, collInGroup;
-			CompoundEdit	edit;
-			SessionGroup	g;
+			List					collSelection, collInGroup;
+			AbstractCompoundEdit	edit;
+			SessionGroup			g;
 
 			try {
 				doc.bird.waitExclusive( doors );
 				collSelection		= scSel.getAll();
-				edit				= new CompoundEdit();
+				edit				= new BasicCompoundEdit( getValue( NAME ).toString() );
 				if( scGroups != null ) {
 					for( int i = 0; i < scGroups.size(); i++ ) {
 						g			= (SessionGroup) scGroups.get( i );
 						collInGroup	= g.transmitters.getAll();
 						collInGroup.retainAll( collSelection );
 						if( !collInGroup.isEmpty() ) {
-							edit.addEdit( new EditRemoveSessionObjects( this, doc, g.transmitters, collInGroup,
-																		doors | Session.DOOR_GRP ));
+							edit.addPerform( new EditRemoveSessionObjects( this, doc, g.transmitters, collInGroup,
+							                                               doors | Session.DOOR_GRP ));
 						} else {
 							collInGroup	= g.receivers.getAll();
 							collInGroup.retainAll( collSelection );
 							if( !collInGroup.isEmpty() ) {
-								edit.addEdit( new EditRemoveSessionObjects( this, doc, g.receivers, collInGroup,
-																			doors | Session.DOOR_GRP ));
+								edit.addPerform( new EditRemoveSessionObjects( this, doc, g.receivers, collInGroup,
+								                                               doors | Session.DOOR_GRP ));
 //							} else {
 //								collInGroup	= g.groups.getAll().retainAll( collSelection );
 //								if( !collInGroup.isEmpty() ) {
@@ -1279,8 +1286,9 @@ extends BasicMenuFactory
 						}
 					}
 				}
-				edit.addEdit( new EditSetSessionObjects( this, doc, scSel, new ArrayList( 1 ), doors ));
-				edit.addEdit( new EditRemoveSessionObjects( this, doc, scAll, collSelection, doors ));
+				edit.addPerform( new EditSetSessionObjects( this, doc, scSel, new ArrayList( 1 ), doors ));
+				edit.addPerform( new EditRemoveSessionObjects( this, doc, scAll, collSelection, doors ));
+				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
 			}
@@ -1395,8 +1403,8 @@ extends BasicMenuFactory
 			}
 			progressLen = Math.max( 1, interpLen ) * doc.transmitters.size();
 
-			edit = new CompoundSessionObjEdit( this, doc, doc.transmitters.getAll(), Transmitter.OWNER_TRAJ,
-											   null, null, Session.DOOR_TIMETRNSMTE );
+			edit = new CompoundSessionObjEdit( this, doc.transmitters.getAll(), Transmitter.OWNER_TRAJ,
+											   null, null, getValue( NAME ).toString() );
 			try {
 				for( i = 0; i < doc.transmitters.size(); i++ ) {
 					trns	= (Transmitter) doc.transmitters.get( i );
@@ -1467,14 +1475,15 @@ extends BasicMenuFactory
 					} // switch( interpType )
 				} // for( i = 0; i < doc.transmitterCollection.size(); )
 
-				edit.addEdit( new EditInsertTimeSpan( this, doc, span ));
+				edit.addPerform( new EditInsertTimeSpan( this, doc, span ));
 				if( visibleSpan.isEmpty() ) {
-					edit.addEdit( TimelineVisualEdit.scroll( this, doc, span ));
+					edit.addPerform( TimelineVisualEdit.scroll( this, doc, span ));
 				} else if( visibleSpan.contains( span.getStart() )) {
-					edit.addEdit( TimelineVisualEdit.scroll( this, doc,
+					edit.addPerform( TimelineVisualEdit.scroll( this, doc,
 						new Span( visibleSpan.getStart(), visibleSpan.getStop() + span.getLength() )));
 				}
 				
+				edit.perform();
 				edit.end(); // fires doc.tc.modified()
 				doc.getUndoManager().addEdit( edit );
 				success = true;
@@ -1518,8 +1527,8 @@ extends BasicMenuFactory
 		 */
 		public void perform()
 		{
-			Span			span;
-			CompoundEdit	edit;
+			Span					span;
+			AbstractCompoundEdit	edit;
 		
 			try {
 				doc.bird.waitExclusive( Session.DOOR_TIME );
@@ -1528,9 +1537,10 @@ extends BasicMenuFactory
 				span	= new Span( span.getStop() - 1, Math.min( doc.timeline.getLength(),
 									span.getStop() - 1 + span.getLength() ));
 
-				edit	= new CompoundEdit();
-				edit.addEdit( TimelineVisualEdit.select( this, doc, span ));
-				edit.addEdit( TimelineVisualEdit.position( this, doc, span.getStart() ));
+				edit	= new BasicCompoundEdit( getValue( NAME ).toString() );
+				edit.addPerform( TimelineVisualEdit.select( this, doc, span ));
+				edit.addPerform( TimelineVisualEdit.position( this, doc, span.getStart() ));
+				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
 			}
@@ -1557,8 +1567,8 @@ extends BasicMenuFactory
 		 */
 		public void actionPerformed( ActionEvent e )
 		{
-			Span			span;
-			CompoundEdit	edit;
+			Span					span;
+			AbstractCompoundEdit	edit;
 		
 			try {
 				doc.bird.waitExclusive( Session.DOOR_TIME );
@@ -1566,9 +1576,10 @@ extends BasicMenuFactory
 				if( span.isEmpty() || span.getStart() == 0 ) return;
 				span	= new Span( Math.max( 0, span.getStart() + 1 - span.getLength() ), span.getStart() + 1 );
 
-				edit	= new CompoundEdit();
-				edit.addEdit( TimelineVisualEdit.select( this, doc, span ));
-				edit.addEdit( TimelineVisualEdit.position( this, doc, span.getStart() ));
+				edit	= new BasicCompoundEdit( getValue( NAME ).toString() );
+				edit.addPerform( TimelineVisualEdit.select( this, doc, span ));
+				edit.addPerform( TimelineVisualEdit.position( this, doc, span.getStart() ));
+				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
 			}

@@ -60,8 +60,10 @@ import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.Application;
 import de.sciss.app.DynamicPrefChangeManager;
+import de.sciss.app.PerformableEdit;
 import de.sciss.common.BasicApplication;
 import de.sciss.gui.AbstractWindowHandler;
 import de.sciss.gui.GUIUtil;
@@ -276,7 +278,7 @@ implements ClipboardOwner, PreferenceChangeListener
 		Point2D							pt, pt2;
 		boolean							success  = false;
 		boolean							retry;
-		CompoundEdit					edit;
+		AbstractCompoundEdit			edit;
 		Object[]						args;
 		SessionGroup					group;
 		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
@@ -335,14 +337,15 @@ implements ClipboardOwner, PreferenceChangeListener
 				
 				if( !coll3.isEmpty() ) {
 					edit = new BasicCompoundEdit();
-					edit.addEdit( new EditAddSessionObjects( this, doc, doc.receivers, coll3, Session.DOOR_RCV ));
+					edit.addPerform( new EditAddSessionObjects( this, doc, doc.receivers, coll3, Session.DOOR_RCV ));
 					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
 						group	= (SessionGroup) doc.selectedGroups.get( i );
-						edit.addEdit( new EditAddSessionObjects( this, doc, group.receivers, coll3, Session.DOOR_RCV ));
+						edit.addPerform( new EditAddSessionObjects( this, doc, group.receivers, coll3, Session.DOOR_RCV ));
 					}
 
-					edit.addEdit( new EditSetSessionObjects( this, doc, doc.selectedReceivers,
-																	  coll3, Session.DOOR_RCV ));
+					edit.addPerform( new EditSetSessionObjects( this, doc, doc.selectedReceivers,
+																coll3, Session.DOOR_RCV ));
+					edit.perform();
 					edit.end();
 					doc.getUndoManager().addEdit( edit );
 				}
@@ -404,13 +407,13 @@ implements ClipboardOwner, PreferenceChangeListener
 	 */
 	private void editSelectAll()
 	{
-		UndoableEdit edit;
+		final PerformableEdit edit;
 	
 		try {
 			doc.bird.waitExclusive( Session.DOOR_RCV );
 			edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
 													   doc.receivers.getAll(), Session.DOOR_RCV );
-			doc.getUndoManager().addEdit( edit );
+			doc.getUndoManager().addEdit( edit.perform() );
 		}
 		finally {
 			doc.bird.releaseExclusive( Session.DOOR_RCV );

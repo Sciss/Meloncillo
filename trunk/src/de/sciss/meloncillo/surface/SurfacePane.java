@@ -84,6 +84,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -98,10 +100,12 @@ import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.AbstractWindow;
 import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicListening;
 import de.sciss.app.DynamicPrefChangeManager;
+import de.sciss.app.PerformableEdit;
 import de.sciss.common.ProcessingThread;
 import de.sciss.gui.StringItem;
 import de.sciss.gui.TopPainter;
@@ -663,10 +667,9 @@ implements  VirtualSurface, TimelineListener,
 	private Receiver createReceiver( Point2D anchor)
 	{
 		Receiver		rcv			= null;
-		java.util.List  collTypes	= Main.getReceiverTypes();
-		java.util.List	collRcv		= new ArrayList( 1 );
+		List 			collTypes	= Main.getReceiverTypes();
+		List			collRcv;
 		Class			c;
-		UndoableEdit	edit;
 		int				i;
 		SessionGroup	group;
 
@@ -686,20 +689,24 @@ implements  VirtualSurface, TimelineListener,
 				doc.receivers.getAll() ));
 			doc.receivers.getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
 												 MapManager.Context.NONE_EXCLUSIVE, rcv.getMap() );					
-			collRcv.add( rcv );
+			collRcv = Collections.singletonList( rcv );
 
 			if( doc.selectedGroups.size() == 0 ) {
+				final PerformableEdit edit;
 				edit	= new EditAddSessionObjects( this, doc, doc.receivers, collRcv, Session.DOOR_RCV );
+				doc.getUndoManager().addEdit( edit.perform() );
 			} else {
+				final AbstractCompoundEdit edit;
 				edit	= new BasicCompoundEdit();
-				edit.addEdit( new EditAddSessionObjects( this, doc, doc.receivers, collRcv, Session.DOOR_RCV ));
+				edit.addPerform( new EditAddSessionObjects( this, doc, doc.receivers, collRcv, Session.DOOR_RCV ));
 				for( i = 0; i < doc.selectedGroups.size(); i++ ) {
 					group	= (SessionGroup) doc.selectedGroups.get( i );
-					edit.addEdit( new EditAddSessionObjects( this, doc, group.receivers, collRcv, Session.DOOR_RCV ));
+					edit.addPerform( new EditAddSessionObjects( this, doc, group.receivers, collRcv, Session.DOOR_RCV ));
 				}
-				((CompoundEdit) edit).end();
+				edit.perform();
+				edit.end();
+				doc.getUndoManager().addEdit( edit );
 			}
-			doc.getUndoManager().addEdit( edit );
 		}
 		catch( InstantiationException e1 ) {
 			System.err.println( e1.getLocalizedMessage() );
@@ -1583,9 +1590,9 @@ implements  VirtualSurface, TimelineListener,
 			double			hitDistSq		= 51.0;		// Mouse must be as close at 5 pixels delta-h and delta-v
 			Receiver		hitReceiver		= null;
 			int				i;
-			java.util.List  coll;
-			UndoableEdit	edit;
-			java.util.List	collRcv;
+			List 			coll;
+			PerformableEdit	edit;
+			List			collRcv;
 
 			e.getComponent().requestFocus();	// otherwise keyboard shortcuts etc. don't work
 
@@ -1622,7 +1629,7 @@ implements  VirtualSurface, TimelineListener,
 						}
 						edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
 																   coll, Session.DOOR_RCV );
-						doc.getUndoManager().addEdit( edit );
+						doc.getUndoManager().addEdit( edit.perform() );
 						updateReceiverShapes();
 						redrawImage();
 						repaint( virtualToScreenClip( hitReceiver.getBounds() ));
@@ -1642,7 +1649,7 @@ implements  VirtualSurface, TimelineListener,
 						}
 						edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
 																   coll, Session.DOOR_RCV );
-						doc.getUndoManager().addEdit( edit );
+						doc.getUndoManager().addEdit( edit.perform() );
 						updateReceiverShapes();
 						redrawImage();
 						efficientUpdateAndRepaint( clipRect, clipRect2, false );
@@ -1665,8 +1672,8 @@ implements  VirtualSurface, TimelineListener,
 			Rectangle2D		clipRect;
 			ReceiverEditor  rcvEdit;
 			AbstractWindow	rcvEditFrame;
-			java.util.List  coll;
-			UndoableEdit	edit;
+			List			coll;
+			PerformableEdit	edit;
 
 			if( !doc.bird.attemptShared( Session.DOOR_RCV, 250 )) return;
 			try {
@@ -1678,7 +1685,7 @@ implements  VirtualSurface, TimelineListener,
 							coll.add( rcv );
 							edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
 															  coll, Session.DOOR_RCV );
-							doc.getUndoManager().addEdit( edit );
+							doc.getUndoManager().addEdit( edit.perform() );
 							clipRect = rcv.getBounds();
 							updateSurfacePaneImage( clipRect );
 							updateReceiverShapes();
@@ -1732,8 +1739,8 @@ implements  VirtualSurface, TimelineListener,
 			Rectangle2D		dndCurrentRect;
 			int				i;
 			Receiver		rcv;
-			java.util.List  dndColl;
-			UndoableEdit	edit;
+			List			dndColl;
+			PerformableEdit	edit;
 			
 			if( !dndDragging ) {	// test if mouse move was sufficient
 				if( ptDeltaMouse.getX()*ptDeltaMouse.getX()+ptDeltaMouse.getY()*ptDeltaMouse.getY() <= 25.0 ) return;
@@ -1767,7 +1774,7 @@ implements  VirtualSurface, TimelineListener,
 							Math.max( 0.0, Math.min( 1.0, ptAnchor.getX() + ptMouseTrns.getX() )), 
 							Math.max( 0.0, Math.min( 1.0, ptAnchor.getY() + ptMouseTrns.getY() )));
 						edit	 = new EditSetReceiverAnchor( this, doc, rcv, ptAnchor );
-						doc.getUndoManager().addEdit( edit );
+						doc.getUndoManager().addEdit( edit.perform() );
 					}
 				}
 				dndCurrentRect  = getUnionRect( dndColl );
@@ -2562,8 +2569,8 @@ implements  VirtualSurface, TimelineListener,
 			
 			collTransmitters	= doc.selectedTransmitters.getAll();
 			progressLen			= interpLen*collTransmitters.size();
-			edit				= new CompoundSessionObjEdit( this, doc, collTransmitters,
-											Transmitter.OWNER_TRAJ, null, null, Session.DOOR_TIMETRNSMTE );
+			edit				= new CompoundSessionObjEdit( this, collTransmitters,
+											Transmitter.OWNER_TRAJ, null, null, "Pencil" );
 
 			try {
 				for( i = 0; i < collTransmitters.size(); i++ ) {
@@ -2602,6 +2609,7 @@ implements  VirtualSurface, TimelineListener,
 //					at.finishWrite( bs, edit );
 				} // for( i = 0; i < collTransmitters.size(); i++ )
 				
+				edit.perform();
 				edit.end(); // fires doc.tc.modified()
 				doc.getUndoManager().addEdit( edit );
 				success = true;

@@ -287,8 +287,8 @@ implements ProcessingThread.Client
 
 		collTransmitters= doc.selectedTransmitters.getAll();
 		progressLen		= interpLen*collTransmitters.size();
-		edit			= new CompoundSessionObjEdit( this, doc, collTransmitters, Transmitter.OWNER_TRAJ,
-													  null, null, Session.DOOR_TIMETRNSMTE );
+		edit			= new CompoundSessionObjEdit( this, collTransmitters, Transmitter.OWNER_TRAJ,
+													  null, null, "Geometric Tool" );
 
 		try {
 			for( i = 0; i < collTransmitters.size(); i++ ) {
@@ -321,6 +321,7 @@ implements ProcessingThread.Client
 				at.editAdd( this, as, edit );
 			} // for( i = 0; i < collTransmitters.size(); i++ )
 			
+			edit.perform();
 			edit.end(); // fires doc.tc.modified()
 			doc.getUndoManager().addEdit( edit );
 			success = true;

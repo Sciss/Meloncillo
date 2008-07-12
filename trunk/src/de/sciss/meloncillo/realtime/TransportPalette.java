@@ -218,7 +218,7 @@ implements  TimelineListener, TransportListener, RealtimeConsumer,
 				if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 200 )) return;
 				try {
 					cuePos = Math.max( 0, Math.min( doc.timeline.getLength(), cuePos + (cueStep * rate) / 1000 ));
-					doc.getUndoManager().addEdit( TimelineVisualEdit.position( this, doc, cuePos ));
+					doc.getUndoManager().addEdit( TimelineVisualEdit.position( this, doc, cuePos ).perform() );
 				}
 				finally {
 					doc.bird.releaseExclusive( Session.DOOR_TIME );

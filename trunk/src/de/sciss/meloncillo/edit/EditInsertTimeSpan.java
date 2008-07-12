@@ -52,7 +52,7 @@ import de.sciss.io.*;
  *  @see		EditRemoveTimeSpan
  */
 public class EditInsertTimeSpan
-extends CompoundEdit
+extends BasicCompoundEdit
 {
 	/**
 	 *  Create and perform the edit. When the beginning
@@ -83,20 +83,20 @@ extends CompoundEdit
 		try {
 			doc.bird.waitExclusive( Session.DOOR_TIME );
 			length  = span.getLength();
-			this.addEdit( new EditSetTimelineLength( source, doc, doc.timeline.getLength() + length ));
+			this.addPerform( new EditSetTimelineLength( source, doc, doc.timeline.getLength() + length ));
 			if( doc.timeline.getPosition() > span.getStart() ) {
 //				this.addEdit( new EditSetTimelinePosition( source, doc, doc.timeline.getPosition() + length ));
-				this.addEdit( TimelineVisualEdit.position( source, doc, doc.timeline.getPosition() + length ));
+				this.addPerform( TimelineVisualEdit.position( source, doc, doc.timeline.getPosition() + length ));
 			}
 			selectionSpan = doc.timeline.getSelectionSpan();
 			if( selectionSpan.contains( span.getStart() )) {
-				this.addEdit( TimelineVisualEdit.select( source, doc,
+				this.addPerform( TimelineVisualEdit.select( source, doc,
 					new Span( selectionSpan.getStart(), selectionSpan.getStop() + length )));
 			} else if( selectionSpan.getStart() > span.getStart() ) {
-				this.addEdit( TimelineVisualEdit.select( source, doc,
+				this.addPerform( TimelineVisualEdit.select( source, doc,
 					new Span( selectionSpan.getStart() + length, selectionSpan.getStop() + length )));
 			}
-			this.end();
+//			this.end();
 		}
 		finally {
 			doc.bird.releaseExclusive( Session.DOOR_TIME );

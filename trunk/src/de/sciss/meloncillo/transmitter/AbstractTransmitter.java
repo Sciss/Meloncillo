@@ -29,11 +29,13 @@
 
 package de.sciss.meloncillo.transmitter;
 
-import java.io.*;
-import java.util.*;
-import org.w3c.dom.*;
+import java.io.IOException;
+import java.util.Map;
 
-import de.sciss.meloncillo.session.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import de.sciss.meloncillo.session.AbstractSessionObject;
 
 /**
  *  A simple implementation of the <code>Transmitter</code>

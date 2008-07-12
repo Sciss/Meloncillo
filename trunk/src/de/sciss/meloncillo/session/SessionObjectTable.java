@@ -58,6 +58,7 @@ import javax.swing.table.TableColumn;
 import javax.swing.undo.CompoundEdit;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.Document;
 import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicListening;
@@ -381,22 +382,23 @@ implements DynamicListening
 				synchronized( sync ) {
 					if( row >= keys.size() ) return;
 
-					SessionObject	so;
-					MapManager		map;
-					final String	key		= keys.get( row ).toString();
-					boolean			addEdit	= false;
-					CompoundEdit	edit	= new BasicCompoundEdit();
+					SessionObject			so;
+					MapManager				map;
+					final String			key		= keys.get( row ).toString();
+					boolean					addEdit	= false;
+					AbstractCompoundEdit	edit	= new BasicCompoundEdit();
 
 					for( int i = 0; i < collObjects.size(); i++ ) {
 						so	= (SessionObject) collObjects.get( i );
 						map = so.getMap();
 						if( map.containsKey( key )) {
 //System.err.println( "setting "+value.getClass().getName()+" on "+so.getName() );
-							edit.addEdit( new EditPutMapValue( sync, lm, doors, map, key, value ));
+							edit.addPerform( new EditPutMapValue( sync, lm, doors, map, key, value ));
 							addEdit = true;
 						}
 					}
 					if( addEdit ) {
+						edit.perform();
 						edit.end();
 						doc.getUndoManager().addEdit( edit );
 					}

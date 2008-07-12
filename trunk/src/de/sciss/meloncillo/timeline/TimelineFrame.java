@@ -87,9 +87,11 @@ import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.Application;
 import de.sciss.app.DynamicListening;
 import de.sciss.app.LaterInvocationManager;
+import de.sciss.app.PerformableEdit;
 import de.sciss.common.ProcessingThread;
 import de.sciss.gui.AbstractWindowHandler;
 import de.sciss.gui.ComponentHost;
@@ -1550,7 +1552,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		
 		public void perform()
 		{
-			UndoableEdit	edit	= null;
+//			PerformableEdit	edit	= null;
 			Span			selSpan, newSpan;
 			long			start, stop;
 		
@@ -1563,14 +1565,14 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			switch( mode ) {
 			case SCROLL_SESSION_START:
 				if( timelinePos != 0 ) {
-					edit	= TimelineVisualEdit.position( this, doc, 0 ).perform();
+					final AbstractCompoundEdit edit = new BasicCompoundEdit();
+					edit.addPerform( TimelineVisualEdit.position( this, doc, 0 ));
 					if( !timelineVis.contains( 0 )) {
-						final CompoundEdit ce	= new BasicCompoundEdit();
-						ce.addEdit( edit );
 						newSpan	= new Span( 0, timelineVis.getLength() );
-						ce.addEdit( TimelineVisualEdit.scroll( this, doc, newSpan ).perform() );
-						ce.end();
-						edit	= ce;
+						edit.addPerform( TimelineVisualEdit.scroll( this, doc, newSpan ).perform() );
+						edit.perform();
+						edit.end();
+						doc.getUndoManager().addEdit( edit );
 					}
 				}
 				break;
@@ -1585,7 +1587,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				stop	= Math.min( timelineLen, start + timelineVis.getLength() );
 				newSpan	= new Span( start, stop );
 				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
-					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+					doc.timeline.editScroll( this, newSpan );
 				}
 				break;
 
@@ -1599,21 +1601,21 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				start	= Math.max( 0, stop - timelineVis.getLength() );
 				newSpan	= new Span( start, stop );
 				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
-					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+					doc.timeline.editScroll( this, newSpan );
 				}
 				break;
 
 			case SCROLL_FIT_TO_SELECTION:
 				newSpan		= selSpan;
 				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
-					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+					doc.timeline.editScroll( this, newSpan );
 				}
 				break;
 
 			case SCROLL_ENTIRE_SESSION:
 				newSpan		= new Span( 0, timelineLen );
 				if( !timelineVis.equals( newSpan ) && !newSpan.isEmpty() ) {
-					edit	= TimelineVisualEdit.scroll( this, doc, newSpan ).perform();
+					doc.timeline.editScroll( doc, newSpan );
 				}
 				break;
 
@@ -1621,7 +1623,6 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 				assert false : mode;
 				break;
 			}
-			if( edit != null ) doc.getUndoManager().addEdit( edit );
 		}
 	} // class actionScrollClass
 	
@@ -2055,7 +2056,6 @@ timelinePos = currentPos;
 			
 			Span			span, span2;
 			long			position;
-			UndoableEdit	edit;
 		   
 			if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
 			try {
@@ -2074,29 +2074,29 @@ timelinePos = currentPos;
 										span2.getStart() : span2.getStop();
 						span2	= new Span( Math.min( startPos, position ),
 											Math.max( startPos, position ));
-						edit	= TimelineVisualEdit.select( this, doc, span2 );
+						doc.timeline.editSelect( this, span2 );
 					} else {
 						startPos = position;
 						if( span2.isEmpty() ) {
-							edit = TimelineVisualEdit.position( this, doc, position );
+							doc.timeline.editPosition( this, position );
 						} else {
-							edit = new CompoundEdit();
-							edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ));
-							edit.addEdit( TimelineVisualEdit.position( this, doc, position ));
-							((CompoundEdit) edit).end();
+							final AbstractCompoundEdit edit = new BasicCompoundEdit();
+							edit.addPerform( TimelineVisualEdit.select( this, doc, new Span() ));
+							edit.addPerform( TimelineVisualEdit.position( this, doc, position ));
+							edit.perform();
+							edit.end();
+							doc.getUndoManager().addEdit( edit );
 						}
 					}
 				} else {
 					if( ctrlDrag ) {
-						edit	= TimelineVisualEdit.position( this, doc, position );
-//System.err.println( "setting to "+position );
+						doc.timeline.editPosition(  this, position );
 					} else {
 						span2	= new Span( Math.min( startPos, position ),
 											Math.max( startPos, position ));
-						edit	= TimelineVisualEdit.select( this, doc, span2 );
+						doc.timeline.editSelect(  this, span2 );
 					}
 				}
-				doc.getUndoManager().addEdit( edit );
 			}
 			finally {
 				doc.bird.releaseExclusive( Session.DOOR_TIME );
@@ -2112,7 +2112,7 @@ timelinePos = currentPos;
 				try {
 					span2 = doc.timeline.getSelectionSpan();
 					if( !span2.isEmpty() && doc.timeline.getPosition() != span2.getStart() ) {
-						doc.getUndoManager().addEdit( TimelineVisualEdit.position( this, doc, span2.getStart() ));
+						doc.timeline.editPosition(  this, span2.start );
 					}
 				}
 				finally {

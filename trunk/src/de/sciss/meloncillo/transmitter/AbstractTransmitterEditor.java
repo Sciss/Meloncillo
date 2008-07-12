@@ -30,12 +30,14 @@
 
 package de.sciss.meloncillo.transmitter;
 
-import javax.swing.*;
+import java.util.List;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.session.*;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
 
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.session.Session;
 
 /**
  *  A simple implementation of the <code>TransmitterEditor</code>
@@ -74,7 +76,7 @@ implements TransmitterEditor
 	 */
 	public boolean canHandle( Transmitter trns )
 	{
-		java.util.List  coll = getHandledTransmitters();
+		List			coll = getHandledTransmitters();
 		int				i;
 		Class			trnsClass;
 		
