@@ -37,6 +37,7 @@ import de.sciss.meloncillo.receiver.*;
 import de.sciss.meloncillo.session.*;
 
 import de.sciss.app.BasicUndoableEdit;
+import de.sciss.app.PerformableEdit;
 import de.sciss.io.*;
 
 /**
@@ -178,37 +179,17 @@ extends BasicUndoableEdit
 				writeOffset		= off;
 				writeCount++;
 			} // synchronized( iff )
-			
-			// now it's safe to replace the contents
-			if( distTab != null ) {
-				if( distSpan != null ) {	// copy parts
-					System.arraycopy( distTab, (int) distSpan.getStart(),
-									  rcv.getDistanceTable(), (int) distSpan.getStart(), newDistLen );
-				} else {					// completely replace buffer
-					rcv.setDistanceTable( (float[]) distTab.clone() );
-				}
-			}
-			if( rotTab != null ) {
-				if( rotSpan != null ) {		// copy parts
-				System.arraycopy( rotTab, (int) rotSpan.getStart(),
-								  rcv.getRotationTable(), (int) rotSpan.getStart(), newRotLen );
-				} else {					// completely replace buffer
-					rcv.setRotationTable( (float[]) rotTab.clone() );
-				}
-			}
-			rcv.getMap().dispatchOwnerModification( source, Receiver.OWNER_SENSE, null );
-//			doc.receivers.modified( source, rcv );
 		}
 		finally {
 			doc.bird.releaseExclusive( Session.DOOR_RCV );
 		}
 
-//		this.source			= source;
+		this.source			= source;
 		this.doc			= doc;
 		this.rcv			= rcv;
 		this.distSpan		= distSpan;
 		this.rotSpan		= rotSpan;
-		this.source			= this;
+//		this.source			= this;
 	}
 
 	/**
@@ -234,6 +215,17 @@ extends BasicUndoableEdit
 				catch( IOException e1 ) {}
 			}
 		} // synchronized( iff )
+	}
+	
+	public PerformableEdit perform()
+	{
+		try {
+			perform( newDistOff, newDistLen, newRotOff, newRotLen );
+		}
+		catch( IOException e1 ) { // hmmm..... what to do??? XXX
+			e1.printStackTrace();
+		}
+		return this;
 	}
 	
 	private void perform( long distOff, int distLen, long rotOff, int rotLen )
@@ -278,6 +270,7 @@ extends BasicUndoableEdit
 		}
 		finally {
 			doc.bird.releaseExclusive( Session.DOOR_RCV );
+			this.source = this;
 		}
 	}
 

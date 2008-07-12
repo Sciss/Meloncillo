@@ -39,16 +39,18 @@ import java.awt.Stroke;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.io.IOException;
+import java.util.List;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.common.BasicApplication;
 import de.sciss.common.ProcessingThread;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
 import de.sciss.meloncillo.gui.AbstractGeomTool;
 import de.sciss.meloncillo.gui.MenuFactory;
 import de.sciss.meloncillo.gui.VirtualSurface;
+import de.sciss.meloncillo.io.AudioStake;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.session.Session;
@@ -261,15 +263,17 @@ implements ProcessingThread.Client
 		float[]							warpedTime;
 		int								i, len;
 		double							t_norm;
-		BlendSpan						bs;
+//		BlendSpan						bs;
 		// interpLen entspricht 'T' in der Formel (Gesamtzeit), interpOff entspricht 't' (aktueller Zeitpunkt)
 		long							start, interpOff, interpLen, progressLen;
 		long							progress	= 0;
 		Span							span;
-		SyncCompoundSessionObjEdit	edit;
-		java.util.List					collTransmitters;
+		CompoundSessionObjEdit			edit;
+		List							collTransmitters;
 		boolean							success		= false;
 		BlendContext					bc			= root.getBlending();
+		AudioStake						as;
+		final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
 
 		span = doc.timeline.getSelectionSpan();
 		if( span.getLength() < 2 ) return DONE;
@@ -283,26 +287,38 @@ implements ProcessingThread.Client
 
 		collTransmitters= doc.selectedTransmitters.getAll();
 		progressLen		= interpLen*collTransmitters.size();
-		edit			= new SyncCompoundSessionObjEdit( this, doc, collTransmitters, Transmitter.OWNER_TRAJ,
-															  null, null, Session.DOOR_TIMETRNSMTE );
+		edit			= new CompoundSessionObjEdit( this, doc, collTransmitters, Transmitter.OWNER_TRAJ,
+													  null, null, Session.DOOR_TIMETRNSMTE );
 
 		try {
 			for( i = 0; i < collTransmitters.size(); i++ ) {
 				trns	= (Transmitter) collTransmitters.get( i );
 				at		= trns.getAudioTrail();
-
-				bs = at.beginOverwrite( span, bc, edit );
+				as		= at.alloc( span );
+//				bs = at.beginOverwrite( span, bc, edit );
 				for( start = span.getStart(), interpOff = 0; start < span.getStop();
 					 start += len, interpOff += len ) {
 
 					len = (int) Math.min( 4096, span.getStop() - start );
 					calcWarpedTime( warpedTime, interpOff * t_norm, t_norm, len );
 					evaluateFunction( warpedTime, interpBuf, len );
-					at.continueWrite( bs, interpBuf, 0, len );
+//					at.continueWrite( bs, interpBuf, 0, len );
+					if( bc != null ) {
+						at.readFrames( srcBuf, 0, new Span( start, start + len ));
+						if( interpOff < bc.getLen() ) {	// EEE getLen?
+							bc.blend( interpOff, srcBuf, 0, interpBuf, 0, interpBuf, 0, len );
+						}
+						if( interpLen - (interpOff + len) < bc.getLen() ) {	// EEE getLen?
+							bc.blend( interpOff - (interpLen - bc.getLen()), interpBuf, 0, srcBuf, 0, interpBuf, 0, len );
+						}
+					}
+					as.writeFrames( interpBuf, 0, new Span( start, start + len ));
 					progress += len;
 					context.setProgression( (float) progress / (float) progressLen );
 				}
-				at.finishWrite( bs, edit );
+//				at.finishWrite( bs, edit );
+				at.editClear( this, span, edit );
+				at.editAdd( this, as, edit );
 			} // for( i = 0; i < collTransmitters.size(); i++ )
 			
 			edit.end(); // fires doc.tc.modified()

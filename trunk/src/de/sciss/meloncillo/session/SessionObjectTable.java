@@ -69,7 +69,7 @@ import de.sciss.gui.PathEvent;
 import de.sciss.gui.PathField;
 import de.sciss.gui.PathListener;
 import de.sciss.gui.StringItem;
-import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditPutMapValue;
 import de.sciss.meloncillo.plugin.PlugInManager;
 import de.sciss.meloncillo.util.LockManager;
@@ -385,7 +385,7 @@ implements DynamicListening
 					MapManager		map;
 					final String	key		= keys.get( row ).toString();
 					boolean			addEdit	= false;
-					CompoundEdit	edit	= new BasicSyncCompoundEdit( lm, doors );
+					CompoundEdit	edit	= new BasicCompoundEdit();
 
 					for( int i = 0; i < collObjects.size(); i++ ) {
 						so	= (SessionObject) collObjects.get( i );

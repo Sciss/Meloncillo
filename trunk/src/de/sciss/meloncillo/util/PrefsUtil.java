@@ -354,6 +354,10 @@ public class PrefsUtil
 	 */
 	public static final String KEY_VIEWRULERS = "viewrulers";
 
+	public static final int VSCALE_AMP_LIN		= 0;
+	public static final int VSCALE_AMP_LOG		= 1;
+	public static final int VSCALE_FREQ_SPECT	= 2;
+	
 	// from java.util.prefs.AbstractPreferences doc
 //	private static final String PREFS_DTD_URI   = "http://java.sun.com/dtd/preferences.dtd";
 //	private static final String PREFS_DTD		= 

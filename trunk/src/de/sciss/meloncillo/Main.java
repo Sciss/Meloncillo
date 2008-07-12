@@ -41,6 +41,7 @@ package de.sciss.meloncillo;
 
 import java.awt.Component;
 import java.awt.event.ActionListener;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -654,7 +655,9 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 			blendLen = 0;
 		}
 //		myBC	= new BlendContext( blendLen );
-		myBC	= new BlendContext( blendLen, blendLen ); // ??? XXX
+		myBC	= new BlendContext( blendLen, blendLen, new Point2D[] {
+			new Point2D.Float( 0.5f, 0.5f ), new Point2D.Float( 0.5f, 0.5f )
+		}); // EEE
 		bc		= myBC;
 		
 		// return a copy of the reference because bc might be set to null in the meantime

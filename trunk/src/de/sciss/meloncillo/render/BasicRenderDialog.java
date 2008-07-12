@@ -502,7 +502,8 @@ implements  RenderHost, ProcessingThread.Client,
 					// --- read transmitter trajectory data ---
 					trns		= (Transmitter) context.getTransmitters().get( trnsIdx );
 					at			= trns.getAudioTrail();
-					at.read( source.blockSpan, inTrnsFrames, inOff );
+//					at.read( source.blockSpan, inTrnsFrames, inOff );
+					at.readFrames( inTrnsFrames, inOff, source.blockSpan );
 					for( i = inOff + readLen; i < inTrnsLen; i++ ) {
 						inTrnsFrames[0][i] = 0.0f;		// zero pad in the end 
 						inTrnsFrames[1][i] = 0.0f;		// XXX actually the last sample should be repeated!

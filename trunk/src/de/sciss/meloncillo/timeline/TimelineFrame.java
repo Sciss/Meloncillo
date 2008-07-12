@@ -99,9 +99,9 @@ import de.sciss.gui.TopPainter;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.BasicCompoundEdit;
+import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
 import de.sciss.meloncillo.edit.EditRemoveTimeSpan;
 import de.sciss.meloncillo.edit.EditSetTimelineLength;
-import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
 import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.gui.AbstractTool;
 import de.sciss.meloncillo.gui.GraphicsUtil;
@@ -203,11 +203,11 @@ implements  TimelineListener, ToolActionListener,
 //	protected double						timelineRate;
 	protected int							timelineRate;
 
-	private final JPanel					ggTrackPanel;
+//	private final JPanel					ggTrackPanel;
 	protected final WaveformView			waveView;
 	protected final ComponentHost			wavePanel;
-	private final JPanel					waveHeaderPanel;
-	protected final JPanel					channelHeaderPanel;
+//	private final JPanel					waveHeaderPanel;
+//	protected final JPanel					channelHeaderPanel;
 
 	// --- collections ---
 	private final List				collTransmitterEditors		= new ArrayList();
@@ -334,33 +334,34 @@ implements  TimelineListener, ToolActionListener,
 			// o egal
 			public void laterInvocation( Object o )
 			{
-				wavePanel.updatePositionAndRepaint();
+				updatePositionAndRepaint();
 			}
 		});
 
 //		rp.setPreferredSize( new Dimension( 640, 640 )); // XXX
 		
         timeAxis        = new TimelineAxis( root, doc );
-		waveView		= new TrackPanel();
+		wavePanel		= new ComponentHost(); // new TimelineViewport();
+		waveView		= new WaveformView( doc, wavePanel ); // new TrackPanel();
 // produces weird scroll bars
 //ggTrackPanel.setPreferredSize( new Dimension( 640, 320 ));
 		waveView.setOpaque( false );	// crucial for correct TimelineViewport() paint update calls!
 		waveView.setLayout( new SpringLayout() );
-		ggTrackRowHeaderPanel = new JPanel();
-		ggTrackRowHeaderPanel.setLayout( new SpringLayout() );
-		ggScrollPane= new JScrollPane();
-		wavePanel= new TimelineViewport();
-		wavePanel.setView( waveView );
-		ggScrollPane.setViewport( wavePanel );
-		ggScrollPane.setColumnHeaderView( timeAxis );
-		ggScrollPane.setRowHeaderView( ggTrackRowHeaderPanel );
+//		ggTrackRowHeaderPanel = new JPanel();
+//		ggTrackRowHeaderPanel.setLayout( new SpringLayout() );
+//		ggScrollPane= new JScrollPane();
+//		wavePanel.setView( waveView );
+//		ggScrollPane.setViewport( wavePanel );
+//		ggScrollPane.setColumnHeaderView( timeAxis );
+//		ggScrollPane.setRowHeaderView( ggTrackRowHeaderPanel );
         scroll      = new TimelineScroll( root, doc );
 		box.add( scroll );
         if( app.getUserPrefs().getBoolean( PrefsUtil.KEY_INTRUDINGSIZE, false )) {
             box.add( Box.createHorizontalStrut( 16 ));
         }
         
-		cp.add( ggScrollPane, BorderLayout.CENTER );
+//		cp.add( ggScrollPane, BorderLayout.CENTER );
+		cp.add( waveView, BorderLayout.CENTER );
         cp.add( box, BorderLayout.SOUTH );
 		cp.add( gp, BorderLayout.NORTH );
 		
@@ -474,7 +475,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
         doc.selectedTransmitters.addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				wavePanel.updateAndRepaint();
+// EEE
+//				wavePanel.updateAndRepaint();
 			}
 			
 			public void sessionObjectChanged( SessionCollection.Event e ) {}
@@ -485,15 +487,15 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		
 		rowHeightListener	= new ComponentAdapter() {
 			public void componentResized( ComponentEvent e ) {
-				wavePanel.updateSelectionAndRepaint();
+				updateSelectionAndRepaint();
 			}
 
 			public void componentShown( ComponentEvent e ) {
-				wavePanel.updateSelectionAndRepaint();
+				updateSelectionAndRepaint();
 			}
 
 			public void componentHidden( ComponentEvent e ) {
-				wavePanel.updateSelectionAndRepaint();
+				updateSelectionAndRepaint();
 			}
 		};
 
@@ -508,7 +510,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		playTimer = new Timer( 33, new ActionListener() {
 			public void actionPerformed( ActionEvent e )
 			{
-				timelinePos = transport.getCurrentFrame();
+// EEE
+//				timelinePos = transport.getCurrentFrame();
 				updatePositionAndRepaint();
 				scroll.setPosition( timelinePos, 50, TimelineScroll.TYPE_TRANSPORT );
 			}
@@ -565,15 +568,17 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 	private void updateEditEnabled( boolean enabled )
 	{
-		Action ma;
-		ma			= doc.getCutAction();
-		if( ma != null ) ma.setEnabled( enabled );
-		ma			= doc.getCopyAction();
-		if( ma != null ) ma.setEnabled( enabled );
-		ma			= doc.getDeleteAction();
-		if( ma != null ) ma.setEnabled( enabled );
-		ma			= doc.getTrimAction();
-		if( ma != null ) ma.setEnabled( enabled );
+// EEE
+//		Action ma;
+//		ma			= doc.getCutAction();
+//		if( ma != null ) ma.setEnabled( enabled );
+//		ma			= doc.getCopyAction();
+//		if( ma != null ) ma.setEnabled( enabled );
+//		ma			= doc.getDeleteAction();
+//		if( ma != null ) ma.setEnabled( enabled );
+//		ma			= doc.getTrimAction();
+//		if( ma != null ) ma.setEnabled( enabled );
+
 //		actionProcess.setEnabled( enabled );
 //		actionNewFromSel.setEnabled( enabled );
 //		actionSaveSelectionAs.setEnabled( enabled );
@@ -766,11 +771,12 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 	private void revalidateView()
 	{
-		ggTrackRowHeaderPanel.setLayout( new SpringLayout() );
-		waveView.setLayout( new SpringLayout() );
-		GUIUtil.makeCompactSpringGrid( ggTrackRowHeaderPanel, ggTrackRowHeaderPanel.getComponentCount(), 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
-		GUIUtil.makeCompactSpringGrid( waveView, waveView.getComponentCount(), 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
-		ggTrackRowHeaderPanel.revalidate();
+// EEE
+//		ggTrackRowHeaderPanel.setLayout( new SpringLayout() );
+//		waveView.setLayout( new SpringLayout() );
+//		GUIUtil.makeCompactSpringGrid( ggTrackRowHeaderPanel, ggTrackRowHeaderPanel.getComponentCount(), 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
+//		GUIUtil.makeCompactSpringGrid( waveView, waveView.getComponentCount(), 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
+//		ggTrackRowHeaderPanel.revalidate();
 		waveView.revalidate();
 	}
 	
@@ -806,7 +812,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
                     // XXX : dispose trnsEdit (e.g. free vectors, remove listeners!!)
 					hashTransmittersToEditors.remove( trns );
 					waveView.remove( trnsEdit.getView() );
-					ggTrackRowHeaderPanel.remove( trnsHead );
+// EEE
+//					ggTrackRowHeaderPanel.remove( trnsHead );
 					row--;
 				}
 			}
@@ -827,7 +834,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 						rows++;
 						setRowHeight( trnsHead, 64 ); // XXX
 						setRowHeight( trnsEdit.getView(), 64 ); // XXX
-						ggTrackRowHeaderPanel.add( trnsHead, i );
+// EEE
+//						ggTrackRowHeaderPanel.add( trnsHead, i );
 						waveView.add( trnsEdit.getView(), i );
 					}
 					catch( InstantiationException e1 ) {
@@ -847,9 +855,10 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		}
 		
 		if( revalidate ) {
-			GUIUtil.makeCompactSpringGrid( ggTrackRowHeaderPanel, rows, 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
-			GUIUtil.makeCompactSpringGrid( waveView, rows, 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
-			ggTrackRowHeaderPanel.revalidate();
+// EEE
+//			GUIUtil.makeCompactSpringGrid( ggTrackRowHeaderPanel, rows, 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
+//			GUIUtil.makeCompactSpringGrid( waveView, rows, 1, 0, 0, 1, 1 ); // initX, initY, padX, padY
+//			ggTrackRowHeaderPanel.revalidate();
 			waveView.revalidate();
 		}
 
@@ -893,7 +902,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 	public void offhandTick( RealtimeContext context, RealtimeProducer.Source source, long currentPos )
 	{
 		this.currentPos = currentPos;
-		wavePanel.updatePositionAndRepaint();
+		updatePositionAndRepaint();
 		scroll.setPosition( currentPos, 0, pointerTool.validDrag ?
 			TimelineScroll.TYPE_DRAG : TimelineScroll.TYPE_UNKNOWN );
 	}
@@ -907,7 +916,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
         doc.timeline.addTimelineListener( this );
 		transport.addRealtimeConsumer( this );
 //		syncEditors();
-		wavePanel.updateAndRepaint();
+// EEE
+//		wavePanel.updateAndRepaint();
     }
 
     public void stopListening()
@@ -978,7 +988,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		playTimer.setDelay( Math.min( (int) (1000 / (vpScale * timelineRate * playRate)), 33 ));
 //		updateAFDGadget();
 //		updateOverviews( false, true );
-		wavePanel.updateAndRepaint();
+// EEE
+//		wavePanel.updateAndRepaint();
     }
 
 	/**
@@ -992,7 +1003,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
        	timelineVis	= doc.timeline.getVisibleSpan();
 
 //		updateOverviews( false, true );
-		wavePanel.updateAndRepaint();
+// EEE
+//		wavePanel.updateAndRepaint();
 		updateTransformsAndRepaint( false );
     }
 
@@ -1010,6 +1022,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 	 */
 	private boolean editCopy()
 	{
+		return false;
+/* EEE
 		Span							span;
 		List							collAffectedTransmitters;
 		final List						v		= new ArrayList();
@@ -1042,6 +1056,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		}
 
 		return success;
+*/
 	}
 
 // ---------------- DocumentFrame abstract methods ----------------
@@ -1118,6 +1133,8 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 		 */
 		public int processRun( ProcessingThread context ) throws IOException
 		{
+			return FAILED;
+/* EEE
 			final List						coll		= (List) context.getClientArg( "coll" );
 			List							collAffectedTransmitters;
 			Transferable					t;
@@ -1126,7 +1143,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 			Transmitter						trns;
 			TrackList						tl;
 			AudioTrail						at;
-			SyncCompoundSessionObjEdit		edit;
+			CompoundSessionObjEdit			edit;
 			Span							oldSelSpan, newSelSpan, span;
 			long[]							trnsLen;
 			long							maxTrnsLen  = 0;
@@ -1138,7 +1155,7 @@ collLp:				for( int i = 0; i < coll.size(); i++ ) {
 
 			collAffectedTransmitters	= doc.activeTransmitters.getAll();
 			numTrns						= collAffectedTransmitters.size();
-			edit						= new SyncCompoundSessionObjEdit( this, doc, collAffectedTransmitters,
+			edit						= new CompoundSessionObjEdit( this, doc, collAffectedTransmitters,
 											Transmitter.OWNER_TRAJ, null, null, Session.DOOR_TIMETRNSMTE );
 			position					= doc.timeline.getPosition();
 			oldSelSpan					= doc.timeline.getSelectionSpan();
@@ -1238,6 +1255,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			}
 			
 			return success ? DONE : FAILED;
+*/
 		}
 
 		public void processFinished( ProcessingThread context ) {}
@@ -1315,10 +1333,12 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		 */
 		public int processRun( ProcessingThread context )
 		{
+			return FAILED;
+/* EEE
 			Span							span, span2, span3;
-			java.util.List					collAffectedTransmitters;
-			java.util.List					collUnaffectedTransmitters;
-			SyncCompoundSessionObjEdit	edit;
+			List							collAffectedTransmitters;
+			List							collUnaffectedTransmitters;
+			CompoundSessionObjEdit			edit;
 			int								i, j;
 			Transmitter						trns;
 			AudioTrail						at;
@@ -1331,7 +1351,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 
 			span						= doc.timeline.getSelectionSpan();
 			collAffectedTransmitters	= doc.selectedTransmitters.getAll();
-			edit						= new SyncCompoundSessionObjEdit( this, doc, collAffectedTransmitters,
+			edit						= new CompoundSessionObjEdit( this, doc, collAffectedTransmitters,
 											Transmitter.OWNER_TRAJ, null, null, Session.DOOR_TIMETRNSMTE );
 			collUnaffectedTransmitters  = doc.transmitters.getAll();	// XYZ
 			collUnaffectedTransmitters.removeAll( collAffectedTransmitters );
@@ -1385,6 +1405,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			}
 			
 			return success ? DONE : FAILED;
+*/
 		} // run
 
 		public void processFinished( ProcessingThread context ) {}
@@ -1429,7 +1450,8 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 					revalidate  = true;
 				}
 				if( revalidate ) {
-					ggTrackRowHeaderPanel.revalidate();
+// EEE
+//					ggTrackRowHeaderPanel.revalidate();
 					waveView.revalidate();
 					// XXX need to update vpTrackPanel!
 				}

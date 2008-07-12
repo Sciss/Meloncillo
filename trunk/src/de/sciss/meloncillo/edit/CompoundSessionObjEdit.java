@@ -32,10 +32,11 @@
 
 package de.sciss.meloncillo.edit;
 
-import java.util.*;
-import javax.swing.undo.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import de.sciss.meloncillo.session.*;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.session.SessionObject;
 
 /**
  *  This subclass of <code>SyncCompoundEdit</code> is used
@@ -49,11 +50,11 @@ import de.sciss.meloncillo.session.*;
  *  @see			UndoManager
  *  @see			de.sciss.meloncillo.util.LockManager
  */
-public class SyncCompoundSessionObjEdit
-extends SyncCompoundEdit
+public class CompoundSessionObjEdit
+extends BasicCompoundEdit
 {
 	private Object					source;
-	private final java.util.List	collSessionObjects;
+	private final List				collSessionObjects;
 	private final int				ownerModType;
 	private final Object			ownerModParam, ownerUndoParam;
 
@@ -81,11 +82,11 @@ extends SyncCompoundEdit
 	 *
 	 *  @synchronization			waitExclusive on the given doors
 	 */
-	public SyncCompoundSessionObjEdit( Object source, Session doc,
-										   java.util.List collSessionObjects, int ownerModType,
-										   Object ownerModParam, Object ownerUndoParam, int doors )
+	public CompoundSessionObjEdit( Object source, Session doc,
+								   List collSessionObjects, int ownerModType,
+								   Object ownerModParam, Object ownerUndoParam, int doors )
 	{
-		super( doc.bird, doors );
+		super(); // super( doc.bird, doors );
 		
 		this.source				= source;
 		this.collSessionObjects = new ArrayList( collSessionObjects );

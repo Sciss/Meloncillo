@@ -57,7 +57,7 @@ import de.sciss.gui.TimeFormat;
 import de.sciss.gui.VectorSpace;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
 import de.sciss.meloncillo.gui.ObserverPalette;
 import de.sciss.meloncillo.gui.ToolActionEvent;
 import de.sciss.meloncillo.gui.ToolActionListener;
@@ -232,21 +232,20 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 				// darstellungsgenauigkeit und -geschwindigkeit
 				rate = doc.timeline.getRate();
 				info = dt.getBestSubsample( span, getWidth() * 3 / 2 );
-//	info = mte.getBestSubsample( span, (getWidth() * 3 / 2) / (2 * doc.transmitterCollection.indexOf( trns ) + 1) );
 				if( info.sublength != frameBuf[0].length ) {
 					frameBuf[0] = new float[(int) info.sublength];
 					frameBuf[1] = new float[(int) info.sublength];
 				} else {
 					if( justBecauseOfResize ) return;   // info.sublength didn't change
 				}
-				try {
-// System.err.println( "read subsample idx  "+info.idx+" , len = "+info.span.getLength()+"; view = "+viewWidth );
-					dt.read( info, frameBuf, 0 );
-				}
-				catch( IOException e1 ) {
-					System.err.println( e1.getLocalizedMessage() );
-					info = null;
-				}
+// EEE
+//				try {
+//					dt.read( info, frameBuf, 0 );
+//				}
+//				catch( IOException e1 ) {
+//					System.err.println( e1.getLocalizedMessage() );
+//					info = null;
+//				}
 				xEditor.setVector( null, frameBuf[0] );
 				yEditor.setVector( null, frameBuf[1] );
 				
@@ -287,16 +286,15 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 	 */
 	public void vectorChanged( VectorDisplay.Event e )
 	{
-// System.out.println( "vector changed" );
+/* EEE		
 		AudioTrail						at;
 		Span							changedSpan = (Span) e.getActionObject();
 		Span							writeSpan;
 		int								i, j, k, factor, ch, start, stop, maxSource, len, interpLen;
-		BlendSpan						bs;
 		float[][]						interpBuf;
 		float[]							chBuf;
 		float							f1, f2, interpWeight;
-		SyncCompoundSessionObjEdit		edit;
+		CompoundSessionObjEdit			edit;
 		Vector							collTrns;
 		BlendContext					bc			= root.getBlending();
 
@@ -307,8 +305,8 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 			if( !doc.bird.attemptExclusive( Session.DOOR_TRNSMTE, 200 )) return;
 			collTrns= new Vector( 1 );
 			collTrns.add( trns );
-			edit	= new SyncCompoundSessionObjEdit( this, doc, collTrns, Transmitter.OWNER_TRAJ,
-													      null, null, Session.DOOR_TIMETRNSMTE );
+			edit	= new CompoundSessionObjEdit( this, doc, collTrns, Transmitter.OWNER_TRAJ,
+			    	                              null, null, Session.DOOR_TIMETRNSMTE );
 			try {
 				at		= trns.getAudioTrail();
 				factor	= info.getDecimationFactor();
@@ -332,8 +330,6 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 						maxSource   = 1;
 						interpBuf   = new float[2][maxSource * factor];
 					}
-	//System.err.println( "begin overwrite "+writeSpan.getLength()+" maxSource = "+maxSource );
-	//long xxx=0;
 					
 					// we precalculate the linear interpolation weights
 					// to improve performance
@@ -352,17 +348,12 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 							}
 						}
 						at.continueWrite( bs, interpBuf, 0, interpLen );
-//xxx+=(len << shift);
-//System.out.println( "  write "+interpLen );
 						start += len;
 					}
 					
 					at.continueWrite( bs, frameBuf, stop, 1 );  // last sample not interpolated
-//xxx++;
-//System.out.println( "  write 1" );
 					
 					at.finishWrite( bs, edit );
-//System.out.println( "finished "+xxx );
 				} // if( info.idx == 0 )
 				
 				edit.end();		// fires doc.tc.modified()
@@ -379,7 +370,8 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 		finally {
 			doc.bird.releaseShared( Session.DOOR_TIME );
 		}
-    }
+*/
+	}
 
 	public void vectorSpaceChanged( VectorDisplay.Event e ) {}
 

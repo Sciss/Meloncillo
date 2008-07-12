@@ -101,13 +101,14 @@ implements Disposable
 		super();
 		
 		this.host			= host;
-				
-		final AudioTrail at	= doc.getAudioTrail();
-		fullChannels		= at.getChannelNum();
-		channelMap			= new int[ fullChannels ];
-		for( int i = 0; i < fullChannels; i++ ) {
-			channelMap[ i ]	= i;
-		}
+
+// EEE
+//		final AudioTrail at	= doc.getAudioTrail();
+//		fullChannels		= at.getChannelNum();
+//		channelMap			= new int[ fullChannels ];
+//		for( int i = 0; i < fullChannels; i++ ) {
+//			channelMap[ i ]	= i;
+//		}
 		
 		this.doc			= doc;
 	}
@@ -316,7 +317,7 @@ implements Disposable
 	
 	private void paintAmpLin( Graphics2D g2 )
 	{
-
+/* EEE
 		final DecimatedWaveTrail	dt		= doc.getDecimatedWaveTrail();
 		if( dt == null ) return;
 		
@@ -336,11 +337,12 @@ implements Disposable
 				g2.drawLine( cr.x, y, cr.x + cr.width, y );
 			}
 		}
+*/
 	}
 
 	private void paintAmpLog( Graphics2D g2 )
 	{
-
+/* EEE
 		final DecimatedWaveTrail	dt		= doc.getDecimatedWaveTrail();
 		if( dt == null ) return;
 		
@@ -360,6 +362,7 @@ implements Disposable
 				g2.drawLine( cr.x, y, cr.x + cr.width, y );
 			}
 		}
+*/
 	}
 
 	private void triggerRedisplay()

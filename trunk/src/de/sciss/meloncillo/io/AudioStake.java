@@ -43,8 +43,6 @@ import org.unicode.Normalizer;
 import de.sciss.io.CacheManager;
 import de.sciss.io.InterleavedStreamFile;
 import de.sciss.io.Span;
-//import de.sciss.jcollider.Buffer;
-import de.sciss.net.OSCBundle;
 import de.sciss.timebased.BasicStake;
 
 /**

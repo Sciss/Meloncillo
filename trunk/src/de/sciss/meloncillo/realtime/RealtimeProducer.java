@@ -298,7 +298,7 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 	
 	private void produce( Span blockSpan, boolean even, long patience )
 	{
-//System.err.println( " p "+blockSpan.getStart()+" -- "+even );
+/* EEE
 		int trnsIdx, rcvIdx, offStart, offStop;
 		
 		if( even ) {
@@ -369,6 +369,7 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 		finally {
 			doc.bird.releaseShared( source.doors );
 		}
+*/
 	}
 	
 	/**
@@ -427,6 +428,7 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 	 */
 	public void produceOffhand( long currentPos )
 	{
+/* EEE
 		int trnsIdx, rcvIdx;
 		Span miniSpan = new Span( currentPos, currentPos + 1 );
 		
@@ -473,6 +475,7 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 		finally {
 			doc.bird.releaseShared( source.doors );
 		}
+*/
 	}
 
 	/**

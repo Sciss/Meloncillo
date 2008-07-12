@@ -45,7 +45,8 @@ import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractWindow;
 import de.sciss.common.ProcessingThread;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
+import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
+import de.sciss.meloncillo.io.AudioStake;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.session.Session;
@@ -257,9 +258,9 @@ implements RenderConsumer
 		ConsumerContext			consc;
 		
 		consc			= new ConsumerContext();
-		consc.edit		= new SyncCompoundSessionObjEdit( this, doc, context.getTransmitters(), Transmitter.OWNER_TRAJ,
-															  null, null, Session.DOOR_TIMETRNSMTE );
-		consc.bs		= new BlendSpan[ source.numTrns ];
+		consc.edit		= new CompoundSessionObjEdit( this, doc, context.getTransmitters(), Transmitter.OWNER_TRAJ,
+													  null, null, Session.DOOR_TIMETRNSMTE );
+//		consc.bs		= new BlendSpan[ source.numTrns ];
 		consc.bc		= root.getBlending();
 		context.setOption( KEY_CONSC, consc );
 
@@ -268,7 +269,8 @@ implements RenderConsumer
 			
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
 			at					= trns.getAudioTrail();
-			consc.bs[ trnsIdx ]	= at.beginOverwrite( context.getTimeSpan(), consc.bc, consc.edit );
+//			consc.bs[ trnsIdx ]	= at.beginOverwrite( context.getTimeSpan(), consc.bc, consc.edit );
+			consc.as[ trnsIdx]  = at.alloc( context.getTimeSpan() );
 		}
 		
 		return true;
@@ -292,7 +294,9 @@ implements RenderConsumer
 
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
 			at					= trns.getAudioTrail();
-			at.finishWrite( consc.bs[ trnsIdx], consc.edit );
+			at.editClear( this, consc.as[ trnsIdx].getSpan(), consc.edit );
+			at.editAdd( this, consc.as[ trnsIdx], consc.edit );
+//			at.finishWrite( consc.bs[ trnsIdx], consc.edit );
 		}
 
 		consc.edit.end(); // fires doc.tc.modified()
@@ -317,13 +321,28 @@ implements RenderConsumer
 
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
 			at					= trns.getAudioTrail();
-			if( consc.bs[ trnsIdx ] == null ) {
+			if( consc.as[ trnsIdx ] == null ) {
 				context.getHost().showMessage( JOptionPane.ERROR_MESSAGE,
 					AbstractApplication.getApplication().getResourceString( "renderEarlyConsume" ));
 				return false;
 			}
-			at.continueWrite( consc.bs[ trnsIdx], source.trajBlockBuf[ trnsIdx ],
-							   source.blockBufOff, source.blockBufLen );
+			
+			if( consc.bc != null ) {
+				final long blendLen = consc.bc.getLen();	// EEE getLen?
+				final long interpOff = source.blockSpan.start - context.getTimeSpan().start;
+				final long fadeOutOff = context.getTimeSpan().getLength() - blendLen;
+				at.readFrames( consc.srcBuf, 0, source.blockSpan );
+				if( interpOff < blendLen ) {
+					consc.bc.blend( interpOff, consc.srcBuf, 0, source.trajBlockBuf[ trnsIdx ], 0, source.trajBlockBuf[ trnsIdx ], 0, source.blockBufLen );
+				}
+				if( (interpOff + source.blockBufLen) > fadeOutOff ) {
+					consc.bc.blend( interpOff - fadeOutOff, source.trajBlockBuf[ trnsIdx ], 0, consc.srcBuf, 0, source.trajBlockBuf[ trnsIdx ], 0, source.blockBufLen );
+				}
+			}
+			
+			consc.as[ trnsIdx ].writeFrames( source.trajBlockBuf[ trnsIdx ], source.blockBufOff, source.blockSpan );
+//			at.continueWrite( consc.bs[ trnsIdx], source.trajBlockBuf[ trnsIdx ],
+//							   source.blockBufOff, source.blockBufLen );
 		}
 
 		return true;
@@ -347,8 +366,10 @@ implements RenderConsumer
 // -------- ConsumerContext internal class --------
 	private class ConsumerContext
 	{
-		SyncCompoundSessionObjEdit	edit;
-		BlendContext				bc;
-		BlendSpan[]					bs;			// for each trns
+		private CompoundSessionObjEdit		edit;
+		private BlendContext				bc;
+		private AudioStake[]				as;
+		private float[][]					srcBuf;
+//		BlendSpan[]					bs;			// for each trns
 	}
 }

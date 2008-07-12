@@ -55,7 +55,8 @@ extends AbstractTransmitter
 
 	private static final Class	defaultEditor		= SimpleTransmitterEditor.class;
     
-    private final AudioTrail at;
+//  private final AudioTrail at;
+    private AudioTrail at;
     private final DecimatedWaveTrail dwt;
 //	private static final int[] decimations	= { 0, 2, 4, 6, 8, 10, 12 };
 	private static final int[] decimations	= { 2, 4, 6, 8, 10, 12 };
@@ -180,10 +181,11 @@ extends AbstractTransmitter
 	{
 		super.fromXML( domDoc, node, options );
 
-		InterleavedStreamFile iff = AudioFile.openAsRead( new File( new File(
+		final AudioFile af = AudioFile.openAsRead( new File( new File(
 			(File) options.get( XMLRepresentation.KEY_BASEPATH ), SUBDIR ), getName() + SUFFIX_TRAJECTORY ));
 			
-		at.clear( null );
-		at.insert( iff, 0, new Span( 0, iff.getFrameNum() ), null, 0.0f, 1.0f );		// XXX edit ?
+//		at.clear( null );
+//		at.insert( iff, 0, new Span( 0, iff.getFrameNum() ), null, 0.0f, 1.0f );		// XXX edit ?
+		at	= AudioTrail.newFrom( af );
 	}
 }

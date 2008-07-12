@@ -85,16 +85,15 @@ import de.sciss.gui.StringItem;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.debug.HRIRPrepareDialog;
-import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
+import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
 import de.sciss.meloncillo.edit.EditAddSessionObjects;
 import de.sciss.meloncillo.edit.EditInsertTimeSpan;
 import de.sciss.meloncillo.edit.EditRemoveSessionObjects;
 import de.sciss.meloncillo.edit.EditSetSessionObjects;
-import de.sciss.meloncillo.edit.SyncCompoundEdit;
-import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
 import de.sciss.meloncillo.edit.TimelineVisualEdit;
+import de.sciss.meloncillo.io.AudioStake;
 import de.sciss.meloncillo.io.AudioTrail;
-import de.sciss.meloncillo.io.TrackSpan;
 import de.sciss.meloncillo.io.XMLRepresentation;
 import de.sciss.meloncillo.lisp.JathaDiddler;
 import de.sciss.meloncillo.receiver.Receiver;
@@ -556,7 +555,7 @@ extends BasicMenuFactory
 				if( doc.selectedGroups.size() == 0 ) {
 					edit = new EditAddSessionObjects( this, doc, doc.receivers, coll, Session.DOOR_RCV );
 				} else {
-					edit	= new BasicSyncCompoundEdit( doc.bird, Session.DOOR_RCV | Session.DOOR_GRP );
+					edit	= new BasicCompoundEdit( getValue( NAME ).toString() );
 					edit.addEdit( new EditAddSessionObjects( this, doc, doc.receivers, coll, Session.DOOR_RCV ));
 					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
 						group	= (SessionGroup) doc.selectedGroups.get( i );
@@ -634,7 +633,7 @@ extends BasicMenuFactory
 				
 			if( name == null ) return;
 			
-			ce = new BasicSyncCompoundEdit( doc.bird, Session.DOOR_GRP | Session.DOOR_TRNS | Session.DOOR_RCV );
+			ce = new BasicCompoundEdit( getValue( NAME ).toString() );
 			
 			try {
 				doc.bird.waitExclusive( Session.DOOR_GRP );
@@ -1122,17 +1121,18 @@ extends BasicMenuFactory
 			Map						map;
 			String					s;
 			double					d1;
-			SyncCompoundEdit		edit		= new BasicSyncCompoundEdit( doc.bird, Session.DOOR_TRNS | Session.DOOR_GRP );
+			BasicCompoundEdit		edit		= new BasicCompoundEdit( getValue( NAME ).toString() );
 			List					collMap		= (List) context.getClientArg( "coll" );
 			int						num			= collMap.size();
 			List					coll		= new ArrayList( num );
 			List					coll2		= doc.transmitters.getAll();
 			boolean					success		= false;
 			Span					span		= new Span( 0, doc.timeline.getLength() );
-			TrackSpan				ts;
+//			TrackSpan				ts;
 			SessionGroup			group;
 			float					f1, f2;
 			long					frames, framesWritten;
+			AudioStake				as;
 			
 			try {
 				for( i = 0; i < num; i++ ) {
@@ -1160,13 +1160,16 @@ extends BasicMenuFactory
 							buf[1][j] = f2;
 						}
 						at			= trns.getAudioTrail();
-						ts			= at.beginInsert( span, edit );
+//						ts			= at.beginInsert( span, edit );
+						as			= at.alloc( span );
 						for( framesWritten = 0, frames = span.getLength(); framesWritten < frames; ) {
 							j		= (int) Math.min( 4096, frames - framesWritten );
-							at.continueWrite( ts, buf, 0, j );
+//							at.continueWrite( ts, buf, 0, j );
+							as.writeFrames( buf, 0, new Span( span.start + framesWritten, span.start + framesWritten + j ));
 							framesWritten += j;
 						}
-						at.finishWrite( ts, edit );
+						at.editAdd( this, as, edit ); // EEE should undy the stake alloc!!!
+//						at.finishWrite( ts, edit );
 					}
 					progress++;
 					context.setProgression( (float) progress / (float) num );
@@ -1367,12 +1370,13 @@ extends BasicMenuFactory
 			double							d1;
 			Span							visibleSpan, interpSpan;
 			Span							span		= (Span) context.getClientArg( "span" );
-			TrackSpan						ts;
+//			TrackSpan						ts;
 			long							start, interpOff, interpLen;
 			long							progress	= 0;
 			long							progressLen;
 			boolean							success		= false;
-			SyncCompoundSessionObjEdit		edit;
+			CompoundSessionObjEdit			edit;
+			AudioStake						as;
 
 			if( span.getStart() > doc.timeline.getLength() ) return DONE;
 			
@@ -1391,8 +1395,8 @@ extends BasicMenuFactory
 			}
 			progressLen = Math.max( 1, interpLen ) * doc.transmitters.size();
 
-			edit = new SyncCompoundSessionObjEdit( this, doc, doc.transmitters.getAll(), Transmitter.OWNER_TRAJ,
-													   null, null, Session.DOOR_TIMETRNSMTE );
+			edit = new CompoundSessionObjEdit( this, doc, doc.transmitters.getAll(), Transmitter.OWNER_TRAJ,
+											   null, null, Session.DOOR_TIMETRNSMTE );
 			try {
 				for( i = 0; i < doc.transmitters.size(); i++ ) {
 					trns	= (Transmitter) doc.transmitters.get( i );
@@ -1406,7 +1410,8 @@ extends BasicMenuFactory
 							f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
 							f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
 						} else {
-							at.read( interpSpan, frameBuf, 0 );
+							at.readFrames( frameBuf, 0, interpSpan );
+//							at.read( interpSpan, frameBuf, 0 );
 							f1		= frameBuf[0][0];
 							f2		= frameBuf[1][0];
 						}
@@ -1415,19 +1420,26 @@ extends BasicMenuFactory
 							frameBuf[1][j] = f2;
 						}
 						at			= trns.getAudioTrail();
-						ts			= at.beginInsert( span, edit );
+//						at.copyRangeFrom( srcTrail, copySpan, insertPos, mode, source, ce, trackMap, bcPre, bcPost )
+//						ts			= at.beginInsert( span, edit );
+						as			= at.alloc( span );
 						for( start = span.getStart(); start < span.getStop(); start += len ) {
 							len		= (int) Math.min( 4096, span.getStop() - start );
-							at.continueWrite( ts, frameBuf, 0, len );
+//							at.continueWrite( ts, frameBuf, 0, len );
+							as.writeFrames( frameBuf, 0, new Span( start, start + len ));
 						}
-						at.finishWrite( ts, edit );
+//						at.finishWrite( ts, edit );
+						at.editInsert( this, span, edit );
+						at.editAdd( this, as, edit );
 						progress++;
 						context.setProgression( (float) progress / (float) progressLen );
 						break;
 
 					case 2:	// two neighbouring samples -> interpolation
-						at.read( interpSpan, frameBuf, 0 );
-						ts = at.beginInsert( span, edit );
+//						at.read( interpSpan, frameBuf, 0 );
+						at.readFrames( frameBuf, 0, interpSpan );
+//						ts = at.beginInsert( span, edit );
+						as = at.alloc( span );
 						for( start = span.getStart(), interpOff = 1; start < span.getStop();
 							 start += len, interpOff += len ) {
 							 
@@ -1440,11 +1452,14 @@ extends BasicMenuFactory
 									chBuf[j] = (float) (interpOff + j) * f2 + f1;
 								}
 							}
-							at.continueWrite( ts, interpBuf, 0, len );
+//							at.continueWrite( ts, interpBuf, 0, len );
+							as.writeFrames( interpBuf, 0, new Span( start, start + len ));
 							progress += len;
 							context.setProgression( (float) progress / (float) progressLen );
 						}
-						at.finishWrite( ts, edit );
+//						at.finishWrite( ts, edit );
+						at.editInsert( this, span, edit );
+						at.editAdd( this, as, edit );
 						break;
 					
 					default:

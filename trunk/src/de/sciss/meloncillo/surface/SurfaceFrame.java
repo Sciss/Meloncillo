@@ -68,7 +68,7 @@ import de.sciss.gui.GUIUtil;
 import de.sciss.gui.MenuAction;
 import de.sciss.gui.VectorSpace;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditAddSessionObjects;
 import de.sciss.meloncillo.edit.EditSetSessionObjects;
 import de.sciss.meloncillo.gui.Axis;
@@ -334,7 +334,7 @@ implements ClipboardOwner, PreferenceChangeListener
 				}
 				
 				if( !coll3.isEmpty() ) {
-					edit = new BasicSyncCompoundEdit( doc.bird, Session.DOOR_RCV | Session.DOOR_GRP );
+					edit = new BasicCompoundEdit();
 					edit.addEdit( new EditAddSessionObjects( this, doc, doc.receivers, coll3, Session.DOOR_RCV ));
 					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
 						group	= (SessionGroup) doc.selectedGroups.get( i );

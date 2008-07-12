@@ -107,11 +107,11 @@ import de.sciss.gui.StringItem;
 import de.sciss.gui.TopPainter;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
+import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
 import de.sciss.meloncillo.edit.EditAddSessionObjects;
 import de.sciss.meloncillo.edit.EditSetReceiverAnchor;
 import de.sciss.meloncillo.edit.EditSetSessionObjects;
-import de.sciss.meloncillo.edit.SyncCompoundSessionObjEdit;
 import de.sciss.meloncillo.gui.AbstractTool;
 import de.sciss.meloncillo.gui.GraphicsUtil;
 import de.sciss.meloncillo.gui.ObserverPalette;
@@ -119,6 +119,7 @@ import de.sciss.meloncillo.gui.ToolAction;
 import de.sciss.meloncillo.gui.ToolActionEvent;
 import de.sciss.meloncillo.gui.ToolActionListener;
 import de.sciss.meloncillo.gui.VirtualSurface;
+import de.sciss.meloncillo.io.AudioStake;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.DecimatedTrail;
@@ -690,7 +691,7 @@ implements  VirtualSurface, TimelineListener,
 			if( doc.selectedGroups.size() == 0 ) {
 				edit	= new EditAddSessionObjects( this, doc, doc.receivers, collRcv, Session.DOOR_RCV );
 			} else {
-				edit	= new BasicSyncCompoundEdit( doc.bird, Session.DOOR_RCV | Session.DOOR_GRP );
+				edit	= new BasicCompoundEdit();
 				edit.addEdit( new EditAddSessionObjects( this, doc, doc.receivers, collRcv, Session.DOOR_RCV ));
 				for( i = 0; i < doc.selectedGroups.size(); i++ ) {
 					group	= (SessionGroup) doc.selectedGroups.get( i );
@@ -936,6 +937,7 @@ implements  VirtualSurface, TimelineListener,
 	 */
     private void updateTransmitterPath()
     {
+/* EEE
         int						j, reqLen, pathLen, len, lastLen;
         Transmitter				trns;
         Span					span;
@@ -1009,6 +1011,7 @@ implements  VirtualSurface, TimelineListener,
 		finally {
 			doc.bird.releaseShared( Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
 		}
+*/
     }
 
 	/*
@@ -2526,18 +2529,20 @@ implements  VirtualSurface, TimelineListener,
 			float[]							warpedTime;
 			int								i, j, len;
 			long							t, tt;
-			BlendSpan						bs;
+//			BlendSpan						bs;
 			// interpLen entspricht 'T' in der Formel (Gesamtzeit), interpOff entspricht 't' (aktueller Zeitpunkt)
 			long							start, interpOff, interpLen, progressLen;
 			long							progress	= 0;
 			Span							span;
 			float							v_start_norm, dv_norm;
 			double							t_norm;
-			SyncCompoundSessionObjEdit		edit;
-			java.util.List					collTransmitters;
+			CompoundSessionObjEdit			edit;
+			List							collTransmitters;
 			PointInTime						pit, pit2;
 			boolean							success		= false;
 			BlendContext					bc			= root.getBlending();
+			AudioStake						as;
+			final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
 
 			if( dndFreehandPoints.size() < 2 ) return DONE;
 			pit		= (PointInTime) dndFreehandPoints.get( 0 );
@@ -2557,7 +2562,7 @@ implements  VirtualSurface, TimelineListener,
 			
 			collTransmitters	= doc.selectedTransmitters.getAll();
 			progressLen			= interpLen*collTransmitters.size();
-			edit				= new SyncCompoundSessionObjEdit( this, doc, collTransmitters,
+			edit				= new CompoundSessionObjEdit( this, doc, collTransmitters,
 											Transmitter.OWNER_TRAJ, null, null, Session.DOOR_TIMETRNSMTE );
 
 			try {
@@ -2565,7 +2570,9 @@ implements  VirtualSurface, TimelineListener,
 					trns	= (Transmitter) collTransmitters.get( i );
 					at		= trns.getAudioTrail();
 
-					bs = at.beginOverwrite( span, bc, edit );
+//					bs = at.beginOverwrite( span, bc, edit );
+					as = at.alloc( span );
+					
 					for( start = span.getStart(), interpOff = 0; start < span.getStop();
 						 start += len, interpOff += len ) {
 						 
@@ -2576,11 +2583,23 @@ implements  VirtualSurface, TimelineListener,
 //							warpedTime[j]   = (v_start_norm * t + dv_norm * tt) * 1.5f - 0.25f;  // extrap. 
 						}
 						evaluateFunction( warpedTime, interpBuf, len );
-						at.continueWrite( bs, interpBuf, 0, len );
+						if( bc != null ) {
+							at.readFrames( srcBuf, 0, new Span( start, start + len ));
+							if( interpOff < bc.getLen() ) {	// EEE getLen?
+								bc.blend( interpOff, srcBuf, 0, interpBuf, 0, interpBuf, 0, len );
+							}
+							if( interpLen - (interpOff + len) < bc.getLen() ) {	// EEE getLen?
+								bc.blend( interpOff - (interpLen - bc.getLen()), interpBuf, 0, srcBuf, 0, interpBuf, 0, len );
+							}
+						}
+						as.writeFrames( interpBuf, 0, new Span( start, start + len ));
+//						at.continueWrite( bs, interpBuf, 0, len );
 						progress += len;
 						context.setProgression( (float) progress / (float) progressLen );
 					}
-					at.finishWrite( bs, edit );
+					at.editClear( this, span, edit );
+					at.editAdd( this, as, edit );
+//					at.finishWrite( bs, edit );
 				} // for( i = 0; i < collTransmitters.size(); i++ )
 				
 				edit.end(); // fires doc.tc.modified()

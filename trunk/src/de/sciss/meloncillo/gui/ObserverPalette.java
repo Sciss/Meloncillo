@@ -65,7 +65,7 @@ import de.sciss.gui.NumberField;
 import de.sciss.gui.NumberListener;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.edit.BasicSyncCompoundEdit;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditSetSessionObjectName;
 import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.session.Session;
@@ -518,7 +518,7 @@ implements NumberListener, TimelineListener, DynamicListening
 					args	= new Object[ 3 ];
 					
 					coll2.removeAll( coll );
-					edit	= new BasicSyncCompoundEdit( lm, doors );
+					edit	= new BasicCompoundEdit();
 					name	= ggName.getText();
 					if( num == 1 ) {
 						if( SessionCollection.findByName( coll2, name ) != null ) {
