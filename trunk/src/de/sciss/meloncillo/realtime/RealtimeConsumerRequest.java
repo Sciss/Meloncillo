@@ -157,12 +157,14 @@ extends StreamRequest
 	 */
 	public static int approximateStep( RealtimeContext context, int preferredRate )
 	{
-		int optimum, below, above, bufSizeH;
+		final double	optimum;
+		final int		bufSizeH, below;
+		int				above;
 		
 		bufSizeH	= context.getSourceBlockSize() >> 1;
 		optimum		= Math.max( 1, Math.min( bufSizeH,
 						(context.getSourceRate() + (preferredRate >> 1)) / preferredRate ));
-		for( above = 2; above < optimum && above < bufSizeH; above <<= 1 ) ;
+		for( above = 2; (above < optimum) && (above < bufSizeH); above <<= 1 ) ;
 		below		= above >> 1;
 		
 		if( (double) above / optimum <= (double) optimum / below ) {

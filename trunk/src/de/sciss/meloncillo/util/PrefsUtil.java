@@ -132,6 +132,48 @@ public class PrefsUtil
 	 */
 	public static final String KEY_INTRUDINGSIZE = "intrudingsize";
 	
+	/**
+	 *  Value: Integer indicating the dislayed time format.<br>
+	 *  Has default value: yes!<br>
+	 *  Node: 
+	 */
+	public static final String KEY_TIMEUNITS	= "timeunits";		// integer (TIME_SAMPLES, TIME_MINSECS)
+	/**
+	 *  Value: Integer indicating the dislayed amplitude scaling.<br>
+	 *  Has default value: yes!<br>
+	 *  Node: 
+	 */
+	public static final String KEY_VERTSCALE	= "vertscale";		// integer (VSCALE_AMP_LIN etc.)
+
+	/**
+	 *  Value: Boolean indicating whether a vertical
+	 *  (amplitude range) ruler should be display for each channel or not.<br>
+	 *  Has default value: yes!<br>
+	 *  Node: 
+	 */
+	public static final String KEY_VIEWVERTICALRULERS	= "viewverticalrulers";		// boolean
+	/**
+	 *  Value: Boolean indicating whether a marker
+	 *	axis and flagsticks should be painted in the overviews or not.<br>
+	 *  Has default value: yes!<br>
+	 *  Node: 
+	 */
+	public static final String KEY_VIEWMARKERS	= "viewmarkers";		// boolean
+	/**
+	 *  Value: Boolean indicating whether timeline position is
+	 *  adjusted after transport stop or not.<br>
+	 *  Has default value: yes!<br>
+	 *  Node: 
+	 */
+	public static final String KEY_INSERTIONFOLLOWSPLAY	= "insertionfollowsplay";		// boolean
+
+	public static final int TIME_SAMPLES		= 0;
+	public static final int TIME_MINSECS		= 1;
+
+	public static final int VSCALE_AMP_LIN		= 0;
+	public static final int VSCALE_AMP_LOG		= 1;
+	public static final int VSCALE_FREQ_SPECT	= 2;
+	
 	// ------------ plugin node level ------------
 
 	/**
@@ -354,10 +396,6 @@ public class PrefsUtil
 	 */
 	public static final String KEY_VIEWRULERS = "viewrulers";
 
-	public static final int VSCALE_AMP_LIN		= 0;
-	public static final int VSCALE_AMP_LOG		= 1;
-	public static final int VSCALE_FREQ_SPECT	= 2;
-	
 	// from java.util.prefs.AbstractPreferences doc
 //	private static final String PREFS_DTD_URI   = "http://java.sun.com/dtd/preferences.dtd";
 //	private static final String PREFS_DTD		= 
@@ -399,13 +437,21 @@ public class PrefsUtil
 		final List			warnings	= new ArrayList();
 		final Application	app			= AbstractApplication.getApplication();
 
-		// general
 		putDontOverwrite( IOUtil.getUserPrefs(), IOUtil.KEY_TEMPDIR, System.getProperty( "java.io.tmpdir" ));
+
+		// general
 		putBooleanDontOverwrite( mainPrefs, KEY_RECALLFRAMES, true );
 		putDontOverwrite( mainPrefs, KEY_LOOKANDFEEL, UIManager.getSystemLookAndFeelClassName() );
 		putBooleanDontOverwrite( mainPrefs, KEY_INTRUDINGSIZE, isMacOS );
-//		putDontOverwrite( GUIUtil.getUserPrefs(), HelpGlassPane.KEY_KEYSTROKE_HELP, strokeToPrefs(
-//			KeyStroke.getKeyStroke( KeyEvent.VK_HELP, KeyEvent.CTRL_MASK )));
+		putBooleanDontOverwrite( mainPrefs, KEY_INSERTIONFOLLOWSPLAY, true );
+//		putBooleanDontOverwrite( mainPrefs, KEY_VIEWCHANMETERS , true );
+		putBooleanDontOverwrite( mainPrefs, KEY_VIEWMARKERS , true );
+//		putBooleanDontOverwrite( mainPrefs, KEY_VIEWNULLLINIE , true );
+		putBooleanDontOverwrite( mainPrefs, KEY_VIEWVERTICALRULERS, true );
+		putBooleanDontOverwrite( mainPrefs, KEY_CATCH, true );
+		
+		putIntDontOverwrite( mainPrefs, KEY_TIMEUNITS, TIME_MINSECS );
+		putIntDontOverwrite( mainPrefs, KEY_VERTSCALE, VSCALE_AMP_LIN );
 
 		putBooleanDontOverwrite( mainPrefs, KEY_BLENDING, false );
 		putDoubleDontOverwrite( mainPrefs, KEY_BLENDTIME, 0.250 );

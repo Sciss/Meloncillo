@@ -24,30 +24,41 @@
  *
  *
  *  Changelog:
- *		12-Aug-04   commented. slight changes
- *      27-Dec-04   added online help
- *		29-Jan-05	removed duplicate scroll updates
- *		27-Mar-05	removed mouse listener (superfluous); added support for catch
+ *		12-May-05	re-created from de.sciss.meloncillo.timeline.TimelineScroll
  *		15-Jul-05	fix in setPosition to avoid duplicate event generation
+ *		13-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.timeline;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.util.prefs.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
+import java.awt.geom.Line2D;
+import java.awt.geom.Rectangle2D;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
 
-import javax.swing.*;
+import javax.swing.JScrollBar;
+import javax.swing.LookAndFeel;
+import javax.swing.UIManager;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.DynamicPrefChangeManager;
+import de.sciss.meloncillo.gui.GraphicsUtil;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
 
-import de.sciss.app.*;
-import de.sciss.io.*;
+import de.sciss.io.Span;
 
 /**
  *  A GUI element for allowing
@@ -62,7 +73,7 @@ import de.sciss.io.*;
  *	This class tracks the catch preferences
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 20-Mar-08
  *
  *  @todo		the display properties work well
  *				with the Aqua look+and+feel, however
@@ -73,40 +84,44 @@ public class TimelineScroll
 extends JScrollBar
 implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceChangeListener
 {
-	public static final int TYPE_UNKNOWN	= 0;
-	public static final int TYPE_DRAG		= 1;
-	public static final int TYPE_TRANSPORT	= 2;
+	public static final int 	TYPE_UNKNOWN		= 0;
+	public static final int 	TYPE_DRAG			= 1;
+	public static final int 	TYPE_TRANSPORT		= 2;
 
-    private final Session   doc;
+    private final Session   	doc;
 
-	private Dimension	recentSize		= getMinimumSize();
-    private Shape		shpSelection	= null;
-    private Shape		shpPosition     = null;
-	private Span		timelineSel		= null;
-	private long		timelineLen		= 0;
-	private int			timelineLenShift= 0;
-	private long		timelinePos		= 0;
-	private Span		timelineVis		= new Span();
-	private boolean		prefCatch;
+	private Dimension			recentSize			= getMinimumSize();
+    private Shape				shpSelection		= null;
+    private Shape				shpPosition     	= null;
+	private Span				timelineSel			= null;
+	private long				timelineLen			= 0;
+	private int					timelineLenShift	= 0;
+	private long				timelinePos			= 0;
+	private Span				timelineVis			= new Span();
+	private boolean				prefCatch;
 	
-	private final	Object	adjustmentSource	= new Object();
+	private final	Object		adjustmentSource	= new Object();
     
-    private static final Color    colrSelection   = GraphicsUtil.colrSelection;
-    private static final Color    colrPosition    = Color.red;
-    private static final Stroke   strkPosition    = new BasicStroke( 0.5f );
+    private static final Color	colrSelection   	= GraphicsUtil.colrSelection;
+    private static final Color	colrPosition    	= Color.red;
+    private static final Stroke	strkPosition    	= new BasicStroke( 0.5f );
 
-	private final int trackMarginLeft;
-	private final int trackMargin;
-    
+	private final int			trackMarginLeft;
+	private final int			trackMargin;
+	
+	private boolean				wasAdjusting		= false;
+	private boolean				adjustCatchBypass	= false;
+	private int					catchBypassCount	= 0;
+	private boolean				catchBypassWasSynced= false;
+	
 	/**
 	 *  Constructs a new <code>TimelineScroll</code> object.
 	 *
-	 *  @param  root	application root
-	 *  @param  doc		session document
+	 *  @param  doc		session Session
 	 *
 	 *	@todo	a clean way to determine the track rectangle ...
 	 */
-    public TimelineScroll( Main root, Session doc )
+    public TimelineScroll( Session doc )
     {
         super( HORIZONTAL );
         this.doc    = doc;
@@ -120,22 +135,25 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 			trackMargin		= 32;
 		}
 
+		timelineLen = doc.timeline.getLength();
+		timelineVis = doc.timeline.getVisibleSpan();
+		for( timelineLenShift = 0; (timelineLen >> timelineLenShift) > 0x3FFFFFFF; timelineLenShift++ );
+		recalcTransforms();
 		recalcBoundedRange();
 
 		// --- Listener ---
 		
 		new DynamicAncestorAdapter( this ).addTo( this );
-//        ScrollBarUI ui = getUI();
-//        if( ui instanceof BasicScrollBarUI ) {
-//           System.err.println( "track rect : "+((BasicScrollBarUI) ui).trackRect.x + ", "+ ((BasicScrollBarUI) ui).trackRect.y + ", "+((BasicScrollBarUI) ui).trackRect.width+", "+((BasicScrollBarUI) ui).trackRect.height );
-//        }
         this.addAdjustmentListener( this );
 
-        new DynamicAncestorAdapter( new DynamicPrefChangeManager(
-			AbstractApplication.getApplication().getUserPrefs().node( PrefsUtil.NODE_SHARED ),
+//        new DynamicAncestorAdapter( new DynamicPreferenceChangeManager( Main.prefs.node( PrefsUtil.NODE_SHARED ),
+//			new String[] { PrefsUtil.KEY_CATCH }, this )).addTo( this );
+        new DynamicAncestorAdapter( new DynamicPrefChangeManager( AbstractApplication.getApplication().getUserPrefs(),
 			new String[] { PrefsUtil.KEY_CATCH }, this )).addTo( this );
         
-//        HelpGlassPane.setHelp( this, "TimelineScroll" );	// EEE
+		setFocusable( false );
+		
+//        HelpGlassPane.setHelp( this, "TimelineScroll" );
     }
     
 	/**
@@ -178,8 +196,8 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 		if( len > 0 ) {
 			if( !isEnabled() ) setEnabled( true );
 			setValues( (int) (timelineVis.getStart() >> timelineLenShift), len2, 0, len );   // val, extent, min, max
-			setUnitIncrement( Math.max( 1, (int) (len2 >> 5) ));             // 1/32 extent
-			setBlockIncrement( Math.max( 1, (int) ((len2 * 3) >> 2) ));      // 3/4 extent
+			setUnitIncrement( Math.max( 1, (len2 >> 5) ));             // 1/32 extent
+			setBlockIncrement( Math.max( 1, ((len2 * 3) >> 2) ));      // 3/4 extent
 		} else {
 			if( isEnabled() ) setEnabled( false );
 			setValues( 0, 100, 0, 100 );	// full view will hide the scrollbar knob
@@ -229,26 +247,61 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 	 *
 	 *  @see	java.awt.Component#repaint( long )
 	 */
-	protected void setPosition( long pos, long patience, int type )
+	public void setPosition( long pos, long patience, int type )
 	{
-		if( prefCatch && timelineVis.contains( timelinePos ) &&
+		if( prefCatch && (catchBypassCount == 0) /* && timelineVis.contains( timelinePos ) */ &&
+//			(timelineVis.getStop() < timelineLen) &&
 			!timelineVis.contains( pos + (type == TYPE_TRANSPORT ? timelineVis.getLength() >> 3 : 0) )) {
 			
 			timelinePos = pos;
-			if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-			try {
-				long start, stop;
-				
-				start	= timelinePos;
-				if( type == TYPE_TRANSPORT ) {
-					start -= timelineVis.getLength() >> 3;
-				} else if( type == TYPE_DRAG ) {
-					if( timelineVis.getStop() <= timelinePos ) {
-						start -= timelineVis.getLength();
-					}
-				} else {
-					start -= timelineVis.getLength() >> 2;
+			long		start;
+			final long	stop;
+			
+			start	= timelinePos;
+			if( type == TYPE_TRANSPORT ) {
+				start -= timelineVis.getLength() >> 3;
+			} else if( type == TYPE_DRAG ) {
+				if( timelineVis.getStop() <= timelinePos ) {
+					start -= timelineVis.getLength();
 				}
+			} else {
+				start -= timelineVis.getLength() >> 2;
+			}
+			stop	= Math.min( timelineLen, Math.max( 0, start ) + timelineVis.getLength() );
+			start	= Math.max( 0, stop - timelineVis.getLength() );
+//				if( (stop > start) && ((start != timelineVis.getStart()) || (stop != timelineVis.getStop())) ) {
+			if( stop > start ) {
+				// it's crucial to update internal var timelineVis here because
+				// otherwise the delay between emitting the edit and receiving the
+				// change via timelineScrolled might be two big, causing setPosition
+				// to fire more than one edit!
+				timelineVis = new Span( start, stop );
+				doc.timeline.editScroll( this, timelineVis );
+//					doc.getUndoManager().addEdit( TimelineVisualEdit.scroll( this, doc, timelineVis ));
+				return;
+			}
+		}
+		timelinePos = pos;
+		recalcTransforms();
+		repaint( patience );
+	}
+	
+	public void addCatchBypass()
+	{
+		if( ++catchBypassCount == 1 ) {
+			catchBypassWasSynced = timelineVis.contains( timelinePos );
+		}
+	}
+	
+	public void removeCatchBypass()
+	{
+		if( (--catchBypassCount == 0) && catchBypassWasSynced ) {
+			catchBypassWasSynced = false;
+			if( prefCatch && !timelineVis.contains( timelinePos )) {
+				long		start;
+				final long	stop;
+					
+				start	= timelinePos - (timelineVis.getLength() >> 2);
 				stop	= Math.min( timelineLen, Math.max( 0, start ) + timelineVis.getLength() );
 				start	= Math.max( 0, stop - timelineVis.getLength() );
 				if( stop > start ) {
@@ -258,16 +311,9 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 					// to fire more than one edit!
 					timelineVis = new Span( start, stop );
 					doc.timeline.editScroll( this, timelineVis );
-					return;
 				}
 			}
-			finally {
-				doc.bird.releaseExclusive( Session.DOOR_TIME );
-			}
 		}
-		timelinePos = pos;
-		recalcTransforms();
-		repaint( patience );
 	}
 	
 // ---------------- DynamicListening interface ---------------- 
@@ -284,29 +330,26 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
         doc.timeline.removeTimelineListener( this );
     }
  
-// ---------------- LaterInvocationManager.Listener interface ---------------- 
+// ---------------- PreferenceChangeListener interface ---------------- 
 
-	// o instanceof PreferenceChangeEvent
-	public void preferenceChange( PreferenceChangeEvent pce)
+	public void preferenceChange( PreferenceChangeEvent e )
 	{
-		final String  key	= pce.getKey();
-		final String  value	= pce.getNewValue();
+		final String  key	= e.getKey();
+		final String  value	= e.getNewValue();
 
-		if( key.equals( PrefsUtil.KEY_CATCH )) {
-			prefCatch	= Boolean.valueOf( value ).booleanValue();
-			if( (prefCatch == true) && !(timelineVis.contains( timelinePos ))) {
-				if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-				try {
-					long start	= Math.max( 0, timelinePos - (timelineVis.getLength() >> 2) );
-					long stop	= Math.min( timelineLen, start + timelineVis.getLength() );
-					start		= Math.max( 0, stop - timelineVis.getLength() );
-					if( stop > start ) {
-						doc.timeline.editScroll(  this, new Span( start, stop ));
-					}
-				}
-				finally {
-					doc.bird.releaseExclusive( Session.DOOR_TIME );
-				}
+		if( !key.equals( PrefsUtil.KEY_CATCH )) return;
+		
+		prefCatch	= Boolean.valueOf( value ).booleanValue();
+		if( !prefCatch ) return;
+		
+		catchBypassCount	= 0;
+		adjustCatchBypass	= false;
+		if( !(timelineVis.contains( timelinePos ))) {
+			long		start	= Math.max( 0, timelinePos - (timelineVis.getLength() >> 2) );
+			final long	stop	= Math.min( timelineLen, start + timelineVis.getLength() );
+			start				= Math.max( 0, stop - timelineVis.getLength() );
+			if( stop > start ) {
+				doc.timeline.editScroll( this, new Span( start, stop ));
 			}
 		}
 	}
@@ -315,47 +358,29 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 
 	public void timelineSelected( TimelineEvent e )
     {
-		try {
-			doc.bird.waitShared( Session.DOOR_TIME );
-			timelineSel = doc.timeline.getSelectionSpan();
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_TIME );
-		}
+		timelineSel = doc.timeline.getSelectionSpan();
 		recalcTransforms();
         repaint();
     }
     
 	public void timelineChanged( TimelineEvent e )
     {
-		try {
-			doc.bird.waitShared( Session.DOOR_TIME );
-			timelineLen = doc.timeline.getLength();
-			timelineVis = doc.timeline.getVisibleSpan();
-			for( timelineLenShift = 0; (timelineLen >> timelineLenShift) > 0x3FFFFFFF; timelineLenShift++ );
-			recalcTransforms();
-			recalcBoundedRange();
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_TIME );
-		}
+		timelineLen = doc.timeline.getLength();
+		timelineVis = doc.timeline.getVisibleSpan();
+		for( timelineLenShift = 0; (timelineLen >> timelineLenShift) > 0x3FFFFFFF; timelineLenShift++ );
+		recalcTransforms();
+		recalcBoundedRange();
         repaint();
     }
 
 	// ignored since the timeline frame will inform us
-	public void timelinePositioned( TimelineEvent e ) {}
+	public void timelinePositioned( TimelineEvent e ) { /* ignore */ }
 
     public void timelineScrolled( TimelineEvent e )
     {
-		try {
-			doc.bird.waitShared( Session.DOOR_TIME );
-			timelineVis = doc.timeline.getVisibleSpan();
-			if( e.getSource() != adjustmentSource ) {
-				recalcBoundedRange();
-			}
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_TIME );
+		timelineVis = doc.timeline.getVisibleSpan();
+		if( e.getSource() != adjustmentSource ) {
+			recalcBoundedRange();
 		}
     }
 
@@ -364,24 +389,35 @@ implements AdjustmentListener, TimelineListener, DynamicListening, PreferenceCha
 
     public void adjustmentValueChanged( AdjustmentEvent e )
     {
-		if( isEnabled() ) {
-			if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 200 )) return;
-			try {
-				Span oldVisi = doc.timeline.getVisibleSpan();
-				Span newVisi = new Span( this.getValue() << timelineLenShift,
-										 (this.getValue() + this.getVisibleAmount()) << timelineLenShift );
-				if( !newVisi.equals( oldVisi )) {
-//System.err.println( "dispatch EditSetTimelineScroll" );
-					if( prefCatch && oldVisi.contains( timelinePos ) && !newVisi.contains( timelinePos )) {
-						AbstractApplication.getApplication().getUserPrefs().node(
-							PrefsUtil.NODE_SHARED ).putBoolean( PrefsUtil.KEY_CATCH, false );
-					}
-					doc.timeline.editScroll( adjustmentSource, newVisi );
-				}
+    	if( !isEnabled() ) return;
+    	
+    	final boolean	isAdjusting	= e.getValueIsAdjusting();
+    	
+		final Span		oldVisi		= doc.timeline.getVisibleSpan();
+		final Span		newVisi		= new Span( this.getValue() << timelineLenShift,
+								 		(this.getValue() + this.getVisibleAmount()) << timelineLenShift );
+		
+		if( prefCatch && isAdjusting && !wasAdjusting ) {
+			adjustCatchBypass = true;
+			addCatchBypass();
+		} else if( wasAdjusting && !isAdjusting && adjustCatchBypass ) {
+			if( prefCatch && !newVisi.contains( timelinePos )) {
+				// we need to set prefCatch here even though laterInvocation will handle it,
+				// because removeCatchBypass might look at it!
+				prefCatch = false;
+				AbstractApplication.getApplication().getUserPrefs().putBoolean( PrefsUtil.KEY_CATCH, false );
 			}
-			finally {
-				doc.bird.releaseExclusive( Session.DOOR_TIME );
-			}
+			adjustCatchBypass = false;
+			removeCatchBypass();
+		}
+		
+		if( !newVisi.equals( oldVisi )) {
+//			if( prefCatch && oldVisi.contains( timelinePos ) && !newVisi.contains( timelinePos )) {
+//				AbstractApplication.getApplication().getUserPrefs().putBoolean( PrefsUtil.KEY_CATCH, false );
+//			}
+			doc.timeline.editScroll( adjustmentSource, newVisi );
         }
+		
+		wasAdjusting	= isAdjusting;
     }
 }

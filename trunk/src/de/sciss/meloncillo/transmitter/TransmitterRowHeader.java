@@ -42,14 +42,12 @@ import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicListening;
@@ -266,8 +264,7 @@ implements MouseListener, DynamicListening
 					collTransmitters	= Collections.singletonList( trns );	// deselect all except uns
 				}
 			}
-			edit = new EditSetSessionObjects( this, doc, doc.selectedTransmitters,
-													   collTransmitters, Session.DOOR_TRNS );
+			edit = new EditSetSessionObjects( this, doc.selectedTransmitters, collTransmitters );
 			doc.getUndoManager().addEdit( edit.perform() );
 			repaint();
 		}

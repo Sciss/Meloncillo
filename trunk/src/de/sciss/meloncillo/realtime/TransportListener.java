@@ -24,9 +24,10 @@
  *
  *
  *  Changelog:
- *		06-May-04   created
- *		22-Jul-04   moved to realtime package
- *		01-Sep-04	additional comments
+ *		25-Jan-05	created from de.sciss.meloncillo.realtime.TransportListener
+ *		02-Aug-05	conforms to new document handler
+ *		25-Feb-06	moved to double precision
+ *		13-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.realtime;
@@ -44,7 +45,7 @@ package de.sciss.meloncillo.realtime;
  *  from all transport listeners.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.67, 01-Sep-04
+ *  @version	0.70, 26-Feb-07
  *
  *	@synchronization	all methods are invoked from
  *						the transport thread so beware!
@@ -56,25 +57,34 @@ public interface TransportListener
 	 *
 	 *	@param	pos	the position of the timeline after stopping
 	 */
-	public void transportStop( long pos );
+	public void transportStop( Transport transport, long pos );
 	/**
 	 *	Invoked when the transport position was altered,
-	 *	for example when jumping backward in loop mode.
+	 *	for example when setting the timeline position while transport is running.
 	 *
 	 *	@param	pos	the new position of the timeline at which
 	 *			transport will continue to play
 	 */
-	public void transportPosition( long pos );
+	public void transportPosition( Transport transport, long pos, double rate );
 	/**
 	 *	Invoked when the transport is about to start.
 	 *
 	 *	@param	pos	the position of the timeline when starting to play
 	 */
-	public void transportPlay( long pos );
+	public void transportPlay( Transport transport, long pos, double rate );
 	/**
 	 *	Invoked when the transport was running when the
 	 *	application was about to quit. Vital cleanup should
 	 *	be performed in here.
 	 */
-	public void transportQuit();
+	public void transportQuit( Transport transport );
+	/**
+	 *	Invoked when the looping region was altered,
+	 *	so that calculations relying on the original play position
+	 *	must be carried out anew (typically calls to Transport.foldSpans).
+	 *
+	 *	@param	pos	the adjusted position of the timeline at which
+	 *			transport virtually started to play
+	 */
+	public void transportReadjust( Transport transport, long pos, double rate );
 }

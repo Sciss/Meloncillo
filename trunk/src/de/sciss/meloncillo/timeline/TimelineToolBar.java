@@ -29,16 +29,24 @@
 
 package de.sciss.meloncillo.timeline;
 
-import java.awt.event.*;
-import java.util.prefs.*;
-import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.prefs.Preferences;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.util.*;
+import javax.swing.AbstractButton;
+import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 
-import de.sciss.app.*;
-import de.sciss.gui.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.gui.GUIUtil;
+import de.sciss.meloncillo.gui.BlendingAction;
+import de.sciss.meloncillo.gui.CatchAction;
+import de.sciss.meloncillo.gui.ToolAction;
+import de.sciss.meloncillo.gui.ToolBar;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
+import de.sciss.util.Disposable;
 
 /**
  *	A palette of tools for editing
@@ -52,14 +60,17 @@ import de.sciss.gui.*;
  */
 public class TimelineToolBar
 extends ToolBar
+implements Disposable
 {
+	private final Map					mapToolButtons	= new HashMap();
+
 	/**
 	 *	Creates a tool palette with
 	 *	default buttons for editing the timeline frame.
 	 *
 	 *	@param	root	Application root
 	 */
-	public TimelineToolBar( Main root )
+	public TimelineToolBar( Session doc )
 	{
 		super( ToolBar.HORIZONTAL );
 
@@ -83,6 +94,7 @@ extends ToolBar
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F1, 0 ));
 //        HelpGlassPane.setHelp( toggle, "TimelineToolPointer" );	// EEE
   		this.addToggleButton( toggle, 0 );
+		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
         
 		toolAction		= new ToolAction( ToolAction.LINE );
         toggle			= new JToggleButton( toolAction );
@@ -91,6 +103,7 @@ extends ToolBar
 //        HelpGlassPane.setHelp( toggle, "TimelineToolLine" );	// EEE
 toolAction.setEnabled( false );	// XXX not yet implemented
   		this.addToggleButton( toggle, 0 );
+		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
 
 		toolAction		= new ToolAction( ToolAction.PENCIL );
         toggle			= new JToggleButton( toolAction );
@@ -98,6 +111,7 @@ toolAction.setEnabled( false );	// XXX not yet implemented
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F3, 0 ));
 //        HelpGlassPane.setHelp( toggle, "TimelineToolPencil" );	// EEE
   		this.addToggleButton( toggle, 0 );
+		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
       
 		toolAction		= new ToolAction( ToolAction.ZOOM );
         toggle			= new JToggleButton( toolAction );
@@ -105,12 +119,24 @@ toolAction.setEnabled( false );	// XXX not yet implemented
 		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F4, 0 ));
 //        HelpGlassPane.setHelp( toggle, "TimelineToolZoom" );	// EEE
   		this.addToggleButton( toggle, 0 );
-      
+		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
+
 		this.addSeparator();
 		actionBlending  = new BlendingAction( prefs.node( PrefsUtil.NODE_SHARED ));
 		toggle			= actionBlending.getButton();
 //		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 )));
 //        HelpGlassPane.setHelp( toggle, "ToolBlending" );		// EEE
         this.addToggleButton( toggle, 1 );
+	}
+
+	public void selectTool( int toolID )
+	{
+		final AbstractButton b = (AbstractButton) mapToolButtons.get( new Integer( toolID ));
+		if( b != null ) b.doClick();
+	}
+	
+	public void dispose()
+	{
+		/* empty */ 
 	}
 }

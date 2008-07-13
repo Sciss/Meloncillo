@@ -41,7 +41,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Point2D;
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.Vector;
@@ -57,15 +56,12 @@ import de.sciss.gui.TimeFormat;
 import de.sciss.gui.VectorSpace;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
-import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
 import de.sciss.meloncillo.gui.ObserverPalette;
 import de.sciss.meloncillo.gui.ToolActionEvent;
 import de.sciss.meloncillo.gui.ToolActionListener;
 import de.sciss.meloncillo.gui.VectorDisplay;
 import de.sciss.meloncillo.gui.VectorEditor;
 import de.sciss.meloncillo.gui.VirtualSurface;
-import de.sciss.meloncillo.io.AudioTrail;
-import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.DecimatedTrail;
 import de.sciss.meloncillo.io.DecimationInfo;
 import de.sciss.meloncillo.session.Session;
@@ -105,7 +101,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
 	private final VectorEditor			yEditor;
 	
 	private final float[][]				frameBuf		= new float[2][0];
-	private int							rate;
+	private double						rate;
 	private DecimationInfo				info			= null;
 
 	private ObserverPalette				observer		= null;

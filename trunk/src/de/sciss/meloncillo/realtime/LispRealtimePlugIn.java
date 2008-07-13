@@ -32,24 +32,30 @@
 
 package de.sciss.meloncillo.realtime;
 
-import java.awt.*;
-import java.io.*;
-import java.net.*;
-import java.nio.*;
-import java.nio.channels.*;
-import javax.swing.*;
+import java.awt.Point;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.channels.DatagramChannel;
+import java.util.List;
 
-import org.jatha.dynatype.*;
+import javax.swing.JOptionPane;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.lisp.*;
-import de.sciss.meloncillo.plugin.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
+import org.jatha.dynatype.LispNumber;
+import org.jatha.dynatype.LispValue;
 
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
 import de.sciss.io.IOUtil;
-import de.sciss.net.*;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.lisp.AdvancedJatha;
+import de.sciss.meloncillo.plugin.LispPlugIn;
+import de.sciss.meloncillo.plugin.PlugInContext;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
+import de.sciss.net.OSCListener;
+import de.sciss.net.OSCMessage;
+import de.sciss.net.OSCReceiver;
 
 /**
  *  A realtime plug-in driven by lisp scripts.
@@ -282,12 +288,13 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	{
 		if( !plugInPrepare( context )) return false;
 
-		int					frameStep, trnsIdx, rcvIdx, maxRate;
-		java.util.List		collRequests;
+		final double		maxRate;
+		final double		senseRate;
+		final boolean		wasRunning;
+		int					frameStep, trnsIdx, rcvIdx;
+		List				collRequests;
 		LispPlugIn.Request  r;
 		boolean				success		= false;
-		boolean				wasRunning;
-		double				senseRate;
 
 		try {
 			synchronized( this ) {
@@ -408,14 +415,15 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 
 				wasRunning = transport.isRunning();
 				if( wasRunning ) {
-					transport.stopAndWait();
+					transport.stop();
 				}
-				transport.addRealtimeConsumer( this );
+// EEE
+//				transport.addRealtimeConsumer( this );
 				transport.addTransportListener( this );
 				rt_info.bufSendThread.isRunning = true;
 				rt_info.bufSendThread.start();
 				if( wasRunning ) {
-					transport.goPlay();
+					transport.play( 1.0 );
 				}
 				success = true;
 			} // synchronized( this )
@@ -451,9 +459,10 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 		try {
 			synchronized( this ) {
 				transport.removeTransportListener( this );
-				transport.removeRealtimeConsumer( this );
+// EEE
+//				transport.removeRealtimeConsumer( this );
 				if( isPlaying ) {
-					transportStop( 0 );
+					transportStop( transport, 0 );
 				}
 				if( rt_info != null ) {
 					rt_info.bufSendThread.isRunning = false;
@@ -632,7 +641,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	 *	Will call the script's "STOP" function
 	 *	and stop listining to SC triggers
 	 */
-	public void transportStop( long pos )
+	public void transportStop( Transport t, long pos )
 	{
 		synchronized( this ) {
             isPlaying = false;
@@ -657,7 +666,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	/**
 	 *	Will call the script's "POSITION" function
 	 */
-	public void transportPosition( long pos )
+	public void transportPosition( Transport t, long pos, double rate )
 	{
 		boolean success = false;
 
@@ -671,9 +680,14 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 				System.err.println( e1 );
 			}
 			finally {
-				if( !success ) transportStop( pos );
+				if( !success ) transportStop( t, pos );
 			}
 		} // synchronized( this )
+	}
+
+	public void transportReadjust( Transport t, long pos, double rate )
+	{
+		transportPosition( t, pos, rate );
 	}
 	
 	// syncs on 'this'
@@ -684,7 +698,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	 *	@todo	start listening is called after the lisp code
 	 *			and could (in theory) miss the first trigger?
 	 */
-	public void transportPlay( long pos )
+	public void transportPlay( Transport t, long pos, double rate )
 	{
 		boolean success = false;
 		
@@ -703,12 +717,12 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 				System.err.println( e1 );
 			}
 			finally {
-				if( !success ) transportStop( pos );
+				if( !success ) transportStop( t, pos );
 			}
 		} // synchronized( this )
 	}
 	
-	public void transportQuit() {}
+	public void transportQuit( Transport t ) { /* ignore */ }
 
 	// call w/ sync on 'this' and valid rt_info
 	private LispValue lispPosition( long pos )
@@ -806,7 +820,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 		private OSCReceiver				syncOSC;
 		private long					startFrame;
 		private long					startTime;
-		private int						sourceRate;
+		private double					sourceRate;
 //		private double					trigDur;
 		private float[][][]				streamTrajBuf;
 		private int						streamTrajBufSize;

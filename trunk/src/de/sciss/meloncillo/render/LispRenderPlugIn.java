@@ -38,19 +38,26 @@
 
 package de.sciss.meloncillo.render;
 
-import java.awt.*;
-import java.io.*;
-import javax.swing.*;
+import java.awt.Point;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
-import org.jatha.dynatype.*;
-import org.jatha.machine.*;
+import javax.swing.JOptionPane;
 
-import de.sciss.meloncillo.lisp.*;
-import de.sciss.meloncillo.plugin.*;
-import de.sciss.meloncillo.util.*;
+import org.jatha.dynatype.LispNumber;
+import org.jatha.dynatype.LispValue;
+import org.jatha.machine.SECDMachine;
 
-import de.sciss.app.*;
-import de.sciss.io.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.io.AudioFile;
+import de.sciss.io.AudioFileDescr;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.lisp.AdvancedJatha;
+import de.sciss.meloncillo.lisp.BasicLispPrimitive;
+import de.sciss.meloncillo.plugin.LispPlugIn;
+import de.sciss.meloncillo.plugin.PlugInContext;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  Common Lisp Script driven rendering
@@ -111,9 +118,10 @@ implements RenderPlugIn
 	{
 		if( !plugInPrepare( context )) return false;
 	
-		int							trnsIdx, rcvIdx, senseRate, senseBufSize;
+		int							trnsIdx, rcvIdx, senseBufSize;
+		double						senseRate;
 		final RenderInfo			info		= new RenderInfo();
-		java.util.List				collRequests;
+		List						collRequests;
 		Request						r;
 		boolean						success		= false;
 		de.sciss.app.Application	app			= AbstractApplication.getApplication();
@@ -138,7 +146,7 @@ implements RenderPlugIn
 									PrefsUtil.KEY_OLSENSEBUFSIZE, 0 ) / 1000.0) *
 									senseRate + 0.5) ) & ~1;  // muss durch zwei teilbar sein!
 		prefsHash.setf_gethash( jatha.makeString( "SENSEBUFSIZE" ), jatha.makeInteger( senseBufSize ));
-		prefsHash.setf_gethash( jatha.makeString( "SENSERATE" ), jatha.makeInteger( senseRate ));
+		prefsHash.setf_gethash( jatha.makeString( "SENSERATE" ), jatha.makeReal( senseRate ));
 
 		try {
 			if( !invokeLispPrepare( context, source, info )) return false;
@@ -531,10 +539,7 @@ implements RenderPlugIn
 	protected class RenderInfo
 	{
 		private double				senseRate;
-//		private int					senseBufSize;
-//		private int					senseBufSizeH;
 		private long				outLength, progOff;
-//		private long				startPos;
 		private AudioFile[]			afTrajTargets;
 		private AudioFile[][]		afSenseTargets;
 		private File[]				fTrajSources;

@@ -31,9 +31,11 @@
 
 package de.sciss.meloncillo.render;
 
-import de.sciss.meloncillo.plugin.*;
+import java.util.List;
 
-import de.sciss.io.*;
+import de.sciss.io.Span;
+import de.sciss.meloncillo.plugin.PlugInContext;
+import de.sciss.meloncillo.plugin.PlugInHost;
 
 /**
  *	A simple extension to the 
@@ -63,8 +65,8 @@ extends PlugInContext
 	 *  @param  time				the time span to render
 	 *  @param  sourceRate			the source sense data rate
 	 */
-	public RenderContext( PlugInHost host, java.util.List collReceivers,
-						  java.util.List collTransmitters, Span time, int sourceRate )
+	public RenderContext( PlugInHost host, List collReceivers,
+						  List collTransmitters, Span time, double sourceRate )
 	{
 		super( host, collReceivers, collTransmitters, time, sourceRate );
 	}

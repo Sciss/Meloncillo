@@ -68,7 +68,6 @@ import java.awt.geom.Arc2D;
 import java.awt.geom.Area;
 import java.awt.geom.CubicCurve2D;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -84,20 +83,16 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Vector;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 
 import javax.swing.JComponent;
-import javax.swing.undo.CompoundEdit;
-import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractCompoundEdit;
@@ -256,7 +251,7 @@ implements  VirtualSurface, TimelineListener,
 
 	// --- top painter ---
 
-	private final	java.util.List	collTopPainters		= new ArrayList();
+	private final	List			collTopPainters		= new ArrayList();
 	
 	// --- realtime ---
 	private boolean		rt_valid		= false;			// false if rt shouldn't update transmitter locs
@@ -269,7 +264,7 @@ implements  VirtualSurface, TimelineListener,
 	// --- prefs ---
 	private boolean prefSnap, prefRcvSense, prefRcvEqP, prefTrnsTraj, prefUserImages;
 
-	private static final java.util.List grpKeys;
+	private static final List grpKeys;
 	
 	static {
 		// --- Strokes ---
@@ -422,8 +417,9 @@ implements  VirtualSurface, TimelineListener,
 			{
 				if( rt_valid ) {
 					rt_valid = false;
-					transport.removeRealtimeConsumer( SurfacePane.this );
-					transport.addRealtimeConsumer( SurfacePane.this );
+// EEE
+//					transport.removeRealtimeConsumer( SurfacePane.this );
+//					transport.addRealtimeConsumer( SurfacePane.this );
 				}
 			}
 			
@@ -1454,8 +1450,8 @@ implements  VirtualSurface, TimelineListener,
     {
 		doc.timeline.addTimelineListener( this );
 		rt_valid = false;
-		transport.addRealtimeConsumer( this );
-// System.err.println( "surface starts listening" );
+// EEE
+//		transport.addRealtimeConsumer( this );
 
 		if( prefTrnsTraj ) {
 			updateTransmitterPath();
@@ -1467,9 +1463,9 @@ implements  VirtualSurface, TimelineListener,
     public void stopListening()
     {
 		doc.timeline.removeTimelineListener( this );
-		transport.removeRealtimeConsumer( this );
+// EEE
+//		transport.removeRealtimeConsumer( this );
 		rt_valid = false;
-// System.err.println( "surface stops listening" );
     }
 
 // ---------------- ToolListener interface ---------------- 
@@ -1627,8 +1623,7 @@ implements  VirtualSurface, TimelineListener,
 						} else {								// remove object from selection
 							coll.remove( hitReceiver );
 						}
-						edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
-																   coll, Session.DOOR_RCV );
+						edit = new EditSetSessionObjects( this, doc.selectedReceivers, coll );
 						doc.getUndoManager().addEdit( edit.perform() );
 						updateReceiverShapes();
 						redrawImage();
@@ -1647,8 +1642,7 @@ implements  VirtualSurface, TimelineListener,
 						} else {
 							clipRect2 = null;
 						}
-						edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
-																   coll, Session.DOOR_RCV );
+						edit = new EditSetSessionObjects( this, doc.selectedReceivers, coll );
 						doc.getUndoManager().addEdit( edit.perform() );
 						updateReceiverShapes();
 						redrawImage();
@@ -1683,8 +1677,7 @@ implements  VirtualSurface, TimelineListener,
 						if( rcv != null ) {
 							coll = doc.selectedReceivers.getAll();
 							coll.add( rcv );
-							edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
-															  coll, Session.DOOR_RCV );
+							edit = new EditSetSessionObjects( this, doc.selectedReceivers, coll );
 							doc.getUndoManager().addEdit( edit.perform() );
 							clipRect = rcv.getBounds();
 							updateSurfacePaneImage( clipRect );
@@ -2199,7 +2192,8 @@ implements  VirtualSurface, TimelineListener,
 		private void finishGesture( boolean success )
 		{
 			if( trajRplc != null ) {
-				transport.removeTrajectoryReplacement( trajRplc );
+// EEE
+//				transport.removeTrajectoryReplacement( trajRplc );
 				trajRplc = null;
 			}
 			cursorInfo[2]	= EMPTY_STR;
@@ -2364,7 +2358,8 @@ implements  VirtualSurface, TimelineListener,
 						collTrns.retainAll( doc.selectedTransmitters.getAll() );
 						trajRplc = new RealtimeProducer.TrajectoryReplacement(
 										this, new Span( 0, doc.timeline.getLength() ), collTrns );
-						transport.addTrajectoryReplacement( trajRplc );
+// EEE
+//						transport.addTrajectoryReplacement( trajRplc );
 						calcCursorInfo();
 					} finally {
 						doc.bird.releaseShared( Session.DOOR_TIMETRNSRCV | Session.DOOR_GRP );
@@ -2376,7 +2371,7 @@ implements  VirtualSurface, TimelineListener,
 			weStartedTheTransport = !(transport.isRunning() || previewOnly);
 			if( weStartedTheTransport ) {
 				rt_pos		= doc.timeline.getPosition();
-				transport.goPlay();
+				transport.play( 1.0 );
 			}
 			
 			when			= rt_pos;
@@ -2403,7 +2398,7 @@ implements  VirtualSurface, TimelineListener,
 //					finishGesture( true );
 //				}
 //			} else {
-				if( weStartedTheTransport ) transport.stopAndWait();	// need to wait so rt_pos is correct
+				if( weStartedTheTransport ) transport.stop();	// need to wait so rt_pos is correct
 				mouseDragged( e );	// add a last point for the current timeline pos!
 				finishGesture( true );
 //			}

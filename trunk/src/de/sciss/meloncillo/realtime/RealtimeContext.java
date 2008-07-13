@@ -31,6 +31,8 @@
 
 package de.sciss.meloncillo.realtime;
 
+import java.util.List;
+
 import de.sciss.meloncillo.plugin.*;
 
 import de.sciss.io.*;
@@ -59,8 +61,8 @@ extends PlugInContext
 	 *								(0 ... timeline-length)
 	 *  @param  sourceRate			the source sense data rate
 	 */
-	public RealtimeContext( PlugInHost host, java.util.List collReceivers,
-							java.util.List collTransmitters, Span time,
+	public RealtimeContext( PlugInHost host, List collReceivers,
+							List collTransmitters, Span time,
 							int sourceRate )
 	{
 		super( host, collReceivers, collTransmitters, time, sourceRate );

@@ -30,9 +30,13 @@
 
 package de.sciss.meloncillo.plugin;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import de.sciss.io.*;
+import de.sciss.io.Span;
 
 /**
  *	This class contains static information
@@ -54,7 +58,7 @@ public class PlugInContext
 	 *  It can be used to store variables
 	 *  so they needn't be global.
 	 */
-	public final HashMap  moduleMap  = new HashMap();
+	public final Map  moduleMap  = new HashMap();
 
 	/**
 	 *  Key: Minimum required Blocksize<br>
@@ -83,14 +87,14 @@ public class PlugInContext
 	public static final Object KEY_CONSUMER		= "consumer";
 
 	private final PlugInHost		host;
-	private final java.util.List	collReceivers;
-	private final java.util.List	collTransmitters;
+	private final List				collReceivers;
+	private final List				collTransmitters;
 	private final Span				time;
-	private final int				sourceRate;
+	private final double			sourceRate;
 	private int						sourceBlockSize;
 	
-	private final HashMap			options			= new HashMap();
-	private final HashSet			modifiedOptions = new HashSet();
+	private final Map				options			= new HashMap();
+	private final Set				modifiedOptions = new HashSet();
 	
 	/**
 	 *  Constructs a new PlugInContext.
@@ -106,8 +110,8 @@ public class PlugInContext
 	 *				the caller is responsible for ensuring their
 	 *				constancy.
 	 */
-	public PlugInContext( PlugInHost host, java.util.List collReceivers,
-						  java.util.List collTransmitters, Span time, int sourceRate )
+	public PlugInContext( PlugInHost host, List collReceivers,
+						  List collTransmitters, Span time, double sourceRate )
 	{
 		this.host				= host;
 		this.collReceivers		= collReceivers;
@@ -175,7 +179,7 @@ public class PlugInContext
 	 *
 	 *	@return	the source rate (in hertz) as passed to the constructor
 	 */
-	public int getSourceRate()
+	public double getSourceRate()
 	{
 		return sourceRate;
 	}

@@ -31,7 +31,6 @@
 
 package de.sciss.meloncillo.realtime;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 

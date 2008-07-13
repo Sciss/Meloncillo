@@ -24,20 +24,20 @@
  *
  *
  *  Changelog:
- *		22-Jan-05	created from EditSetTransmitterSelection;
- *					improved immutability
+ *		13-Aug-05	copied from de.sciss.meloncillo.edit.EditSetSessionObjects;
+ *		14-Jan-06	copied from de.sciss.inertia.edit.EditSetSessionObjects;
+ *		13-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.edit;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.BasicUndoableEdit;
 import de.sciss.app.PerformableEdit;
-import de.sciss.meloncillo.session.Session;
+
 import de.sciss.meloncillo.session.SessionCollection;
 
 /**
@@ -47,17 +47,15 @@ import de.sciss.meloncillo.session.SessionCollection;
  *  of the session.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 01-May-06
  *  @see		UndoManager
  */
 public class EditSetSessionObjects
 extends BasicUndoableEdit
 {
 	private Object					source;
-	private final Session			doc;
 	private final SessionCollection	quoi;
 	private final List				oldSelection, newSelection;
-	private final int				doors;
 
 	/**
 	 *  Create and perform this edit. This
@@ -65,31 +63,25 @@ extends BasicUndoableEdit
 	 *  thus dispatching a <code>SessionObjectCollectionEvent</code>.
 	 *
 	 *  @param  source				who initiated the action
-	 *  @param  doc					session object which contains
-	 *								the submitted sessionObjects
 	 *	@param	quoi				XXX
 	 *  @param  collNewSelection	the new collection of sessionObjects
 	 *								which form the new selection. the
 	 *								previous selection is discarded.
 	 *	@param	doors				XXX
 	 *
-	 *  @see	de.sciss.meloncillo.session.SessionCollection
-	 *  @see	de.sciss.meloncillo.session.SessionCollection.Event
+	 *  @see	de.sciss.eisenkraut.session.SessionCollection
+	 *  @see	de.sciss.eisenkraut.session.SessionCollection.Event
 	 *
 	 *  @synchronization			waitExclusive on doors
 	 */
-	public EditSetSessionObjects( Object source, Session doc, SessionCollection quoi,
-								  List collNewSelection, int doors )
+	public EditSetSessionObjects( Object source, SessionCollection quoi,
+								  List collNewSelection )
 	{
 		super();
 		this.source			= source;
-		this.doc			= doc;
-		this.doors			= doors;
 		this.quoi			= quoi;
-		this.oldSelection   = quoi.getAll();
-		this.newSelection   = new ArrayList( collNewSelection );
-//		perform();
-//		this.source			= this;
+		oldSelection   		= quoi.getAll();
+		newSelection   		= new ArrayList( collNewSelection );
 	}
 
 	/**
@@ -103,15 +95,9 @@ extends BasicUndoableEdit
 
 	public PerformableEdit perform()
 	{
-		try {
-			doc.bird.waitExclusive( doors );
-			quoi.clear( source );
-			quoi.addAll( source, newSelection );
-			source = this;
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		quoi.clear( source );
+		quoi.addAll( source, newSelection );
+		source			= this;
 		return this;
 	}
 
@@ -125,14 +111,8 @@ extends BasicUndoableEdit
 	public void undo()
 	{
 		super.undo();
-		try {
-			doc.bird.waitExclusive( doors );
-			quoi.clear( source );
-			quoi.addAll( source, oldSelection );
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		quoi.clear( source );
+		quoi.addAll( source, oldSelection );
 	}
 	
 	/**
@@ -160,8 +140,8 @@ extends BasicUndoableEdit
 	public boolean addEdit( UndoableEdit anEdit )
 	{
 		if( anEdit instanceof EditSetSessionObjects ) {
-			this.newSelection.clear();
-			this.newSelection.addAll( ((EditSetSessionObjects) anEdit).newSelection );
+			newSelection.clear();
+			newSelection.addAll( ((EditSetSessionObjects) anEdit).newSelection );
 			anEdit.die();
 			return true;
 		} else {
@@ -177,8 +157,8 @@ extends BasicUndoableEdit
 	public boolean replaceEdit( UndoableEdit anEdit )
 	{
 		if( anEdit instanceof EditSetSessionObjects ) {
-			this.oldSelection.clear();
-			this.oldSelection.addAll( ((EditSetSessionObjects) anEdit).oldSelection );
+			oldSelection.clear();
+			oldSelection.addAll( ((EditSetSessionObjects) anEdit).oldSelection );
 			anEdit.die();
 			return true;
 		} else {

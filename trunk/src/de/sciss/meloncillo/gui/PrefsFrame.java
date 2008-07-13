@@ -390,7 +390,7 @@ implements SwingConstants, TimelineListener, DynamicListening
 			public void numberChanged( NumberEvent e )
 			{
 				if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) {
-					ggRate.setNumber( new Integer( doc.timeline.getRate() ));   // undo
+					ggRate.setNumber( new Double( doc.timeline.getRate() ));   // undo
 					return;
 				}
 				try {
@@ -468,7 +468,7 @@ implements SwingConstants, TimelineListener, DynamicListening
 	{
 		if( !doc.bird.attemptShared( Session.DOOR_TIME, 250 )) return;
 		try {
-			ggRate.setNumber( new Integer( doc.timeline.getRate() ));
+			ggRate.setNumber( new Double( doc.timeline.getRate() ));
 		}
 		finally {
 			doc.bird.releaseShared( Session.DOOR_TIME ); 

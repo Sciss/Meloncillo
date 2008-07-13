@@ -56,8 +56,6 @@ import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
-import javax.swing.undo.CompoundEdit;
-import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractCompoundEdit;
@@ -343,8 +341,7 @@ implements ClipboardOwner, PreferenceChangeListener
 						edit.addPerform( new EditAddSessionObjects( this, doc, group.receivers, coll3, Session.DOOR_RCV ));
 					}
 
-					edit.addPerform( new EditSetSessionObjects( this, doc, doc.selectedReceivers,
-																coll3, Session.DOOR_RCV ));
+					edit.addPerform( new EditSetSessionObjects( this, doc.selectedReceivers, coll3 ));
 					edit.perform();
 					edit.end();
 					doc.getUndoManager().addEdit( edit );
@@ -411,8 +408,7 @@ implements ClipboardOwner, PreferenceChangeListener
 	
 		try {
 			doc.bird.waitExclusive( Session.DOOR_RCV );
-			edit = new EditSetSessionObjects( this, doc, doc.selectedReceivers,
-													   doc.receivers.getAll(), Session.DOOR_RCV );
+			edit = new EditSetSessionObjects( this, doc.selectedReceivers, doc.receivers.getAll() );
 			doc.getUndoManager().addEdit( edit.perform() );
 		}
 		finally {

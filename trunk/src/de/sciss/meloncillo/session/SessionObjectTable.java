@@ -55,7 +55,6 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
-import javax.swing.undo.CompoundEdit;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractCompoundEdit;
@@ -73,7 +72,6 @@ import de.sciss.gui.StringItem;
 import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditPutMapValue;
 import de.sciss.meloncillo.plugin.PlugInManager;
-import de.sciss.meloncillo.util.LockManager;
 import de.sciss.meloncillo.util.MapManager;
 import de.sciss.util.NumberSpace;
 
@@ -95,9 +93,6 @@ extends JTable
 implements DynamicListening
 {
 	private final Document				doc;
-	private final LockManager			lm;
-	private final int					doors;
-	private final Object				sync		= new Object();
 	private final List					keys		= new ArrayList();
 	private final Map					contexts	= new HashMap();
 	private final List					collObjects	= new ArrayList();
@@ -108,17 +103,12 @@ implements DynamicListening
 	
 	private static final String[] columnNames = new String[] { "key", "value" };	// not used
 	
-	public SessionObjectTable( de.sciss.app.Document doc, final LockManager lm, final int doors )
+	public SessionObjectTable( de.sciss.app.Document doc )
 	{
 		super();
 
 		this.doc	= doc;
-		this.lm		= lm;
-		this.doors	= doors;
 		model		= new Model();
-		
-//		Renderer	renderer	= new Renderer();
-//		Class		renderClass	= MapManager.Context.class;
 		
 		setModel( model );
 		setRowSelectionAllowed( false );
@@ -129,9 +119,7 @@ implements DynamicListening
 		tc.setCellRenderer( new Renderer() );
 		editor	= new Renderer();
 		tc.setCellEditor( editor );
-//		setRowMargin( 4 );
 		setRowHeight( 24 );	// XXX
-//		setOpaque( false );
 		setBackground( null );
 		setShowGrid( false );
 
@@ -139,21 +127,19 @@ implements DynamicListening
 		soListener = new MapManager.Listener() {
 			public void mapChanged( MapManager.Event e )
 			{
-				if( e.getSource() == sync ) return;
+				if( e.getSource() == SessionObjectTable.this ) return;
 			
 				Iterator	iter;
 				int			row;
 				
-				synchronized( sync ) {
-					iter = e.getPropertyNames().iterator();
+				iter = e.getPropertyNames().iterator();
 					
-					while( iter.hasNext() ) {
-						row = keys.indexOf( iter.next() );
-						if( row >= 0 ) {
-							model.fireTableCellUpdated( row, 1 );
-						}
+				while( iter.hasNext() ) {
+					row = keys.indexOf( iter.next() );
+					if( row >= 0 ) {
+						model.fireTableCellUpdated( row, 1 );
 					}
-				} // synchronized( sync )
+				}
 			}
 				
 			public void mapOwnerModified( MapManager.Event e ) {}
@@ -162,16 +148,9 @@ implements DynamicListening
 		plugListener = new MapManager.Listener() {
 			public void mapChanged( MapManager.Event e )
 			{
-				if( !lm.attemptShared( doors, 250 )) return;
-				try {
-					synchronized( sync ) {
-						unregisterAll();
-						updateKeysAndContexts();	// calls model.fireTableDataChanged();
-						registerAll();
-					} // synchronized( sync )
-				} finally {
-					lm.releaseShared( doors );
-				}
+				unregisterAll();
+				updateKeysAndContexts();	// calls model.fireTableDataChanged();
+				registerAll();
 			}
 				
 			public void mapOwnerModified( MapManager.Event e ) {}
@@ -186,29 +165,13 @@ implements DynamicListening
     {
     	PlugInManager.getInstance().addListener( plugListener );
 	
-		if( !lm.attemptShared( doors, 250 )) return;
-		try {
-			synchronized( sync ) {
-				updateKeysAndContexts(); // calls model.fireTableDataChanged();
-				registerAll();
-			}
-		}
-		finally {
-			lm.releaseShared( doors );
-		}
+    	updateKeysAndContexts(); // calls model.fireTableDataChanged();
+    	registerAll();
     }
 
     public void stopListening()
     {
-		if( !lm.attemptShared( doors, 250 )) return;
-		try {
-			synchronized( sync ) {
-				unregisterAll();
-			}
-		}
-		finally {
-			lm.releaseShared( doors );
-		}
+    	unregisterAll();
     }
 	
 	// sync: to be called with sync on doors and sync
@@ -235,18 +198,11 @@ implements DynamicListening
 
 	public void setObjects( java.util.List collObjects )
 	{
-		lm.waitShared( doors );
-		try {
-			synchronized( sync ) {
-				unregisterAll();
-				this.collObjects.clear();
-				this.collObjects.addAll( collObjects );
-				updateKeysAndContexts();	// calls model.fireTableDataChanged();
-				registerAll();
-			} // synchronized( sync )
-		} finally {
-			lm.releaseShared( doors );
-		}
+		unregisterAll();
+		this.collObjects.clear();
+		this.collObjects.addAll( collObjects );
+		updateKeysAndContexts();	// calls model.fireTableDataChanged();
+		registerAll();
 	}
 	
 	// sync: to be called with sync on 'sync' and on doors
@@ -298,9 +254,7 @@ implements DynamicListening
 		
 		public int getRowCount()
 		{
-			synchronized( sync ) {
-				return keys.size();
-			}
+			return keys.size();
 		}
 		
 		public int getColumnCount()
@@ -310,30 +264,22 @@ implements DynamicListening
 		
 		public Object getValueAt( int row, int col )
 		{
-			if( !lm.attemptShared( doors, 250 )) return null;
-			try {
-				synchronized( sync ) {
-					if( row >= keys.size() ) return null;
+			if( row >= keys.size() ) return null;
 
-					switch( col ) {
-					case 0:
-						String resKey = ((MapManager.Context) contexts.get( keys.get( row ))).label;
-						if( resKey != null ) {
-							// plug-ins will not store resKeys but human readable text
-							return( AbstractApplication.getApplication().getResourceString( resKey, resKey ));
-						}
-						return( keys.get( row ).toString() );
-						
-					case 1:
-						return getCommonValue( row );
-						
-					default:
-						return null;
-					}
+			switch( col ) {
+			case 0:
+				String resKey = ((MapManager.Context) contexts.get( keys.get( row ))).label;
+				if( resKey != null ) {
+					// plug-ins will not store resKeys but human readable text
+					return( AbstractApplication.getApplication().getResourceString( resKey, resKey ));
 				}
-			}
-			finally {
-				lm.releaseShared( doors );
+				return( keys.get( row ).toString() );
+				
+			case 1:
+				return getCommonValue( row );
+				
+			default:
+				return null;
 			}
 		}
 
@@ -377,35 +323,26 @@ implements DynamicListening
 		{
 			if( col != 1 || value == null ) return;
 		
-			if( !lm.attemptExclusive( doors, 250 )) return;
-			try {
-				synchronized( sync ) {
-					if( row >= keys.size() ) return;
+			if( row >= keys.size() ) return;
 
-					SessionObject			so;
-					MapManager				map;
-					final String			key		= keys.get( row ).toString();
-					boolean					addEdit	= false;
-					AbstractCompoundEdit	edit	= new BasicCompoundEdit();
+			SessionObject			so;
+			MapManager				map;
+			final String			key		= keys.get( row ).toString();
+			boolean					addEdit	= false;
+			AbstractCompoundEdit	edit	= new BasicCompoundEdit();
 
-					for( int i = 0; i < collObjects.size(); i++ ) {
-						so	= (SessionObject) collObjects.get( i );
-						map = so.getMap();
-						if( map.containsKey( key )) {
-//System.err.println( "setting "+value.getClass().getName()+" on "+so.getName() );
-							edit.addPerform( new EditPutMapValue( sync, lm, doors, map, key, value ));
-							addEdit = true;
-						}
-					}
-					if( addEdit ) {
-						edit.perform();
-						edit.end();
-						doc.getUndoManager().addEdit( edit );
-					}
+			for( int i = 0; i < collObjects.size(); i++ ) {
+				so	= (SessionObject) collObjects.get( i );
+				map = so.getMap();
+				if( map.containsKey( key )) {
+					edit.addPerform( new EditPutMapValue( SessionObjectTable.this, map, key, value ));
+					addEdit = true;
 				}
 			}
-			finally {
-				lm.releaseExclusive( doors );
+			if( addEdit ) {
+				edit.perform();
+				edit.end();
+				doc.getUndoManager().addEdit( edit );
 			}
 		}
 	} // class Model
@@ -470,112 +407,104 @@ implements DynamicListening
 		{
 			NumberSpace ns;
 
-			if( !lm.attemptShared( doors, 250 )) return null;
-			try	{
-				synchronized( sync ) {
-					if( row >= keys.size() || col != 1 ) return null;
+			if( row >= keys.size() || col != 1 ) return null;
 
-					MapManager.Context c = (MapManager.Context) contexts.get( keys.get( row ));
-					switch( c.type ) {
-					case MapManager.Context.TYPE_INTEGER:
-					case MapManager.Context.TYPE_LONG:
-					case MapManager.Context.TYPE_FLOAT:
-					case MapManager.Context.TYPE_DOUBLE:
-						prepareNumberField();
-						if( (c.typeConstraints != null) && (c.typeConstraints instanceof NumberSpace) ) {
-							ns = (NumberSpace) c.typeConstraints;
-						} else {
-							ns = (c.type == MapManager.Context.TYPE_INTEGER) || (c.type == MapManager.Context.TYPE_LONG) ?
-								 NumberSpace.genericIntSpace : NumberSpace.genericDoubleSpace;
-						}
-						if( !ns.equals( ggNumberField.getSpace() )) ggNumberField.setSpace( ns );
+			MapManager.Context c = (MapManager.Context) contexts.get( keys.get( row ));
+			switch( c.type ) {
+			case MapManager.Context.TYPE_INTEGER:
+			case MapManager.Context.TYPE_LONG:
+			case MapManager.Context.TYPE_FLOAT:
+			case MapManager.Context.TYPE_DOUBLE:
+				prepareNumberField();
+				if( (c.typeConstraints != null) && (c.typeConstraints instanceof NumberSpace) ) {
+					ns = (NumberSpace) c.typeConstraints;
+				} else {
+					ns = (c.type == MapManager.Context.TYPE_INTEGER) || (c.type == MapManager.Context.TYPE_LONG) ?
+						 NumberSpace.genericIntSpace : NumberSpace.genericDoubleSpace;
+				}
+				if( !ns.equals( ggNumberField.getSpace() )) ggNumberField.setSpace( ns );
 
-						ggNumberField.setNumber( (value == null) || !(value instanceof Number) ?
-												 new Double( Double.NaN ) : (Number) value );
-						return ggNumberField;
+				ggNumberField.setNumber( (value == null) || !(value instanceof Number) ?
+										 new Double( Double.NaN ) : (Number) value );
+				return ggNumberField;
 
-					case MapManager.Context.TYPE_BOOLEAN:
-						if( ggCheckBox == null ) {
-							ggCheckBox = new JCheckBox();
-							ggCheckBox.setFocusable( false );
+			case MapManager.Context.TYPE_BOOLEAN:
+				if( ggCheckBox == null ) {
+					ggCheckBox = new JCheckBox();
+					ggCheckBox.setFocusable( false );
 //							GUIUtil.setDeepFont( ggCheckBox, GraphicsUtil.smallGUIFont );
-							AbstractWindowHandler.setDeepFont( ggCheckBox );
-						} else {
-							ggCheckBox.removeActionListener( this );
-						}
-						ggCheckBox.setSelected( (value == null) || !(value instanceof Boolean) ?
-											    false : ((Boolean) value).booleanValue() );
-						ggCheckBox.addActionListener( this );
-						return ggCheckBox;
-	
-					case MapManager.Context.TYPE_STRING:
-						if( c.typeConstraints != null && (c.typeConstraints instanceof StringItem[]) ) {
-							if( ggComboBox == null ) {
-								ggComboBox		= new JComboBox();
+					AbstractWindowHandler.setDeepFont( ggCheckBox );
+				} else {
+					ggCheckBox.removeActionListener( this );
+				}
+				ggCheckBox.setSelected( (value == null) || !(value instanceof Boolean) ?
+									    false : ((Boolean) value).booleanValue() );
+				ggCheckBox.addActionListener( this );
+				return ggCheckBox;
+
+			case MapManager.Context.TYPE_STRING:
+				if( c.typeConstraints != null && (c.typeConstraints instanceof StringItem[]) ) {
+					if( ggComboBox == null ) {
+						ggComboBox		= new JComboBox();
 //								GUIUtil.setDeepFont( ggComboBox, GraphicsUtil.smallGUIFont );
-								AbstractWindowHandler.setDeepFont( ggComboBox );
-								panelComboBox	= new JPanel( new BorderLayout() );
-								panelComboBox.add( ggComboBox, BorderLayout.WEST );
-								ggComboBox.setFocusable( false );	// because on Aqua it looks truncated
-							} else {
-								ggComboBox.removeActionListener( this );
-								ggComboBox.removeAllItems();
-							}
-							StringItem[] items = (StringItem[]) c.typeConstraints;
-							int idx = -1;
-							for( int i = 0; i < items.length; i++ ) {
-								ggComboBox.addItem( items[ i ]);
-								if( items[ i ].getKey().equals( value )) idx = i;
-							}
-							ggComboBox.setSelectedIndex( idx );
-							ggComboBox.addActionListener( this );
-							return panelComboBox;
-						} else {
-							if( ggTextField == null ) {
-								ggTextField		= new JTextField();
-								panelTextField	= new JPanel( new BorderLayout() );
-								panelTextField.add( ggTextField, BorderLayout.NORTH );
-//								GUIUtil.setDeepFont( ggTextField, GraphicsUtil.smallGUIFont );
-								AbstractWindowHandler.setDeepFont( ggTextField );
-								ggTextField.addActionListener( this );
-							}
-							ggTextField.setText( (value == null) ? "" : value.toString() );
-							return panelTextField;
-						}
-	
-					case MapManager.Context.TYPE_FILE:
-						Integer		type;
-						PathField	ggPath;
-						if( c.typeConstraints != null && (c.typeConstraints instanceof Integer) ) {
-							type = (Integer) c.typeConstraints;
-						} else {
-							type = new Integer( PathField.TYPE_INPUTFILE );
-						}
-						ggPath = (PathField) mapPathFields.get( type );
-						if( ggPath == null ) {
-							ggPath = new PathField( type.intValue(), c.label );
-							ggPath.addPathListener( this );
-//							GUIUtil.setDeepFont( ggPath, GraphicsUtil.smallGUIFont );
-							AbstractWindowHandler.setDeepFont( ggPath );
-							mapPathFields.put( type, ggPath );
-						}
-						ggPath.setPath( (value == null) || !(value instanceof File) ?
-										new File( "" ) : (File) value );
-						return ggPath;
-						
-					default:
-						if( ggLabel == null ) {
-							ggLabel = new JLabel();
-//							GUIUtil.setDeepFont( ggLabel, GraphicsUtil.smallGUIFont );
-							AbstractWindowHandler.setDeepFont( ggLabel );
-						}
-						ggLabel.setText( keys.get( row ).toString() );
-						return ggLabel;
+						AbstractWindowHandler.setDeepFont( ggComboBox );
+						panelComboBox	= new JPanel( new BorderLayout() );
+						panelComboBox.add( ggComboBox, BorderLayout.WEST );
+						ggComboBox.setFocusable( false );	// because on Aqua it looks truncated
+					} else {
+						ggComboBox.removeActionListener( this );
+						ggComboBox.removeAllItems();
 					}
-				} // synchronized( sync )
-			}
-			finally {
-				lm.releaseShared( doors );
+					StringItem[] items = (StringItem[]) c.typeConstraints;
+					int idx = -1;
+					for( int i = 0; i < items.length; i++ ) {
+						ggComboBox.addItem( items[ i ]);
+						if( items[ i ].getKey().equals( value )) idx = i;
+					}
+					ggComboBox.setSelectedIndex( idx );
+					ggComboBox.addActionListener( this );
+					return panelComboBox;
+				} else {
+					if( ggTextField == null ) {
+						ggTextField		= new JTextField();
+						panelTextField	= new JPanel( new BorderLayout() );
+						panelTextField.add( ggTextField, BorderLayout.NORTH );
+//								GUIUtil.setDeepFont( ggTextField, GraphicsUtil.smallGUIFont );
+						AbstractWindowHandler.setDeepFont( ggTextField );
+						ggTextField.addActionListener( this );
+					}
+					ggTextField.setText( (value == null) ? "" : value.toString() );
+					return panelTextField;
+				}
+
+			case MapManager.Context.TYPE_FILE:
+				Integer		type;
+				PathField	ggPath;
+				if( c.typeConstraints != null && (c.typeConstraints instanceof Integer) ) {
+					type = (Integer) c.typeConstraints;
+				} else {
+					type = new Integer( PathField.TYPE_INPUTFILE );
+				}
+				ggPath = (PathField) mapPathFields.get( type );
+				if( ggPath == null ) {
+					ggPath = new PathField( type.intValue(), c.label );
+					ggPath.addPathListener( this );
+//							GUIUtil.setDeepFont( ggPath, GraphicsUtil.smallGUIFont );
+					AbstractWindowHandler.setDeepFont( ggPath );
+					mapPathFields.put( type, ggPath );
+				}
+				ggPath.setPath( (value == null) || !(value instanceof File) ?
+								new File( "" ) : (File) value );
+				return ggPath;
+				
+			default:
+				if( ggLabel == null ) {
+					ggLabel = new JLabel();
+//							GUIUtil.setDeepFont( ggLabel, GraphicsUtil.smallGUIFont );
+					AbstractWindowHandler.setDeepFont( ggLabel );
+				}
+				ggLabel.setText( keys.get( row ).toString() );
+				return ggLabel;
 			}
 		}
 

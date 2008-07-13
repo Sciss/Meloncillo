@@ -24,28 +24,34 @@
  *
  *
  *  Changelog:
- *		15-Jan-05   created
- *		14-Mar-05	bugfix in keySet()
- *		27-Mar-05	added support for dynamic contexts. MapManager now
- *					wraps EventManager instead of subclassing it to avoid
- *					conflicts with methods that shouldn't be called from the outside.
- *					removed Context.FLAG_CONTEXT_STORAGE for the moment
+ *		13-May-05	created from de.sciss.meloncillo.util.MapManager
+ *		13-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.util;
 
-import java.io.*;
-import java.util.*;
-import org.w3c.dom.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
-import de.sciss.meloncillo.io.*;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import de.sciss.app.*;
+import de.sciss.app.BasicEvent;
+import de.sciss.app.EventManager;
+import de.sciss.meloncillo.io.XMLRepresentation;
+
 import de.sciss.io.IOUtil;
 
 /**
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 07-Dec-07
  */
 public class MapManager
 implements EventManager.Processor, XMLRepresentation
@@ -63,7 +69,7 @@ implements EventManager.Processor, XMLRepresentation
 	// ------- private -------
 	
 	private final Map			backingMap;
-	private final Object		owner;
+	protected final Object		owner;
 	private final Map			contextMap;
 	private final EventManager	elm				= new EventManager( this );
 
@@ -74,6 +80,11 @@ implements EventManager.Processor, XMLRepresentation
 		this.owner			= owner;
 		this.backingMap		= backingMap;
 		contextMap			= new HashMap();
+	}
+
+	public MapManager( Object owner )
+	{
+		this( owner, new HashMap() );
 	}
 
 	public void addListener( MapManager.Listener listener )
@@ -179,10 +190,9 @@ implements EventManager.Processor, XMLRepresentation
 	public Object removeValue( Object source, String key )
 	{
 //System.err.println( "removeValue source = "+source.getClass().getName()+" ; key = "+key );
-		Object result = backingMap.remove( key );
+		final Object result = backingMap.remove( key );
 		if( (result != null) && (source != null) ) {
-
-			Set keySet = new HashSet( 1 );
+			final Set keySet = new HashSet( 1 );
 			keySet.add( key );
 
 			elm.dispatchEvent( new MapManager.Event( this, source, keySet ));
@@ -323,7 +333,7 @@ implements EventManager.Processor, XMLRepresentation
 
 	/**
 	 */
-	public void toXML( org.w3c.dom.Document domDoc, Element node, Map options )
+	public void toXML( Document domDoc, Element node, Map options )
 	throws IOException
 	{
 		Iterator	keys = backingMap.keySet().iterator();
@@ -364,7 +374,7 @@ implements EventManager.Processor, XMLRepresentation
 		}
 	}
 
-//	private void createFlag( org.w3c.dom.Document domDoc, Element node, String id )
+//	private void createFlag( Document domDoc, Element node, String id )
 //	{
 //		Element child = domDoc.createElement( XML_ELEM_FLAG );
 //		child.setAttribute( XML_ATTR_ID, id );
@@ -373,20 +383,21 @@ implements EventManager.Processor, XMLRepresentation
 
 	/**
 	 */
-	public void fromXML( org.w3c.dom.Document domDoc, Element node, Map options )
+	public void fromXML( Document domDoc, Element node, Map options )
 	throws IOException
 	{
-		NodeList	nl		= node.getChildNodes();
-		int			i, type;
-		Element		xmlChild;
-		String		key, value, typeStr;
-		Set			keySet	= new HashSet( backingMap.keySet() );
-		Context		c;
-		Object		o;
+//		Attr		xmlAttr;
+		final NodeList	nl		= node.getChildNodes();
+		final Set		keySet	= new HashSet( backingMap.keySet() );
+		int				type;
+		Element			xmlChild;
+		String			key, value, typeStr;
+		Context			c;
+		Object			o;
 		
 		backingMap.clear();
 		
-loop:	for( i = 0; i < nl.getLength(); i++ ) {
+loop:	for( int i = 0; i < nl.getLength(); i++ ) {
 			if( !(nl.item( i ) instanceof Element )) continue;
 			xmlChild = (Element) nl.item( i );
 			if( xmlChild.getTagName().equals( XML_ELEM_ENTRY )) {
@@ -496,7 +507,7 @@ loop:	for( i = 0; i < nl.getLength(); i++ ) {
 			this.defaultValue		= defaultValue;
 		}
 		
-		private Context( Context orig )
+		protected Context( Context orig )
 		{
 			this.flags				= orig.flags;
 			this.type				= orig.type;
@@ -520,7 +531,7 @@ loop:	for( i = 0; i < nl.getLength(); i++ ) {
 		public void mapOwnerModified( MapManager.Event e );
 	}
 	
-	public class Event
+	public static class Event
 	extends BasicEvent
 	{
 		public static final int MAP_CHANGED		= 0;
@@ -548,7 +559,7 @@ loop:	for( i = 0; i < nl.getLength(); i++ ) {
 			this.ownerModType	= ownerModType;
 		}
 		
-		public MapManager getMap()
+		public MapManager getManager()
 		{
 			return map;
 		}

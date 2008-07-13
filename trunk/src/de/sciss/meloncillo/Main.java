@@ -140,7 +140,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 	 *
 	 *  @todo   should be saved in the session file as well
 	 */
-	private static final double APP_VERSION		= 0.74;
+	private static final double APP_VERSION		= 0.75;
 
 	/*
 	 *  The MacOS file creator string.
@@ -396,6 +396,7 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 //		menuFactory	= new MenuFactory( this, doc );
 
         init();
+		getDocumentHandler().addDocument( this, doc );
 
 		// ---- listeners ----
 
@@ -417,11 +418,11 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 
 		// ---- component views ----
 
-		new TransportPalette( this, doc );
+		new TransportPalette( doc );
 		new SurfaceFrame( this, doc );
-		new ObserverPalette( this, doc );
+		new ObserverPalette();
 		new MeterFrame( this, doc );
-		new TimelineFrame( this, doc );
+		new TimelineFrame( doc );
 		new RealtimeFrame( this, doc );
 
 		mainFrame   = new MainFrame( this, doc );

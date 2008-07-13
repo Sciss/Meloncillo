@@ -30,15 +30,20 @@
 
 package de.sciss.meloncillo.timeline;
 
+import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+
+import javax.swing.AbstractAction;
+import javax.swing.undo.CompoundEdit;
 
 import org.w3c.dom.Element;
 
 import de.sciss.app.BasicEvent;
 import de.sciss.app.EventManager;
 import de.sciss.io.Span;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.session.AbstractSessionObject;
 import de.sciss.meloncillo.session.Session;
@@ -60,29 +65,42 @@ import de.sciss.meloncillo.util.MapManager;
  */
 public class Timeline
 extends AbstractSessionObject
-implements EventManager.Processor
+implements EventManager.Processor /*, OSCRouter */
 {
-	private static final String  MAP_KEY_RATE			= "rate";
-	private static final String  MAP_KEY_LENGTH			= "len";
-	private static final String  MAP_KEY_POSITION		= "pos";
+//	private static final boolean		DEBUG_CONCURRENCY		= true;
+	
+	public static final String			MAP_KEY_RATE			= "rate";
+	private static final String			MAP_KEY_LENGTH			= "len";
+	private static final String			MAP_KEY_POSITION		= "pos";
 
-	private int  rate;				// sampleframes per second
-	private long length;		    // total number of sampleframes
-	private long position;			// current head position
-    private Span visibleSpan;		// what's being viewed in the TimelineFrame
-    private Span selectionSpan;
-
+	private double						rate;				// sampleframes per second
+	private long						length;				// total number of sampleframes
+	private long						position;			// current head position
+    private Span						visibleSpan;		// what's being viewed in the TimelineFrame
+    private Span						selectionSpan;
+	
     protected final Session				doc;
 
-    /**
+	/**
 	 *	Name attribute of the object
 	 *	element in a session's XML file
 	 */
-	public static final String XML_OBJECT_NAME			= "timeline";
+	public static final String			XML_OBJECT_NAME			= "timeline";
 
 	// --- event handling ---
 
-	private final EventManager elm = new EventManager( this );
+	private final EventManager			elm						= new EventManager( this );
+
+	// --- actions ---
+
+	private final ActionSelToPos	actionPosToSelBeginC	= new ActionSelToPos( 0.0f, true );
+	private final ActionSelToPos	actionPosToSelEndC		= new ActionSelToPos( 1.0f, true );
+	private final ActionSelToPos	actionPosToSelBegin		= new ActionSelToPos( 0.0f, false );
+	private final ActionSelToPos	actionPosToSelEnd		= new ActionSelToPos( 1.0f, false );
+	
+//	private static final String			OSC_TIMELINE			= "timeline";
+//	
+//	private final OSCRouterWrapper		osc;
 
 	/**
 	 *  Creates a new empty timeline
@@ -92,18 +110,26 @@ implements EventManager.Processor
 		super();
 
 		this.doc		= doc;
+		
+		final MapManager map = getMap();
 
-		MapManager	map	= getMap();
-
-		map.putContext( this, MAP_KEY_RATE, new MapManager.Context( 0, MapManager.Context.TYPE_INTEGER, null, null, null,
-																	new Integer( 1000 )));
+		map.putContext( this, MAP_KEY_RATE, new MapManager.Context( 0, MapManager.Context.TYPE_DOUBLE, null, null, null,
+																	new Double( 1000 )));
 		map.putContext( this, MAP_KEY_LENGTH, new MapManager.Context( 0, MapManager.Context.TYPE_LONG, null, null, null,
 																	  new Long( 0 )));
 		map.putContext( this, MAP_KEY_POSITION, new MapManager.Context( 0, MapManager.Context.TYPE_LONG, null, null, null,
 																		new Long( 0 )));
 
+//		osc	= new OSCRouterWrapper( doc, this );
+
 		clear( this );
 		setName( XML_OBJECT_NAME );
+	}
+	
+	public AbstractAction getPosToSelAction( boolean begin, boolean deselect )
+	{
+		return begin ? (deselect ? actionPosToSelBeginC : actionPosToSelBegin) :
+					   (deselect ? actionPosToSelEndC : actionPosToSelEnd);
 	}
 	
 	/**
@@ -151,8 +177,9 @@ implements EventManager.Processor
 	 *  @return the rate of timeline data (trajectories etc.)
 	 *			in frames per second
 	 */
-	public int getRate()
+	public double getRate()
 	{
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
 		return rate;
 	}
 
@@ -163,6 +190,7 @@ implements EventManager.Processor
 	 */
 	public long getLength()
 	{
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
 		return length;
 	}
 
@@ -175,6 +203,7 @@ implements EventManager.Processor
 	 */
 	public long getPosition()
 	{
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
 		return position;
 	}
 
@@ -187,7 +216,8 @@ implements EventManager.Processor
 	 */
 	public Span getVisibleSpan()
 	{
-		return( new Span( visibleSpan ));
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
+		return visibleSpan;
 	}
 
 	/**
@@ -199,7 +229,8 @@ implements EventManager.Processor
 	 */
 	public Span getSelectionSpan()
 	{
-		return( new Span( selectionSpan ));
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
+		return selectionSpan;
 	}
 
 	/**
@@ -213,11 +244,12 @@ implements EventManager.Processor
 	 *
 	 *  @see	TimelineEvent#CHANGED
 	 */
-    public void setRate( Object source, int rate )
+    public void setRate( Object source, double rate )
     {
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
         this.rate = rate;
-        dispatchChange( source );
-		getMap().putValue( this, MAP_KEY_RATE, new Integer( rate ));
+		if( source != null ) dispatchChange( source );
+		getMap().putValue( this, MAP_KEY_RATE, new Double( rate ));
     }
 
 	/**
@@ -232,15 +264,14 @@ implements EventManager.Processor
 	 *  @param  source  the source of the <code>TimelineEvent</code>
 	 *  @param  length  the new timeline length in frames
 	 *
-	 *  @see	de.sciss.meloncillo.edit.EditInsertTimeSpan
-	 *  @see	de.sciss.meloncillo.edit.EditRemoveTimeSpan
-	 *  @see	de.sciss.meloncillo.edit.EditSetTimelineLength
+	 *  @see	de.sciss.eisenkraut.edit.EditSetTimelineLength
 	 *  @see	TimelineEvent#CHANGED
 	 */
     public void setLength( Object source, long length )
     {
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
         this.length = length;
-        dispatchChange( source );
+		if( source != null ) dispatchChange( source );
 		getMap().putValue( this, MAP_KEY_LENGTH, new Long( length ));
     }
 
@@ -254,13 +285,14 @@ implements EventManager.Processor
 	 *						of the vertical bar in the timeline frame)
 	 *						in frames
 	 *
-	 *  @see	de.sciss.meloncillo.edit.EditSetTimelinePosition
+	 *  @see	de.sciss.eisenkraut.edit.TimelineVisualEdit
 	 *  @see	TimelineEvent#POSITIONED
 	 */
     public void setPosition( Object source, long position )
 	{
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
         this.position = position;
-        dispatchPosition( source );
+		if( source != null ) dispatchPosition( source );
 		getMap().putValue( this, MAP_KEY_POSITION, new Long( position ));
 	}
 
@@ -274,13 +306,14 @@ implements EventManager.Processor
 	 *					displayed in the timeline frame. start and
 	 *					stop are measured in frames
 	 *
-	 *  @see	de.sciss.meloncillo.edit.EditSetTimelineScroll
+	 *  @see	de.sciss.eisenkraut.edit.TimelineVisualEdit
 	 *  @see	TimelineEvent#SCROLLED
 	 */
      public void setVisibleSpan( Object source, Span span )
 	{
+ 		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
         this.visibleSpan = new Span( span );
-        dispatchScroll( source );
+		if( source != null ) dispatchScroll( source );
 	}
 
 	/**
@@ -293,13 +326,14 @@ implements EventManager.Processor
 	 *					selected (highlighted blue). start and
 	 *					stop are measured in frames
 	 *
-	 *  @see	de.sciss.meloncillo.edit.EditSetTimelineSelection
+	 *  @see	de.sciss.eisenkraut.edit.TimelineVisualEdit
 	 *  @see	TimelineEvent#SELECTED
 	 */
     public void setSelectionSpan( Object source, Span span )
 	{
+		if( !java.awt.EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
         this.selectionSpan = new Span( span );
-        dispatchSelection( source );
+        if( source != null ) dispatchSelection( source );
 	}
 
 	/**
@@ -310,7 +344,7 @@ implements EventManager.Processor
 	 *  of timeline portions by the user).
 	 *
 	 *  @param  listener	the <code>TimelineListener</code> to register
-	 *  @see	de.sciss.meloncillo.util.EventManager#addListener( Object )
+	 *  @see	de.sciss.app.EventManager#addListener( Object )
 	 */
 	public void addTimelineListener( TimelineListener listener )
 	{
@@ -322,7 +356,7 @@ implements EventManager.Processor
 	 *  from receiving timeline events.
 	 *
 	 *  @param  listener	the <code>TimelineListener</code> to unregister
-	 *  @see	de.sciss.meloncillo.util.EventManager#removeListener( Object )
+	 *  @see	de.sciss.app.EventManager#removeListener( Object )
 	 */
 	public void removeTimelineListener( TimelineListener listener )
 	{
@@ -405,30 +439,32 @@ implements EventManager.Processor
 		elm.dispatchEvent( e2 );
 	}
 
+	public Class getDefaultEditor() { return null; }
+
 // ---------------- MapManager.Listener interface ---------------- 
 
 	public void mapChanged( MapManager.Event e )
 	{
 		super.mapChanged( e );
 		
-		Object source = e.getSource();
+		final Object source = e.getSource();
 		
 		if( source == this ) return;
 		
-		Set		keySet		= e.getPropertyNames();
-		Object	val;
-		boolean	dChange		= false;
-		boolean	dPosition	= false;
+		final Set	keySet		= e.getPropertyNames();
+		Object		val;
+		boolean		dChange		= false;
+		boolean		dPosition	= false;
 
 		if( keySet.contains( MAP_KEY_RATE )) {
-			val		= e.getMap().getValue( MAP_KEY_RATE );
+			val		= e.getManager().getValue( MAP_KEY_RATE );
 			if( val != null ) {
-				rate	= ((Number) val).intValue();
+				rate	= ((Number) val).doubleValue(); // Float.parseFloat( val.toString() );
 				dChange	= true;
 			}
 		}
 		if( keySet.contains( MAP_KEY_LENGTH )) {
-			val		= e.getMap().getValue( MAP_KEY_LENGTH );
+			val		= e.getManager().getValue( MAP_KEY_LENGTH );
 			if( val != null ) {
 				length	= ((Number) val).longValue();
 				dChange	= true;
@@ -436,7 +472,7 @@ implements EventManager.Processor
 			}
 		}
 		if( keySet.contains( MAP_KEY_POSITION )) {
-			val		= e.getMap().getValue( MAP_KEY_POSITION );
+			val		= e.getManager().getValue( MAP_KEY_POSITION );
 			if( val != null ) {
 				position	= ((Number) val).longValue();
 				dPosition	= true;
@@ -445,16 +481,6 @@ implements EventManager.Processor
 
 		if( dChange ) dispatchChange( source );
 		if( dPosition ) dispatchPosition( source );
-	}
-
-// ---------------- SessionObject interface ---------------- 
-
-	/**
-	 *  This simply returns <code>null</code>!
-	 */
-	public Class getDefaultEditor()
-	{
-		return null;
 	}
 
 // ---------------- XMLRepresentation interface ---------------- 
@@ -523,4 +549,48 @@ implements EventManager.Processor
 //		resumeDispatcher();
 */
 	}
+
+	// ---------------- internal classes ---------------- 
+
+	/*
+	 *	@warning	have to keep an eye on this. with weight as float
+	 *				there were quantization errors. with double seems
+	 *				to be fine. haven't checked with really long files!!
+	 */
+	private class ActionSelToPos
+	extends AbstractAction
+	{
+		private final double	weight;
+		private final boolean	deselect;
+	
+		protected ActionSelToPos( double weight, boolean deselect )
+		{
+			super();
+			
+			this.weight		= weight;
+			this.deselect	= deselect;
+		}
+	
+		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+		
+		private void perform()
+		{
+			Span			selSpan;
+			CompoundEdit	edit;
+			long			pos;
+		
+			selSpan		= getSelectionSpan();
+			if( selSpan.isEmpty() ) return;
+			
+			edit	= new BasicCompoundEdit();
+			if( deselect ) edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ).perform() );
+			pos		= (long) (selSpan.getStart() + selSpan.getLength() * weight + 0.5);
+			edit.addEdit( TimelineVisualEdit.position( this, doc, pos ).perform() );
+			edit.end();
+			doc.getUndoManager().addEdit( edit );
+		}
+	} // class actionSelToPosClass
 }

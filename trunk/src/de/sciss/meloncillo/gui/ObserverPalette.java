@@ -51,32 +51,34 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.RootPaneContainer;
-import javax.swing.undo.CompoundEdit;
+import javax.swing.SwingConstants;
+import javax.swing.WindowConstants;
 
-import de.sciss.util.NumberSpace;
+import de.sciss.util.DefaultUnitTranslator;
+import de.sciss.util.Param;
+import de.sciss.util.ParamSpace;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractCompoundEdit;
+import de.sciss.app.AbstractWindow;
 import de.sciss.app.Application;
+import de.sciss.app.DocumentListener;
 import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicListening;
 import de.sciss.common.AppWindow;
 import de.sciss.gui.AbstractWindowHandler;
-import de.sciss.gui.NumberEvent;
-import de.sciss.gui.NumberField;
-import de.sciss.gui.NumberListener;
+import de.sciss.gui.ParamField;
+import de.sciss.gui.SpringPanel;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditSetSessionObjectName;
-import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionObject;
 import de.sciss.meloncillo.session.SessionObjectTable;
 import de.sciss.meloncillo.timeline.TimelineEvent;
 import de.sciss.meloncillo.timeline.TimelineListener;
-import de.sciss.meloncillo.util.LockManager;
 
 /**
  *  The <code>ObserverPalette</code> is a
@@ -98,25 +100,32 @@ import de.sciss.meloncillo.util.LockManager;
  */
 public class ObserverPalette
 extends AppWindow
-implements NumberListener, TimelineListener, DynamicListening
+implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentListener,
+			ActionListener, SwingConstants
 {
-	private final Session	doc;
+	private Session						doc					= null;
 	
-	private JLabel[]			lbCursorInfo;
-	private final NumberField	ggTimelineStart, ggTimelineStop;
-	private final JTabbedPane	ggTabPane;
+	private JLabel[]					lbCursorInfo;
+	private final ParamField			ggTimelineStart, ggTimelineStop, ggTimelineLen;
+	private final DefaultUnitTranslator	timeTrans;
+	private final JTabbedPane			ggTabPane;
+	private final LockButton			ggLockStop, ggLockLen;
 
-	private final String[] TAB_NAMES	= { "observerReceiver", "observerTransmitter", "observerGroup" };
-//	private final String[] HELP_NAMES	= { "ObserverReceiver", "ObserverTransmitter", "ObserverGroup" };
-	private final int[] DOORS			= { Session.DOOR_RCV, Session.DOOR_TRNS, Session.DOOR_GRP };
-	
 	public static final int CURSOR_TAB		= 0;
 	public static final int RECEIVER_TAB	= 1;
 	public static final int TRANSMITTER_TAB	= 2;
 	public static final int GROUP_TAB		= 3;
 	public static final int TIMELINE_TAB	= 4;
 	
-	public static final int NUM_CURSOR_ROWS	= 5;
+	public static final int	NUM_CURSOR_ROWS		= 5;
+
+	private final String[] TAB_NAMES	= { "observerReceiver", "observerTransmitter", "observerGroup" };
+	
+	private final SessionCollectionListener[] selColL	= new SessionCollectionListener[ 3 ];
+	private final JTextField[]				ggNames		= new JTextField[ 3 ];
+	private final SessionObjectTable[]		ggTables	= new SessionObjectTable[ 3 ];
+	
+	private boolean isListening	= false;
 	
 	/**
 	 *  Constructs a new <code>ObserverPalette</code>
@@ -124,29 +133,24 @@ implements NumberListener, TimelineListener, DynamicListening
 	 *  @param  root	application root
 	 *  @param  doc		session document
 	 */
-	public ObserverPalette( Main root, final Session doc )
+	public ObserverPalette()
 	{
 		super( PALETTE );
 		
-		this.doc	= doc;
-
-		final Container					cp		= getContentPane();
-		final Application				app		= AbstractApplication.getApplication();
-		JPanel							c;
-		JLabel							lb;
-		GridBagLayout					lay;
-		GridBagConstraints				con;
-//		final NumberSpace				spcTime = new NumberSpace( 0.0, Double.POSITIVE_INFINITY, 0.001, 0.0, 1.0 );
-		final NumberSpace				spcTime = new NumberSpace( 0.0, Double.POSITIVE_INFINITY, 0.0, 3, 3, 0.0 ); 
-		JTextField						ggName;
-		SessionObjectTable				ggTable;
-		SessionCollection				scSel, scAll;
-//		final JRootPane					rp		= getRootPane();
-
+		final Application app = AbstractApplication.getApplication();
+	
 		setTitle( app.getResourceString( "paletteObserver" ));
+// EEE
+//		setResizable( false );
+		
+		final Container		cp		= getContentPane();
+		JPanel				c;
+		SpringPanel			p;
+		JLabel				lb;
+		GridBagLayout		lay;
+		GridBagConstraints  con;
 
 		ggTabPane = new JTabbedPane();
-//		HelpGlassPane.setHelp( ggTabPane, "ObserverPalette" );	// EEE
         ggTabPane.setTabLayoutPolicy( JTabbedPane.WRAP_TAB_LAYOUT );
 
 		// ----- cursor tab ------
@@ -165,7 +169,6 @@ implements NumberListener, TimelineListener, DynamicListening
 			lbCursorInfo[i] = lb;
 		}
 		ggTabPane.addTab( app.getResourceString( "observerCursor" ), null, c, null );
-//        HelpGlassPane.setHelp( c, "ObserverCursor" );	// EEE
         
 		// ----- session objects tab ------
 		for( int i = 0; i < 3; i++ ) {
@@ -179,128 +182,115 @@ implements NumberListener, TimelineListener, DynamicListening
 			con.gridwidth   = 1;
 			lay.setConstraints( lb, con );
 			c.add( lb );
-			ggName			= new JTextField( 12 );
+			ggNames[ i ]	= new JTextField( 12 );
 			con.weightx		= 1.0;
 			con.gridwidth   = GridBagConstraints.REMAINDER;
-			lay.setConstraints( ggName, con );
-			lb.setLabelFor( ggName );
-			c.add( ggName );
+			lay.setConstraints( ggNames[ i ], con );
+			lb.setLabelFor( ggNames[ i ]);
+			c.add( ggNames[ i ]);
 			con.fill		= GridBagConstraints.BOTH;
 			con.weighty		= 1.0;
-			ggTable			= new SessionObjectTable( doc, doc.bird, DOORS[ i ]);
-			lay.setConstraints( ggTable, con );
-			c.add( ggTable );
+			ggTables[ i ]	= new SessionObjectTable( doc );
+			lay.setConstraints( ggTables[ i ], con );
+			c.add( ggTables[ i ]);
 			ggTabPane.addTab( app.getResourceString( TAB_NAMES[ i ]), null, c, null );
 //			HelpGlassPane.setHelp( c, HELP_NAMES[ i ]);	// EEE
 			
-			switch( i ) {
-			case 0:
-				scSel	= doc.selectedReceivers;
-				scAll	= doc.receivers;
-				break;
-			case 1:
-				scSel	= doc.selectedTransmitters;
-				scAll	= doc.transmitters;
-				break;
-			case 2:
-				scSel	= doc.selectedGroups;
-				scAll	= doc.groups;
-				break;
-			default:
-				assert false : i;
-				scSel	= null;
-				scAll	= null;
-				break;
-			}
-			
-//			new sessionCollectionListener( scSel, scAll, doc.bird, DOORS[ i ], i + 1, ggName, ggTable, rp );
-			new sessionCollectionListener( scSel, scAll, doc.bird, DOORS[ i ], i + 1, ggName, ggTable, getMyRooty() );
+//			switch( i ) {
+//			case 0:
+//				scSel	= doc.selectedReceivers;
+//				scAll	= doc.receivers;
+//				break;
+//			case 1:
+//				scSel	= doc.selectedTransmitters;
+//				scAll	= doc.transmitters;
+//				break;
+//			case 2:
+//				scSel	= doc.selectedGroups;
+//				scAll	= doc.groups;
+//				break;
+//			default:
+//				assert false : i;
+//				scSel	= null;
+//				scAll	= null;
+//				break;
+//			}
+//			
+//			new SessionCollectionListener( scSel, scAll, i + 1, ggName, ggTable, getMyRooty() );
 		}
-		
+
 		// ----- timeline tab ------
-		c				= new JPanel();
-		lay				= new GridBagLayout();
-		con				= new GridBagConstraints();
-		con.insets		= new Insets( 2, 2, 2, 2 );
-		c.setLayout( lay );
-		lb				= new JLabel( app.getResourceString( "observerStart" ), JLabel.RIGHT );
-		con.weightx		= 0.0;
-		con.gridwidth   = 1;
-		lay.setConstraints( lb, con );
-		c.add( lb );
-		ggTimelineStart	= new NumberField( spcTime );
-		ggTimelineStart.setFlags( NumberField.HHMMSS );
+		timeTrans		= new DefaultUnitTranslator();
+		
+		p				= new SpringPanel( 4, 2, 4, 2 );
+		lb				= new JLabel( app.getResourceString( "observerStart" ), RIGHT );
+		p.gridAdd( lb, 1, 0 );
+		ggTimelineStart	= new ParamField( timeTrans );
+		ggTimelineStart.addSpace( ParamSpace.spcTimeHHMMSS );
+		ggTimelineStart.addSpace( ParamSpace.spcTimeSmps );
+		ggTimelineStart.addSpace( ParamSpace.spcTimeMillis );
+		ggTimelineStart.addSpace( ParamSpace.spcTimePercentR );
 		ggTimelineStart.addListener( this );
-		con.weightx		= 0.5;
-		con.gridwidth   = GridBagConstraints.REMAINDER;
-		lay.setConstraints( ggTimelineStart, con );
-		c.add( ggTimelineStart );
+		p.gridAdd( ggTimelineStart, 2, 0 );
 		lb.setLabelFor( ggTimelineStart );
-		lb				= new JLabel( app.getResourceString( "observerStop" ), JLabel.RIGHT );
-		con.weightx		= 0.0;
-		con.gridwidth   = 1;
-		lay.setConstraints( lb, con );
-		c.add( lb );
-		ggTimelineStop	= new NumberField( spcTime );
-		ggTimelineStop.setFlags( NumberField.HHMMSS );
+		
+		ggLockStop		= new LockButton( true );
+		ggLockStop.addActionListener( this );
+		p.gridAdd( ggLockStop, 0, 1 );
+		lb				= new JLabel( app.getResourceString( "observerStop" ), RIGHT );
+		p.gridAdd( lb, 1, 1 );
+		ggTimelineStop	= new ParamField( timeTrans );
+		ggTimelineStop.addSpace( ParamSpace.spcTimeHHMMSS );
+		ggTimelineStop.addSpace( ParamSpace.spcTimeSmps );
+		ggTimelineStop.addSpace( ParamSpace.spcTimeMillis );
+		ggTimelineStop.addSpace( ParamSpace.spcTimePercentR );
 		ggTimelineStop.addListener( this );
-		con.weightx		= 0.5;
-		con.gridwidth   = GridBagConstraints.REMAINDER;
-		lay.setConstraints( ggTimelineStop, con );
-		c.add( ggTimelineStop );
+		p.gridAdd( ggTimelineStop, 2, 1 );
 		lb.setLabelFor( ggTimelineStop );
-		ggTabPane.addTab( app.getResourceString( "observerTimeline" ), null, c, null );
-//        HelpGlassPane.setHelp( c, "ObserverTimeline" );	// EEE
-        
+
+		ggLockLen		= new LockButton( true );
+		ggLockLen.addActionListener( this );
+		p.gridAdd( ggLockLen, 0, 2 );
+		lb				= new JLabel( app.getResourceString( "observerLen" ), RIGHT );
+		p.gridAdd( lb, 1, 2 );
+		ggTimelineLen	= new ParamField( timeTrans );
+		ggTimelineLen.addSpace( ParamSpace.spcTimeHHMMSS );
+		ggTimelineLen.addSpace( ParamSpace.spcTimeSmps );
+		ggTimelineLen.addSpace( ParamSpace.spcTimeMillis );
+		ggTimelineLen.addSpace( ParamSpace.spcTimePercentR );
+		ggTimelineLen.addListener( this );
+		p.gridAdd( ggTimelineLen, 2, 2 );
+		lb.setLabelFor( ggTimelineLen );
+		
+		p.makeCompactGrid( false, false );
+		ggTabPane.addTab( app.getResourceString( "observerTimeline" ), null, p, null );
+ 
 		cp.add( BorderLayout.CENTER, ggTabPane );
 		
 		AbstractWindowHandler.setDeepFont( ggTabPane );
 		
 		// --- Listener ---
-		addDynamicListening( this );
+        addDynamicListening( this );
 		
-//		addListener( new AbstractWindow.Adapter() {
-//			public void windowClosing( AbstractWindow.Event e )
-//			{
-//				dispose();
-//			}
-//		});
-//		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+		app.getDocumentHandler().addDocumentListener( this );
 
+		addListener( new AbstractWindow.Adapter() {
+			public void windowClosing( AbstractWindow.Event e )
+			{
+				dispose();
+			}
+		});
+		setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE ); // window listener see above!
+		
 		setPreferredSize( new Dimension( 272, 180 ));
+		
 		init();
 		app.addComponent( Main.COMP_OBSERVER, this );
 	}
 	
-	public void dispose()
-	{
-		AbstractApplication.getApplication().removeComponent( Main.COMP_OBSERVER );
-		super.dispose();
-	}
-
 	protected boolean autoUpdatePrefs()
 	{
 		return true;
-	}
-
-	// XXX EEE XXX
-	private JComponent getMyRooty()
-	{
-		if( getWindow() instanceof RootPaneContainer ) {
-			return ((RootPaneContainer) getWindow()).getRootPane();
-		} else if( getWindow() instanceof JComponent ) {
-			return (JComponent) getWindow();
-		} else {
-			return null;
-		}
-	}
-	
-	/**
-	 *	Returns <code>false</code>
-	 */
-	protected boolean alwaysPackSize()
-	{
-		return false;
 	}
 
 	protected Point2D getPreferredLocation()
@@ -308,6 +298,12 @@ implements NumberListener, TimelineListener, DynamicListening
 		return new Point2D.Float( 0.95f, 0.8f );
 	}
 
+	public void dispose()
+	{
+		AbstractApplication.getApplication().removeComponent( Main.COMP_OBSERVER );
+		super.dispose();
+	}
+	
 	/**
 	 *  Switch the display to a specific
 	 *  tab, where zero is the cursor info tab.
@@ -316,7 +312,14 @@ implements NumberListener, TimelineListener, DynamicListening
 	 */
 	public void showTab( int tabIndex )
 	{
-		ggTabPane.setSelectedIndex( tabIndex );
+		if( ggTabPane.getSelectedIndex() != tabIndex ) {
+			ggTabPane.setSelectedIndex( tabIndex );
+		}
+	}
+	
+	public int getShownTab()
+	{
+		return ggTabPane.getSelectedIndex();
 	}
 
 	/**
@@ -344,142 +347,252 @@ implements NumberListener, TimelineListener, DynamicListening
 		}
 	}
 
-	// to be called with shared lock on DOOR_TIME!
-	private void updateTimeline( TimelineEvent e )
+	// attempts shared on DOOR_TIME
+	private void updateTimeline()
 	{
-		Span	span	= doc.timeline.getSelectionSpan();
-		int		rate	= doc.timeline.getRate();
+		if( doc != null ) {
 
-		ggTimelineStart.setNumber( new Double( (double) span.getStart() / rate ));
-		ggTimelineStop.setNumber( new Double( (double) span.getStop() / rate ));
+			final Span	span	= doc.timeline.getSelectionSpan();
+			final double rate	= doc.timeline.getRate();
+
+			timeTrans.setLengthAndRate( doc.timeline.getLength(), rate );
+			ggTimelineStart.setValue( new Param( span.getStart(), ParamSpace.spcTimeSmps.unit ));
+			ggTimelineStop.setValue( new Param( span.getStop(), ParamSpace.spcTimeSmps.unit ));
+			ggTimelineLen.setValue( new Param( span.getLength(), ParamSpace.spcTimeSmps.unit ));
+			if( !ggTimelineStart.isEnabled() ) ggTimelineStart.setEnabled( true );
+			if( !ggTimelineStop.isEnabled() )  ggTimelineStop.setEnabled( true );
+			if( !ggTimelineLen.isEnabled() )  ggTimelineLen.setEnabled( true );
+			
+		} else {
+			
+			ggTimelineStart.setEnabled( false );
+			ggTimelineStop.setEnabled( false );
+			ggTimelineLen.setEnabled( false );
+		}
 	}
 
-// ---------------- DynamicListening interface ---------------- 
+//	 ---------------- ActionListener interface ---------------- 
+
+	public void actionPerformed( ActionEvent e )
+	{
+		if( e.getSource() == ggLockStop ) {
+			if( ggLockStop.isLocked() && ggLockLen.isLocked() ) {
+				ggLockLen.setLocked( false );
+			}		
+		} else if( e.getSource() == ggLockLen ) {
+			if( ggLockStop.isLocked() && ggLockLen.isLocked() ) {
+				ggLockStop.setLocked( false );
+			}		
+		}
+	}
+
+	// ---------------- DynamicListening interface ---------------- 
 
     public void startListening()
     {
-		doc.timeline.addTimelineListener( this );
+    	isListening = true;
+		doc = (Session) AbstractApplication.getApplication().getDocumentHandler().getActiveDocument();
+		if( doc != null ) {
+			doc.timeline.addTimelineListener( this );
+			selColL[ 0 ].startListening();
+			selColL[ 1 ].startListening();
+			selColL[ 2 ].startListening();
+		}
+		updateTimeline();
     }
 
     public void stopListening()
     {
-		doc.timeline.removeTimelineListener( this );
+    	isListening = false;
+		if( doc != null ) {
+			doc.timeline.removeTimelineListener( this );
+			selColL[ 0 ].stopListening();
+			selColL[ 1 ].stopListening();
+			selColL[ 2 ].stopListening();
+		}
     }
 
-// ---------------- NumberListener interface ---------------- 
+ // ---------------- ParamListener interface ---------------- 
 
-	public void numberChanged( NumberEvent e )
+	public void paramValueChanged( ParamField.Event e )
 	{
-		Span				span;
-		long				n;
-		double				d		= e.getNumber().doubleValue();
+		long	n		= (long) e.getTranslatedValue( ParamSpace.spcTimeSmps ).val;
+		long	n2;
+		Span	span;
 	
-		if( (e.getSource() == ggTimelineStart) || (e.getSource() == ggTimelineStop) ) {
+		if( (e.getSource() == ggTimelineStart) || (e.getSource() == ggTimelineStop) ||
+			(e.getSource() == ggTimelineLen) ) {
 
-			if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 250 )) return;
-			try {
-				span	= doc.timeline.getSelectionSpan();
-				n		= (long) (d * doc.timeline.getRate() + 0.5);
-				
-				if( e.getSource() == ggTimelineStart ) {
-					span	= new Span( Math.max( 0, Math.min( span.getStop(), n )), span.getStop() );
+			span	= doc.timeline.getSelectionSpan();
+			
+			// ----- start was adjusted -----
+			if( e.getSource() == ggTimelineStart ) {
+				if( ggLockLen.isLocked() ) {
+					n2	= n + span.getLength();
+					if( n2 > doc.timeline.getLength() ) {
+						n2	= doc.timeline.getLength();
+						n	= n2 - span.getLength();
+						ggTimelineStart.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					span	= new Span( n, n2 );
+					ggTimelineStop.setValue( new Param( n2, ParamSpace.spcTimeSmps.unit ));
 				} else {
-					span	= new Span( span.getStart(), Math.min( doc.timeline.getLength(),
-														 Math.max( span.getStart(), n )) );
+					n2 = span.getStop();
+					if( n > n2 ) {
+						n = n2;
+						ggTimelineStart.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					span	= new Span( n, n2 );
+					ggTimelineLen.setValue( new Param( span.getLength(), ParamSpace.spcTimeSmps.unit ));
 				}
-				doc.getUndoManager().addEdit( TimelineVisualEdit.select( this, doc, span ).perform() );
+			// ----- stop was adjusted -----
+			} else if( e.getSource() == ggTimelineStop ) {
+				if( ggLockLen.isLocked() ) {
+					n2		= n - span.getLength();
+					if( n2 < 0 ) {
+						n2	= 0;
+						n	= n2 + span.getLength();
+						ggTimelineStop.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					if( n > doc.timeline.getLength() ) {
+						n	= doc.timeline.getLength();
+						n2	= n - span.getLength();
+						ggTimelineStop.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					span	= new Span( n2, n );
+					ggTimelineStart.setValue( new Param( n2, ParamSpace.spcTimeSmps.unit ));
+				} else {
+					n2		= span.getStart();
+					if( n < n2 ) {
+						n	= n2;
+						ggTimelineStop.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					if( n > doc.timeline.getLength() ) {
+						n	= doc.timeline.getLength();
+						ggTimelineStop.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					span	= new Span( n2, n );
+					ggTimelineLen.setValue( new Param( span.getLength(), ParamSpace.spcTimeSmps.unit ));
+				}
+			// ----- len was adjusted -----
+			} else {
+				if( ggLockStop.isLocked() ) {
+					n2		= span.getStop() - n;
+					if( n2 < 0 ) {
+						n2	= 0;
+						n	= span.getStop();
+						ggTimelineLen.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					span	= new Span( n2, n2 + n );
+					ggTimelineStart.setValue( new Param( n2, ParamSpace.spcTimeSmps.unit ));
+				} else {
+					n2		= span.getStart() + n;
+					if( n2 > doc.timeline.getLength() ) {
+						n2	= doc.timeline.getLength();
+						n	= n2 - span.getStart();
+						ggTimelineLen.setValue( new Param( n, ParamSpace.spcTimeSmps.unit ));
+					}
+					span	= new Span( n2 - n, n2 );
+					ggTimelineStop.setValue( new Param( n2, ParamSpace.spcTimeSmps.unit ));
+				}
 			}
-			finally {
-				doc.bird.releaseExclusive( Session.DOOR_TIME );
-			}
+			doc.timeline.editSelect( this, span );
 		}
+	}
+
+	public void paramSpaceChanged( ParamField.Event e )
+	{
+		ggTimelineStart.setSpace( e.getSpace() );
+		ggTimelineStop.setSpace( e.getSpace() );
+		ggTimelineLen.setSpace( e.getSpace() );
 	}
     
 // ---------------- TimelineListener interface ---------------- 
 
 	public void timelineSelected( TimelineEvent e )
     {
-		try {
-			doc.bird.waitShared( Session.DOOR_TIME );
-			showTab( doc.timeline.getSelectionSpan().isEmpty() ? CURSOR_TAB : TIMELINE_TAB );   // intelligently switch between the tabs
-			updateTimeline( e );
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_TIME );
+		if( e.getSource() != this ) {
+			showTab( doc.timeline.getSelectionSpan().isEmpty() ? CURSOR_TAB : TIMELINE_TAB );
+			updateTimeline();
 		}
     }
 
 	public void timelineChanged( TimelineEvent e )
 	{
-		try {
-			doc.bird.waitShared( Session.DOOR_TIME );
-			updateTimeline( e );
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_TIME );
-		}
+		updateTimeline();
 	}
     
-	public void timelinePositioned( TimelineEvent e ) {}
-    public void timelineScrolled( TimelineEvent e ) {}
+	public void timelinePositioned( TimelineEvent e ) { /* ignored */ }
+    public void timelineScrolled( TimelineEvent e ) { /* ignored */ }
+
+ // ---------------- DocumentListener interface ---------------- 
+
+	public void documentFocussed( de.sciss.app.DocumentEvent e )
+	{
+		if( doc != null ) {
+			doc.timeline.removeTimelineListener( this );
+			selColL[ 0 ].stopListening(); selColL[ 0 ] = null;
+			selColL[ 1 ].stopListening(); selColL[ 1 ] = null;
+			selColL[ 2 ].stopListening(); selColL[ 2 ] = null;
+		}
+		doc	= (Session) e.getDocument();
+		if( doc != null ) {
+			doc.timeline.addTimelineListener( this );
+			selColL[ 0 ] = new SessionCollectionListener( doc.selectedReceivers, doc.receivers, 1, ggNames[ 0 ], ggTables[ 0 ]);
+			selColL[ 1 ] = new SessionCollectionListener( doc.selectedTransmitters, doc.transmitters, 2, ggNames[ 1 ], ggTables[ 1 ]);
+			selColL[ 2 ] = new SessionCollectionListener( doc.selectedGroups, doc.groups, 2, ggNames[ 2 ], ggTables[ 2 ]);
+			if( isListening ) {
+				selColL[ 0 ].startListening();
+				selColL[ 1 ].startListening();
+				selColL[ 2 ].startListening();
+			}
+		}
+		updateTimeline();
+	}
+
+	public void documentAdded( de.sciss.app.DocumentEvent e ) { /* ignore */ }
+	public void documentRemoved( de.sciss.app.DocumentEvent e ) { /* ignore */ }
 
 // ---------------- internal classes ---------------- 
 
-	private class sessionCollectionListener
+	private class SessionCollectionListener
 	implements ActionListener, SessionCollection.Listener, DynamicListening
 	{
-		private final LockManager lm;
-		private final int doors;
 		private final int tab;
 		private final SessionCollection scSel, scAll;
 		private final JTextField ggName;
 		private final SessionObjectTable ggTable;
 	
-		private sessionCollectionListener( SessionCollection scSel, SessionCollection scAll,
-										   LockManager lm, int doors, int tab, JTextField ggName,
-										   SessionObjectTable ggTable, JComponent ancestor )
+		private SessionCollectionListener( SessionCollection scSel, SessionCollection scAll,
+										   int tab, JTextField ggName,
+										   SessionObjectTable ggTable )
 		{
 			this.scSel	= scSel;
 			this.scAll	= scAll;
-			this.lm		= lm;
-			this.doors	= doors;
 			this.tab	= tab;
 			this.ggName	= ggName;
 			this.ggTable= ggTable;
 			
-			ggName.addActionListener( this );
-			new DynamicAncestorAdapter( this ).addTo( ancestor );
+//			ggName.addActionListener( this );
+//			new DynamicAncestorAdapter( this ).addTo( ancestor );
 		}
 	
 		public void sessionCollectionChanged( SessionCollection.Event e )
 		{
-			try {
-				lm.waitShared( doors );
-				showTab( scSel.isEmpty() ? CURSOR_TAB : tab );   // intelligently switch between the tabs
-				ggTable.setObjects( scSel.getAll() );
-				updateFields( e );
-			}
-			finally {
-				lm.releaseShared( doors );
-			}
+			showTab( scSel.isEmpty() ? CURSOR_TAB : tab );   // intelligently switch between the tabs
+			ggTable.setObjects( scSel.getAll() );
+			updateFields( e );
 		}
 		
 		public void sessionObjectMapChanged( SessionCollection.Event e )
 		{
-//			System.out.println( "KUUKA" );
-//			pack();
+			// nada
 		}
 
 		public void sessionObjectChanged( SessionCollection.Event e )
 		{
 			if( e.getModificationType() == SessionObject.OWNER_RENAMED ) {
-				try {
-					lm.waitShared( doors );
-					updateFields( e );
-				}
-				finally {
-					lm.releaseShared( doors );
-				}
+				updateFields( e );
 			}
 		}
 
@@ -510,52 +623,48 @@ implements NumberListener, TimelineListener, DynamicListening
 			Object[]				args;
 
 			if( e.getSource() == ggName ) {
-				if( !lm.attemptExclusive( doors, 250 )) return;
-				try {
-					coll	= scSel.getAll();
-					coll2	= scAll.getAll();
-					num		= coll.size();
-					if( num == 0 ) return;
-					
-					args	= new Object[ 3 ];
-					
-					coll2.removeAll( coll );
-					edit	= new BasicCompoundEdit();
-					name	= ggName.getText();
-					if( num == 1 ) {
-						if( SessionCollection.findByName( coll2, name ) != null ) {
-							Session.makeNamePattern( name, args );
-							name = SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
-						}
-						edit.addPerform( new EditSetSessionObjectName( this, doc, (SessionObject) coll.get( 0 ),
-						                                               name, doors ));
-					} else {
+				coll	= scSel.getAll();
+				coll2	= scAll.getAll();
+				num		= coll.size();
+				if( num == 0 ) return;
+				
+				args	= new Object[ 3 ];
+				
+				coll2.removeAll( coll );
+				edit	= new BasicCompoundEdit();
+				name	= ggName.getText();
+				if( num == 1 ) {
+					if( SessionCollection.findByName( coll2, name ) != null ) {
 						Session.makeNamePattern( name, args );
-						for( i = 0; i < num; i++ ) {
-							so		= (SessionObject) coll.get( i );
-							name	= SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
-							edit.addPerform( new EditSetSessionObjectName( this, doc, so, name, doors ));
-							coll2.add( so );
-						}
+						name = SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
 					}
-					edit.perform();
-					edit.end();
-					doc.getUndoManager().addEdit( edit );
+					edit.addPerform( new EditSetSessionObjectName( this, (SessionObject) coll.get( 0 ),
+					                                               name ));
+				} else {
+					Session.makeNamePattern( name, args );
+					for( i = 0; i < num; i++ ) {
+						so		= (SessionObject) coll.get( i );
+						name	= SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
+						edit.addPerform( new EditSetSessionObjectName( this, so, name ));
+						coll2.add( so );
+					}
 				}
-				finally {
-					lm.releaseExclusive( doors );
-				}
+				edit.perform();
+				edit.end();
+				doc.getUndoManager().addEdit( edit );
 			}
 		}
 
 		public void startListening()
 		{
 			scSel.addListener( this );
+			ggName.addActionListener( this );
 		}
 
 		public void stopListening()
 		{
 			scSel.removeListener( this );
+			ggName.removeActionListener( this );
 		}
 	} // class sessionCollectionListener
 }

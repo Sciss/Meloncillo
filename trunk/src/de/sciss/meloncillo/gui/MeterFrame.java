@@ -397,8 +397,9 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 	{
 		if( rt_valid ) {
 			rt_valid = false;
-			transport.removeRealtimeConsumer( this );
-			transport.addRealtimeConsumer( this );
+// EEE
+//			transport.removeRealtimeConsumer( this );
+//			transport.addRealtimeConsumer( this );
 		}
 		syncLabels();
 	}
@@ -417,7 +418,8 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
     public void startListening()
     {
 		rt_valid = false;
-		transport.addRealtimeConsumer( this );
+// EEE
+//		transport.addRealtimeConsumer( this );
 		doc.activeTransmitters.addListener( this );
 		doc.activeReceivers.addListener( this );
 		syncLabels();
@@ -427,7 +429,8 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
     {
 		doc.activeTransmitters.removeListener( this );
 		doc.activeReceivers.removeListener( this );
-		transport.removeRealtimeConsumer( this );
+// EEE
+//		transport.removeRealtimeConsumer( this );
 		rt_valid = false;
     }
 
@@ -547,7 +550,8 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 			boolean oldOrient = rt_orient;
 		
 			rt_valid = false;
-			transport.removeRealtimeConsumer( meterFrame );
+// EEE
+//			transport.removeRealtimeConsumer( meterFrame );
 			if( selectedTrns >= 0 && selectedTrns < collTrnsLabels.size() ) {
 				((SelectableLabel) collTrnsLabels.get( selectedTrns )).setSelected( false );
 			}
@@ -569,8 +573,9 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 			}
 
 			if( rt_orient != oldOrient ) meterPane.recalcLevelGradients();
-	
-			transport.addRealtimeConsumer( meterFrame );	// XXX check??
+
+// EEE
+//			transport.addRealtimeConsumer( meterFrame );	// XXX check??
 		}
 	}
 }

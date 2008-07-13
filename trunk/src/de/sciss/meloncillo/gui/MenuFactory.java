@@ -45,6 +45,7 @@ import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +57,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.SpringLayout;
-import javax.swing.undo.CompoundEdit;
-import javax.swing.undo.UndoableEdit;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -246,7 +245,9 @@ extends BasicMenuFactory
 		// --- timeline menu ---
 		i	= indexOf( "edit" );
 		mg	= new MenuGroup( "timeline", getResourceString( "menuTimeline" ));
-		mg.add( new MenuItem( "insTimeSpan", actionInsTimeSpan ));
+//		mg.add( new MenuItem( "insTimeSpan", actionInsTimeSpan ));
+		mg.add( new MenuItem( "trimToSelection", getResourceString( "menuTrimToSelection" )));
+		mg.add( new MenuItem( "insertSilence", getResourceString( "menuInsTimeSpan" )));
 		mg.add( new MenuItem( "selectionForward", actionSelectionForward ));
 		mg.add( new MenuItem( "selectionBackwards", actionSelectionBackwards ));
 		mg.addSeparator();
@@ -304,7 +305,7 @@ extends BasicMenuFactory
 		mg.add( new MenuItem( "showTimeline", actionShowTimeline ), 1 );
 		mg.add( new MenuSeparator(), 2 );
 		mg.add( new MenuItem( "showTransport", actionShowTransport ), 3 );
-		mg.add( new MenuItem( "showObserver", actionShowObserver ), 4 );
+		mg.add( new MenuItem( "observer", new ActionObserver( getResourceString( "paletteObserver" ), KeyStroke.getKeyStroke( KeyEvent.VK_NUMPAD3, MENU_SHORTCUT ))), 4 );
 		mg.add( new MenuItem( "showMeter", actionShowMeter ), 5 );
 		mg.add( new MenuItem( "showRealtime", actionShowRealtime ), 6 );
 
@@ -364,8 +365,8 @@ extends BasicMenuFactory
 										KeyEvent.VK_EQUALS, MENU_SHORTCUT ), Main.COMP_TIMELINE );
 		actionShowTransport		= new ActionShowWindow( app.getResourceString( "paletteTransport" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_NUMPAD1, MENU_SHORTCUT ), Main.COMP_TRANSPORT );
-		actionShowObserver		= new ActionShowWindow( app.getResourceString( "paletteObserver" ), KeyStroke.getKeyStroke( 
-										KeyEvent.VK_NUMPAD3, MENU_SHORTCUT ), Main.COMP_OBSERVER );
+//		actionShowObserver		= new ActionShowWindow( app.getResourceString( "paletteObserver" ), KeyStroke.getKeyStroke( 
+//										KeyEvent.VK_NUMPAD3, MENU_SHORTCUT ), Main.COMP_OBSERVER );
 		actionShowMeter			= new ActionShowWindow( app.getResourceString( "frameMeter" ), KeyStroke.getKeyStroke( 
 										KeyEvent.VK_NUMPAD4, MENU_SHORTCUT ), Main.COMP_METER );
 		actionShowRealtime		= new ActionShowWindow( app.getResourceString( "frameRealtime" ), KeyStroke.getKeyStroke( 
@@ -772,7 +773,7 @@ extends BasicMenuFactory
 		protected ProcessingThread perform( File path )
 		{
 			final Main root = (Main) AbstractApplication.getApplication();
-			doc.getTransport().stopAndWait();
+			doc.getTransport().stop();
 			((MainFrame) root.getComponent( Main.COMP_MAIN )).clearLog();
 			Map options = new HashMap();
 			options.put( "file", path );
@@ -1286,7 +1287,7 @@ extends BasicMenuFactory
 						}
 					}
 				}
-				edit.addPerform( new EditSetSessionObjects( this, doc, scSel, new ArrayList( 1 ), doors ));
+				edit.addPerform( new EditSetSessionObjects( this, scSel, Collections.EMPTY_LIST ));
 				edit.addPerform( new EditRemoveSessionObjects( this, doc, scAll, collSelection, doors ));
 				edit.perform();
 				edit.end();
@@ -1644,6 +1645,30 @@ extends BasicMenuFactory
 				System.err.println( "............ group receivers ............" );
 				g.receivers.debugDump();
 			}
+		}
+	}
+	
+	// action for the Observer menu item
+	private class ActionObserver
+	extends MenuAction
+	{
+		protected ActionObserver( String text, KeyStroke shortcut )
+		{
+			super( text, shortcut );
+		}
+
+		/**
+		 *  Brings up the IOSetup
+		 */
+		public void actionPerformed( ActionEvent e )
+		{
+			ObserverPalette f = (ObserverPalette) getApplication().getComponent( Main.COMP_OBSERVER );
+		
+			if( f == null ) {
+				f = new ObserverPalette();	// automatically adds component
+			}
+			f.setVisible( true );
+			f.toFront();
 		}
 	}
 }

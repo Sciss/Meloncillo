@@ -33,6 +33,7 @@ import org.w3c.dom.DOMException;
 import org.w3c.dom.Element;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractWindow;
 import de.sciss.app.Application;
 import de.sciss.common.AppWindow;
 import de.sciss.common.BasicApplication;
@@ -55,7 +56,7 @@ extends AppWindow
 	private final	ActionSave		actionSave;
 	private final	ActionSaveAs	actionSaveAs;
 	
-	protected DocumentFrame( Session doc )
+	protected DocumentFrame( final Session doc )
 	{
 		super( REGULAR );
 		
@@ -77,6 +78,24 @@ extends AppWindow
 		mr.putMimic( "edit.paste", this, getPasteAction() );
 		mr.putMimic( "edit.clear", this, getDeleteAction() );
 		mr.putMimic( "edit.selectAll", this, getSelectAllAction() );
+		
+		Listener winListener = new AbstractWindow.Adapter() {
+// EEE
+//			public void windowClosing( AbstractWindow.Event e ) {
+//				actionClose.perform();
+//			}
+
+			public void windowActivated( AbstractWindow.Event e )
+			{
+				// need to check 'disposed' to avoid runtime exception in doc handler if document was just closed
+// EEE
+//				if( !disposed ) {
+					app.getDocumentHandler().setActiveDocument( DocumentFrame.this, doc );
+					((BasicWindowHandler) app.getWindowHandler()).setMenuBarBorrower( DocumentFrame.this );
+//				}
+			}
+		};
+		this.addListener( winListener );
 	}
 	
 	protected abstract Action getCutAction();
@@ -85,7 +104,7 @@ extends AppWindow
 	protected abstract Action getDeleteAction();
 	protected abstract Action getSelectAllAction();
 
-	private static String getResourceString( String key )
+	protected static String getResourceString( String key )
 	{
 		return AbstractApplication.getApplication().getResourceString( key );
 	}
@@ -258,7 +277,7 @@ extends AppWindow
 
 	public ProcessingThread closeDocument( String name, boolean force, Flag wasClosed )
 	{
-		doc.getTransport().stopAndWait();
+		doc.getTransport().stop();
 		if( !force ) {
 			if( !confirmCancel( name )) {
 				wasClosed.set( false );
@@ -330,7 +349,7 @@ extends AppWindow
 		{
 			final MainFrame mf = (MainFrame) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN );
 
-			doc.getTransport().stopAndWait();
+			doc.getTransport().stop();
 			try {
 				doc.bird.waitExclusive( Session.DOOR_ALL );
 				doc.getUndoManager().discardAllEdits();
@@ -388,7 +407,7 @@ extends AppWindow
 		protected ProcessingThread initiate( File docFile )
 		{
 			final Main root = (Main) AbstractApplication.getApplication();
-			doc.getTransport().stopAndWait();
+			doc.getTransport().stop();
 			final ProcessingThread pt;
 //			return new ProcessingThread( this, root, root, doc, getValue( NAME ).toString(), docFile, Session.DOOR_ALL );
 			pt = new ProcessingThread( this, root, getValue( NAME ).toString() );

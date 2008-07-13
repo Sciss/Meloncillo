@@ -36,6 +36,7 @@
 package de.sciss.meloncillo.session;
 
 import java.awt.EventQueue;
+import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -48,23 +49,43 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.prefs.BackingStoreException;
 
+import javax.swing.JOptionPane;
+
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import de.sciss.util.DefaultUnitTranslator;
 import de.sciss.util.Flag;
+import de.sciss.util.Param;
+import de.sciss.util.ParamSpace;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.Application;
+import de.sciss.common.BasicWindowHandler;
 import de.sciss.common.ProcessingThread;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.MenuAction;
+import de.sciss.gui.ParamField;
+import de.sciss.gui.SpringPanel;
 import de.sciss.io.IOUtil;
+import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.edit.BasicCompoundEdit;
+import de.sciss.meloncillo.edit.EditSetTimelineLength;
+import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.gui.MainFrame;
+import de.sciss.meloncillo.io.AudioTrail;
+import de.sciss.meloncillo.io.MarkerTrail;
 import de.sciss.meloncillo.io.XMLRepresentation;
 import de.sciss.meloncillo.realtime.Transport;
+import de.sciss.meloncillo.timeline.MarkerTrack;
 import de.sciss.meloncillo.timeline.Timeline;
+import de.sciss.meloncillo.timeline.TimelineFrame;
+import de.sciss.meloncillo.timeline.Track;
 import de.sciss.meloncillo.util.LockManager;
 import de.sciss.meloncillo.util.MapManager;
 import de.sciss.meloncillo.util.PrefsUtil;
@@ -201,6 +222,17 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	private final Transport			transport;
 	protected ProcessingThread		pt				= null;
 	
+	public final MarkerTrail		markers;
+	public final MarkerTrack		markerTrack;
+
+	public final SessionCollection		tracks			= new SessionCollection();	// should be tracking audioTracks automatically
+	public final SessionCollection		selectedTracks	= new SessionCollection();	// should be tracking audioTracks automatically
+	
+	// --- actions ---
+
+	private final ActionSilence			actionSilence;
+	private final ActionTrim			actionTrim;
+	
 	/**
 	 *  Creates a new Session. This should be invoked only once at
 	 *  the application startup. Subsequent session loading and clearing
@@ -218,7 +250,17 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
         transport	= new Transport( this );
 //		actionSave	= new ActionSave();
 
-        clear();
+		markerTrack			= new MarkerTrack( this );
+		markers				= (MarkerTrail) markerTrack.getTrail();
+// EEE
+//		markers.copyFromAudioFile( afds[ 0 ]);	// XXX
+		tracks.add( null, markerTrack );
+		selectedTracks.add( this, markerTrack );
+
+		actionSilence		= new ActionSilence();
+		actionTrim			= new ActionTrim();
+		
+		clear();
 	}
 	
 	public Transport getTransport()
@@ -315,6 +357,17 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 		}
 	}
 	
+	public TimelineFrame getTimelineFrame()
+	{
+		return (TimelineFrame) AbstractApplication.getApplication().getComponent( Main.COMP_TIMELINE );
+	}
+
+	public MainFrame getFrame()
+	{
+//		return frame;
+		return (MainFrame) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN );
+	}
+
 	/**
 	 * 	Checks if a process is currently running. This method should be called
 	 * 	before launching a process using the <code>start()</code> method.
@@ -427,7 +480,17 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 			if( mf != null ) mf.updateTitle();
 		}
 	}
+
+	public MenuAction getSilenceAction()
+	{
+		return actionSilence;
+	}
 	
+	public MenuAction getTrimAction()
+	{
+		return actionTrim;
+	}
+
 // ---------------- XMLRepresentation interface ---------------- 
 
 	/**
@@ -761,4 +824,214 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 		final DocumentFrame frame = (DocumentFrame) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN );
 		return frame.closeDocument( name, force, wasClosed );	// XXX should be in here not frame!!!
 	}
+
+	// ---------------------- internal classes ----------------------
+	
+	private class ActionTrim
+	extends MenuAction
+	{
+		protected ActionTrim() { /* empty */ }
+
+		// performs inplace (no runnable processing) coz it's always fast
+		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+		
+		protected void perform()
+		{
+			final Span						selSpan, deleteBefore, deleteAfter;
+			final BasicCompoundEdit		edit;
+			final List						tis;
+			Track.Info						ti;
+			boolean							success	= false;
+
+			edit			= new BasicCompoundEdit( getValue( NAME ).toString() );
+			
+			try {
+				selSpan			= timeline.getSelectionSpan();
+//				if( selSpan.isEmpty() ) return;
+				tis				= Track.getInfos( selectedTracks.getAll(), tracks.getAll() );
+				deleteBefore	= new Span( 0, selSpan.start );
+				deleteAfter		= new Span( selSpan.stop, timeline.getLength() );
+
+				// deselect
+				edit.addPerform( TimelineVisualEdit.select( this, Session.this, new Span() ));
+				edit.addPerform( TimelineVisualEdit.position( this, Session.this, 0 ));
+
+				if( !deleteAfter.isEmpty() || !deleteBefore.isEmpty() ) {
+					for( int i = 0; i < tis.size(); i++ ) {
+						ti = (Track.Info) tis.get( i );
+						ti.trail.editBegin( edit );
+						try {
+							if( !deleteAfter.isEmpty() ) ti.trail.editRemove( this, deleteAfter, edit );
+							if(	!deleteBefore.isEmpty() ) ti.trail.editRemove( this, deleteBefore, edit );
+						}
+						finally {
+							ti.trail.editEnd( edit );
+						}
+					}
+				}
+
+				edit.addPerform( new EditSetTimelineLength( this, Session.this, selSpan.getLength() ));
+				edit.addPerform( TimelineVisualEdit.select( this, Session.this, selSpan.shift( -selSpan.start )));
+
+				edit.perform();
+				edit.end();
+				getUndoManager().addEdit( edit );
+				success = true;
+			}
+			finally {
+				if( !success ) edit.cancel();
+			}
+		}
+	} // class actionTrimClass
+
+	/**
+	 *	@todo	when edit mode != EDIT_INSERT, audio tracks are cleared which should be bypassed and vice versa
+	 *	@todo	waveform display not automatically updated when edit mode != EDIT_INSERT
+	 */
+	private class ActionSilence
+	extends MenuAction
+	implements ProcessingThread.Client
+	{
+		private Param		value = null;
+		private ParamSpace	space = null;
+	
+		protected ActionSilence() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+		
+		private void perform()
+		{
+			final SpringPanel			msgPane;
+			final int					result;
+			final ParamField			ggDuration;
+			final Param					durationSmps;
+			final DefaultUnitTranslator	timeTrans;
+			
+			msgPane			= new SpringPanel( 4, 2, 4, 2 );
+			timeTrans		= new DefaultUnitTranslator();
+			ggDuration		= new ParamField( timeTrans );
+			ggDuration.addSpace( ParamSpace.spcTimeHHMMSS );
+			ggDuration.addSpace( ParamSpace.spcTimeSmps );
+			ggDuration.addSpace( ParamSpace.spcTimeMillis );
+			ggDuration.addSpace( ParamSpace.spcTimePercentF );
+			msgPane.gridAdd( ggDuration, 0, 0 );
+			msgPane.makeCompactGrid();
+			GUIUtil.setInitialDialogFocus( ggDuration );
+
+			timeTrans.setLengthAndRate( timeline.getLength(), timeline.getRate() );
+
+			if( value == null ) {
+				ggDuration.setValue( new Param( 60.0, ParamSpace.TIME | ParamSpace.SECS ));
+			} else {
+				ggDuration.setSpace( space );
+				ggDuration.setValue( value );
+			}
+
+			final JOptionPane op = new JOptionPane( msgPane, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION );
+//			result = JOptionPane.showOptionDialog( getFrame() == null ? null : getFrame().getWindow(), msgPane, getValue( NAME ).toString(),
+//				JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null );
+			result = BasicWindowHandler.showDialog( op, getTimelineFrame() == null ? null : getTimelineFrame().getWindow(), getValue( NAME ).toString() );
+
+			if( result == JOptionPane.OK_OPTION ) {
+				value			= ggDuration.getValue();
+				space			= ggDuration.getSpace();
+				durationSmps	= timeTrans.translate( value, ParamSpace.spcTimeSmps );
+				if( durationSmps.val > 0.0 ) {
+					final ProcessingThread proc;
+					
+					proc = initiate( timeline.getPosition(), (long) durationSmps.val );
+					if( proc != null ) start( proc );
+				}
+			}
+		}
+
+		public ProcessingThread initiate( long pos, long numFrames )
+		{
+			if( !checkProcess() || (numFrames == 0) ) return null;
+			
+			if( numFrames < 0 ) throw new IllegalArgumentException( String.valueOf( numFrames ));
+			if( (pos < 0) || (pos > timeline.getLength()) ) throw new IllegalArgumentException( String.valueOf( pos ));
+
+			final ProcessingThread 		proc;
+			final AbstractCompoundEdit	edit;
+			final Span					oldSelSpan, insertSpan;
+
+			proc = new ProcessingThread( this, getFrame(), getValue( NAME ).toString() );
+
+			edit		= new BasicCompoundEdit( proc.getName() );
+			oldSelSpan	= timeline.getSelectionSpan();
+			insertSpan	= new Span( pos, pos + numFrames );
+
+			if( !oldSelSpan.isEmpty() ) { // deselect
+				edit.addPerform( TimelineVisualEdit.select( this, Session.this, new Span() ));
+			}
+
+			proc.putClientArg( "tis", Track.getInfos( selectedTracks.getAll(), tracks.getAll() ));
+			proc.putClientArg( "edit", edit );
+			proc.putClientArg( "span", insertSpan );
+			return proc;
+		}
+
+		/**
+		 *  This method is called by ProcessingThread
+		 */
+		public int processRun( ProcessingThread context )
+		throws IOException
+		{
+			final List					tis			= (List) context.getClientArg( "tis" );
+			final AbstractCompoundEdit	edit		= (AbstractCompoundEdit) context.getClientArg( "edit" );
+			final Span					insertSpan	= (Span) context.getClientArg( "span" );
+			Track.Info					ti;
+			AudioTrail					audioTrail;
+
+			for( int i = 0; i < tis.size(); i++ ) {
+				ti = (Track.Info) tis.get( i );
+				ti.trail.editBegin( edit );
+				try {
+					ti.trail.editInsert( this, insertSpan, edit );
+					if( ti.trail instanceof AudioTrail ) {
+						audioTrail			= (AudioTrail) ti.trail;							
+						audioTrail.editAdd( this, audioTrail.allocSilent( insertSpan ), edit );
+					}
+				}
+				finally {
+					ti.trail.editEnd( edit );
+				}
+			}
+			return DONE;
+		}
+
+		public void processFinished( ProcessingThread context )
+		{
+			final AbstractCompoundEdit	edit		= (AbstractCompoundEdit) context.getClientArg( "edit" );
+			final Span					insertSpan	= (Span) context.getClientArg( "span" );
+
+			if( context.getReturnCode() == DONE ) {
+				if( !insertSpan.isEmpty() ) {	// adjust timeline
+					edit.addPerform( new EditSetTimelineLength( this, Session.this, timeline.getLength() + insertSpan.getLength() ));
+					if( timeline.getVisibleSpan().isEmpty() ) {
+						edit.addPerform( TimelineVisualEdit.scroll( this, Session.this, insertSpan ));
+					}
+				}
+				if( !insertSpan.isEmpty() ) {
+					edit.addPerform( TimelineVisualEdit.select( this, Session.this, insertSpan ));
+					edit.addPerform( TimelineVisualEdit.position( this, Session.this, insertSpan.stop ));
+				}
+				edit.perform();
+				edit.end();
+				getUndoManager().addEdit( edit );
+			} else {
+				edit.cancel();
+			}
+		}
+
+		// mte will check pt.shouldCancel() itself
+		public void processCancel( ProcessingThread context ) { /* ignore */ }
+	} // class actionSilenceClass
 }

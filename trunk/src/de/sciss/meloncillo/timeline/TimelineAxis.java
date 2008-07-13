@@ -24,29 +24,37 @@
  *
  *
  *  Changelog:
- *		13-Jun-04   fixed label calculation
- *		12-Aug-04   commented
- *		14-Aug-04   shift+click to extend selection now more ergonomic.
- *      26-Dec-04   added online help
- *		29-Jan-05	bugfix in recalcLabels()
- *		25-Mar-05	turned into a subclass of Axis
+ *		12-May-05	re-created from de.sciss.meloncillo.timeline.TimelineAxis
+ *		16-Jul-05	allows to switch between time and samples units
+ *		13-Jul-08	copied back from EisK
  */
 
 // XXX TO-DO : dispose, removeTimelineListener
 
 package de.sciss.meloncillo.timeline;
 
-import java.awt.event.*;
-import javax.swing.undo.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.session.*;
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoableEdit;
 
-import de.sciss.app.*;
+import de.sciss.meloncillo.edit.TimelineVisualEdit;
+import de.sciss.meloncillo.gui.Axis;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
+import de.sciss.gui.ComponentHost;
 import de.sciss.gui.VectorSpace;
-import de.sciss.io.*;
+
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.DynamicAncestorAdapter;
+import de.sciss.app.DynamicListening;
+import de.sciss.app.DynamicPrefChangeManager;
+
+import de.sciss.io.Span;
 
 /**
  *  A GUI element for displaying
@@ -57,11 +65,12 @@ import de.sciss.io.*;
  *  timeline.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 20-Mar-08
  */
 public class TimelineAxis
 extends Axis
-implements TimelineListener, MouseListener, MouseMotionListener, DynamicListening
+implements	TimelineListener, MouseListener, MouseMotionListener,
+			DynamicListening, PreferenceChangeListener
 {
     private final Session   doc;
 
@@ -70,94 +79,119 @@ implements TimelineListener, MouseListener, MouseMotionListener, DynamicListenin
 	private long				selectionStart  = -1;
 	private boolean				shiftDrag, altDrag;
     
+	public TimelineAxis( Session doc )
+	{
+		this( doc, null );
+	}
+	
 	/**
 	 *  Constructs a new object for
 	 *  displaying the timeline ruler
 	 *
 	 *  @param  root	application root
-	 *  @param  doc		session document
+	 *  @param  doc		session Session
 	 */
-	public TimelineAxis( Main root, Session doc )
+	public TimelineAxis( Session doc, ComponentHost host )
 	{
-		super( HORIZONTAL, TIMEFORMAT );
+		super( HORIZONTAL, 0, host );
         
         this.doc    = doc;
 		
 		// --- Listener ---
         new DynamicAncestorAdapter( this ).addTo( this );
+        new DynamicAncestorAdapter( new DynamicPrefChangeManager(
+			AbstractApplication.getApplication().getUserPrefs(), new String[] { PrefsUtil.KEY_TIMEUNITS }, this
+		)).addTo( this );
 		this.addMouseListener( this );
 		this.addMouseMotionListener( this );
 
-		// ------
-//        HelpGlassPane.setHelp( this, "TimelineAxis" );	// EEE
+//		// ------
+//		HelpGlassPane.setHelp( this, "TimelineAxis" );
 	}
   
 	private void recalcSpace()
 	{
-		Span		visibleSpan;
-		double		d1;
-		VectorSpace	space;
+		final Span			visibleSpan;
+		final double		d1;
+		final VectorSpace	space;
 	
-		try {
-			doc.bird.waitShared( Session.DOOR_TIME );
+//		if( !doc.bird.attemptShared( Session.DOOR_TIME, 250 )) return;
+//		try {
 			visibleSpan = doc.timeline.getVisibleSpan();
-			d1			= 1.0 / doc.timeline.getRate();
-			space		= VectorSpace.createLinSpace( visibleSpan.getStart() * d1,
+			if( (getFlags() & TIMEFORMAT) == 0 ) {
+				space	= VectorSpace.createLinSpace( visibleSpan.getStart(),
+													  visibleSpan.getStop(),
+													  0.0, 1.0, null, null, null, null );
+			} else {
+				d1		= 1.0 / doc.timeline.getRate();
+				space	= VectorSpace.createLinSpace( visibleSpan.getStart() * d1,
 													  visibleSpan.getStop() * d1,
 													  0.0, 1.0, null, null, null, null );
+			}
 			setSpace( space );
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_TIME );
-		}
+//		}
+//		finally {
+//			doc.bird.releaseShared( Session.DOOR_TIME );
+//		}
 	}
 
 	// Sync: attempts doc.timeline
-    private void dragTimelinePosition( MouseEvent e )
-    {
-        int				x   = e.getX();
-        Span			span, span2;
-        long			position;
+	private void dragTimelinePosition( MouseEvent e )
+	{
+		int				x   = e.getX();
+		Span			span, span2;
+		long			position;
 		UndoableEdit	edit;
-	   
-        // translate into a valid time offset
-		if( !doc.bird.attemptExclusive( Session.DOOR_TIME, 200 )) return;
-		try {
-            span        = doc.timeline.getVisibleSpan();
-            position    = span.getStart() + (long) ((double) x / (double) getWidth() *
-                                                    (double) span.getLength());
-            position    = Math.max( 0, Math.min( doc.timeline.getLength(), position ));
-            
-            if( shiftDrag ) {
-				span2	= doc.timeline.getSelectionSpan();
-				if( altDrag || span2.isEmpty() ) {
-					selectionStart = doc.timeline.getPosition();
-					altDrag = false;
-				} else if( selectionStart == -1 ) {
-					selectionStart = Math.abs( span2.getStart() - position ) >
-									 Math.abs( span2.getStop() - position ) ?
-									 span2.getStart() : span2.getStop();
-				}
-				span	= new Span( Math.min( position, selectionStart ),
-									Math.max( position, selectionStart ));
-				edit	= TimelineVisualEdit.select( this, doc, span );
-            } else {
-				if( altDrag ) {
-					edit	= new CompoundEdit();
-					edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ));
-					edit.addEdit( TimelineVisualEdit.position( this, doc, position ));
-					((CompoundEdit) edit).end();
-					altDrag = false;
-				} else {
-					edit	= TimelineVisualEdit.position( this, doc, position );
-				}
-            }
-			doc.getUndoManager().addEdit( edit );
-		}
-		finally {
-			doc.bird.releaseExclusive( Session.DOOR_TIME );
+
+		// translate into a valid time offset
+        span        = doc.timeline.getVisibleSpan();
+        position    = span.getStart() + (long) ((double) x / (double) getWidth() *
+                                                span.getLength());
+        position    = Math.max( 0, Math.min( doc.timeline.getLength(), position ));
+        
+        if( shiftDrag ) {
+			span2	= doc.timeline.getSelectionSpan();
+			if( altDrag || span2.isEmpty() ) {
+				selectionStart = doc.timeline.getPosition();
+				altDrag = false;
+			} else if( selectionStart == -1 ) {
+				selectionStart = Math.abs( span2.getStart() - position ) >
+								 Math.abs( span2.getStop() - position ) ?
+								 span2.getStart() : span2.getStop();
+			}
+			span	= new Span( Math.min( position, selectionStart ),
+								Math.max( position, selectionStart ));
+			edit	= TimelineVisualEdit.select( this, doc, span ).perform();
+        } else {
+			if( altDrag ) {
+				edit	= new CompoundEdit();
+				edit.addEdit( TimelineVisualEdit.select( this, doc, new Span() ).perform() );
+				edit.addEdit( TimelineVisualEdit.position( this, doc, position ).perform() );
+				((CompoundEdit) edit).end();
+				altDrag = false;
+			} else {
+				edit	= TimelineVisualEdit.position( this, doc, position ).perform();
+			}
         }
-    }
+		doc.getUndoManager().addEdit( edit );
+	}
+
+// ---------------- PreferenceChangeListener interface ---------------- 
+
+		public void preferenceChange( PreferenceChangeEvent e )
+		{
+			final String key = e.getKey();
+			
+			if( key.equals( PrefsUtil.KEY_TIMEUNITS )) {
+				int timeUnits = e.getNode().getInt( key, 0 );
+				if( timeUnits == 0 ) {
+					setFlags( INTEGERS );
+				} else {
+					setFlags( TIMEFORMAT );
+				}
+				recalcSpace();
+			}
+		}
 
 // ---------------- DynamicListening interface ---------------- 
 
@@ -179,33 +213,32 @@ implements TimelineListener, MouseListener, MouseMotionListener, DynamicListenin
 //		if( isEnabled() ) dispatchMouseMove( e );
 	}
 	
-	public void mouseExited( MouseEvent e ) {}
-
 	public void mousePressed( MouseEvent e )
-    {
+	{
 		shiftDrag		= e.isShiftDown();
 		altDrag			= e.isAltDown();
 		selectionStart  = -1;
-        dragTimelinePosition( e );
-    }
+		dragTimelinePosition( e );
+	}
 
-	public void mouseReleased( MouseEvent e ) {}
-	public void mouseClicked( MouseEvent e ) {}
+	public void mouseExited( MouseEvent e ) { /* ignore */ }
+	public void mouseReleased( MouseEvent e ) { /* ignore */ }
+	public void mouseClicked( MouseEvent e ) { /* ignore */ }
 
 // ---------------- MouseMotionListener interface ---------------- 
 // we're listening to ourselves
 
-    public void mouseMoved( MouseEvent e ) {}
+    public void mouseMoved( MouseEvent e ) { /* ignore */ }
 
 	public void mouseDragged( MouseEvent e )
 	{
-        dragTimelinePosition( e );
+		dragTimelinePosition( e );
 	}
 
 // ---------------- TimelineListener interface ---------------- 
   
-   	public void timelineSelected( TimelineEvent e ) {}
-	public void timelinePositioned( TimelineEvent e ) {}
+   	public void timelineSelected( TimelineEvent e ) { /* ignore */ }
+	public void timelinePositioned( TimelineEvent e ) { /* ignore */ }
 
 	public void timelineChanged( TimelineEvent e )
 	{

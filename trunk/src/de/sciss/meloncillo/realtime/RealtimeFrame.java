@@ -148,7 +148,9 @@ extends AbstractPlugInFrame
 
 	private RealtimeContext createRealtimeContext()
 	{
-		return transport.getContext();
+		// EEE XXX
+		return null;
+//		return transport.getContext();
 	}
 
 	private boolean isRealtimeContextValid( RealtimeContext context )

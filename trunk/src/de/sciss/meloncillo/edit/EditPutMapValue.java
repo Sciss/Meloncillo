@@ -24,14 +24,15 @@
  *
  *
  *  Changelog:
- *		08-Apr-05	created
+ *		17-Sep-05	copied from de.sciss.inertia.edit.EditPutMapValue
+ *		13-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.edit;
 
 import de.sciss.app.BasicUndoableEdit;
 import de.sciss.app.PerformableEdit;
-import de.sciss.meloncillo.util.LockManager;
+
 import de.sciss.meloncillo.util.MapManager;
 
 /**
@@ -39,20 +40,19 @@ import de.sciss.meloncillo.util.MapManager;
  *  describes the modification of a map.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 01-May-06
  *
  *  @see		UndoManager
- *	@see		de.sciss.meloncillo.util.MapManager
+ *	@see		de.sciss.eisenkraut.util.MapManager
  */
 public class EditPutMapValue
 extends BasicUndoableEdit
 {
 	private Object				source;
-	private final LockManager	lm;
 	private final MapManager	map;
 	private final String		key;
 	private final Object		oldValue, newValue;
-	private final int			doors;
+	private final String		name;
 
 	/**
 	 *  Create and perform this edit. This
@@ -67,36 +67,33 @@ extends BasicUndoableEdit
 	 *	@param	key				the map entry to change
 	 *  @param  value			the new property value
 	 *
-	 *  @see	de.sciss.meloncillo.util.MapManager#putValue( Object, String, Object )
-	 *  @see	de.sciss.meloncillo.util.MapManager.Event
+	 *  @see	de.sciss.eisenkraut.util.MapManager#putValue( Object, String, Object )
+	 *  @see	de.sciss.eisenkraut.util.MapManager.Event
 	 *
 	 *  @synchronization		<code>lm.waitExclusive()</code> on <code>doors</code>
 	 */
-	public EditPutMapValue( Object source, LockManager lm, int doors,
-							MapManager map, String key, Object value )
+	public EditPutMapValue( Object source,
+							MapManager map, String key, Object value, String name )
 	{
 		super();
 		this.source			= source;
-		this.lm				= lm;
-		this.doors			= doors;
 		this.map			= map;
 		this.key			= key;
-		this.newValue		= value;
-		this.oldValue		= map.getValue( key );
-//		perform();
-//		this.source			= this;
+		newValue			= value;
+		oldValue			= map.getValue( key );
+		this.name			= name;
+	}
+
+	public EditPutMapValue( Object source,
+							MapManager map, String key, Object value )
+	{
+		this( source, map, key, value, null );
 	}
 
 	public PerformableEdit perform()
 	{
-		try {
-			if( lm != null ) lm.waitExclusive( doors );
-			map.putValue( source, key, newValue );
-			source	= this;
-		}
-		finally {
-			if( lm != null ) lm.releaseExclusive( doors );
-		}
+		map.putValue( source, key, newValue );
+		source			= this;
 		return this;
 	}
 
@@ -110,13 +107,7 @@ extends BasicUndoableEdit
 	public void undo()
 	{
 		super.undo();
-		try {
-			if( lm != null ) lm.waitExclusive( doors );
-			map.putValue( source, key, oldValue );
-		}
-		finally {
-			if( lm != null ) lm.releaseExclusive( doors );
-		}
+		map.putValue( source, key, oldValue );
 	}
 	
 	/**
@@ -133,8 +124,8 @@ extends BasicUndoableEdit
 		perform();
 	}
 
-	public String getPresentationProperty()
+	public String getPresentationName()
 	{
-		return getResourceString( "editPutMapValue" );
+		return name == null ? getResourceString( "editPutMapValue" ) : name;
 	}
 }

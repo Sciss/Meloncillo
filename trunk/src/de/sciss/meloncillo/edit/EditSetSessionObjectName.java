@@ -31,7 +31,6 @@ package de.sciss.meloncillo.edit;
 
 import de.sciss.app.BasicUndoableEdit;
 import de.sciss.app.PerformableEdit;
-import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionObject;
 
 /**
@@ -46,10 +45,8 @@ public class EditSetSessionObjectName
 extends BasicUndoableEdit
 {
 	private Object				source;
-	private final Session		doc;
 	private final SessionObject	so;
 	private final String		oldName, newName;
-	private final int			doors;
 
 	/**
 	 *  Create and perform this edit. This
@@ -68,30 +65,20 @@ extends BasicUndoableEdit
 	 *							the session's xml file requires that
 	 *							all session objects have different names(?).
 	 */
-	public EditSetSessionObjectName( Object source, Session doc, SessionObject so, String name, int doors )
+	public EditSetSessionObjectName( Object source, SessionObject so, String name )
 	{
 		super();
 		this.source			= source;
-		this.doc			= doc;
 		this.so				= so;
 		this.newName		= name;
 		this.oldName		= so.getName();
-		this.doors			= doors;
-//		perform();
-//		this.source			= this;
 	}
 
 	public PerformableEdit perform()
 	{
-		try {
-			doc.bird.waitExclusive( doors );
-			so.setName( newName );
-			so.getMap().dispatchOwnerModification( source, SessionObject.OWNER_RENAMED, newName );
-			source = this;
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		so.setName( newName );
+		so.getMap().dispatchOwnerModification( source, SessionObject.OWNER_RENAMED, newName );
+		source = this;
 		return this;
 	}
 
@@ -105,14 +92,8 @@ extends BasicUndoableEdit
 	public void undo()
 	{
 		super.undo();
-		try {
-			doc.bird.waitExclusive( doors );
-			so.setName( oldName );
-			so.getMap().dispatchOwnerModification( source, SessionObject.OWNER_RENAMED, oldName );
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		so.setName( oldName );
+		so.getMap().dispatchOwnerModification( source, SessionObject.OWNER_RENAMED, oldName );
 	}
 	
 	/**
