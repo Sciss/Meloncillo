@@ -130,11 +130,11 @@ extends TableLookupReceiver
 		map.putContext( null, MAP_KEY_INNERDIAM, new MapManager.Context(  MapManager.Context.FLAG_OBSERVER_DISPLAY |
 																		  MapManager.Context.FLAG_VISUAL,
 																		  MapManager.Context.TYPE_DOUBLE, spcDiam,
-																		  "labelInnerDiam", null, new Double( 0.25 )));
+																		  "labelInnerDiam", null, new Double( 0.5 )));
 		map.putContext( null, MAP_KEY_OUTERDIAM, new MapManager.Context(  MapManager.Context.FLAG_OBSERVER_DISPLAY |
 																		  MapManager.Context.FLAG_VISUAL,
 																		  MapManager.Context.TYPE_DOUBLE, spcDiam,
-																		  "labelOuterDiam", null, new Double( 0.75 )));
+																		  "labelOuterDiam", null, new Double( 1.5 )));
 		map.putContext( null, MAP_KEY_ANGLESTART, new MapManager.Context( MapManager.Context.FLAG_OBSERVER_DISPLAY |
 																		  MapManager.Context.FLAG_VISUAL,
 																		  MapManager.Context.TYPE_DOUBLE, spcArc,

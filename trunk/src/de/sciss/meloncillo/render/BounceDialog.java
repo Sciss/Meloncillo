@@ -72,7 +72,7 @@ extends BasicRenderDialog
 	public BounceDialog( Main root, Session doc )
 	{
 		super( root, doc, AbstractApplication.getApplication().getResourceString( "frameBounce" ),
-			GADGET_RESAMPLING | GADGET_SELECTION );
+			/* GADGET_RESAMPLING | */ GADGET_SELECTION );
 //		HelpGlassPane.setHelp( this.getRootPane(), "BounceDialog" );	// EEE
 		addListener( new AbstractWindow.Adapter() {
 			public void windowClosing( AbstractWindow.Event e )

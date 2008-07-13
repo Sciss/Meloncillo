@@ -177,8 +177,9 @@ implements PreferenceChangeListener
 		
 		Container cp = getContentPane();
 		cp.setLayout( new BorderLayout() );
-		
-		createSettingsMenu();
+
+// EEE
+//		createSettingsMenu();
 		createGadgets( flags );
 		
 //		glassPane   = new HibernationGlassPane( ggSettingsPane, getContentPane() );
@@ -189,7 +190,8 @@ implements PreferenceChangeListener
 
 		JPanel toptopPanel = new JPanel( new BorderLayout() );
 		toptopPanel.add( topPanel, BorderLayout.CENTER );
-		toptopPanel.add( ggSettingsMenu, BorderLayout.NORTH );
+// EEE
+//		toptopPanel.add( ggSettingsMenu, BorderLayout.NORTH );
 
 		cp.add( toptopPanel, BorderLayout.NORTH );
 		cp.add( ggSettingsPane, BorderLayout.CENTER );

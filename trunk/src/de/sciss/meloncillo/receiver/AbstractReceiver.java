@@ -30,13 +30,18 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.geom.*;
-import java.io.*;
-import java.util.*;
-import org.w3c.dom.*;
+import java.awt.geom.Point2D;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import de.sciss.meloncillo.session.AbstractSessionObject;
+import de.sciss.meloncillo.session.BasicSessionCollection;
+import de.sciss.meloncillo.session.MutableSessionCollection;
+import de.sciss.meloncillo.util.MapManager;
 import de.sciss.util.NumberSpace;
 
 /**

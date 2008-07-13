@@ -141,11 +141,11 @@ extends TableLookupReceiver
 		map.putContext( null, MAP_KEY_WIDTH, new MapManager.Context(  MapManager.Context.FLAG_OBSERVER_DISPLAY |
 																	  MapManager.Context.FLAG_VISUAL,
 																	  MapManager.Context.TYPE_DOUBLE, spcCoord, "labelW",
-																	  null, new Double( 0.5 )));
+																	  null, new Double( 1.0 )));
 		map.putContext( null, MAP_KEY_HEIGHT, new MapManager.Context( MapManager.Context.FLAG_OBSERVER_DISPLAY |
 																	  MapManager.Context.FLAG_VISUAL,
 																	  MapManager.Context.TYPE_DOUBLE, spcCoord, "labelH",
-																	  null, new Double( 0.5 )));
+																	  null, new Double( 1.0 )));
 	}
 	
 	protected void recalcBounds()

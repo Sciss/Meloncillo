@@ -68,6 +68,7 @@ import java.awt.geom.Arc2D;
 import java.awt.geom.Area;
 import java.awt.geom.CubicCurve2D;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -122,6 +123,7 @@ import de.sciss.meloncillo.io.AudioStake;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.DecimatedTrail;
+import de.sciss.meloncillo.io.DecimatedWaveTrail;
 import de.sciss.meloncillo.io.DecimationInfo;
 import de.sciss.meloncillo.math.MathUtil;
 import de.sciss.meloncillo.realtime.RealtimeConsumer;
@@ -141,6 +143,7 @@ import de.sciss.meloncillo.timeline.TimelineEvent;
 import de.sciss.meloncillo.timeline.TimelineListener;
 import de.sciss.meloncillo.transmitter.TrajectoryGenerator;
 import de.sciss.meloncillo.transmitter.Transmitter;
+import de.sciss.meloncillo.util.Dimension2DDouble;
 import de.sciss.meloncillo.util.MapManager;
 import de.sciss.meloncillo.util.PointInTime;
 import de.sciss.meloncillo.util.PrefsUtil;
@@ -208,7 +211,8 @@ implements  VirtualSurface, TimelineListener,
 	private static final	Color   colrTrnsDark	= new Color( 0x00, 0xAB, 0x00 );
 
 	// XXX move to GraphicsUtil
-    private static final	Font	fntLabel		= new Font( "Gill Sans", Font.ITALIC, 5 );
+//    private static final	Font	fntLabel		= new Font( "Gill Sans", Font.ITALIC, 5 );
+    private static final	Font	fntLabel		= new Font( "Gill Sans", Font.ITALIC, 10 );
 
 	private final BufferedImage bufImg;
 	private final int bufImgExtent			= 256;  // XXX user prefs
@@ -270,15 +274,14 @@ implements  VirtualSurface, TimelineListener,
 	
 	static {
 		// --- Strokes ---
-		float[] dash	= { 5.0e-3f, 5.0e-3f };
-		strkDottedLine  = new BasicStroke( 2.0e-3f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_BEVEL, 1.0f, dash, 0.0f );
-		strkLine		= new BasicStroke( 2.0e-3f );
+		float[] dash	= { 1.0e-2f, 1.0e-2f };
+		strkDottedLine  = new BasicStroke( 4.0e-3f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_BEVEL, 1.0f, dash, 0.0f );
+		strkLine		= new BasicStroke( 4.0e-3f );
 		// --- Shapes ---
-		shpCrossHair	= new Area( new Rectangle2D.Float( -1.0e-2f, -1.0e-3f, 2.0e-2f, 2.0e-3f ));
-		((Area) shpCrossHair).add( new Area( new Rectangle2D.Float( -1.0e-3f, -1.0e-2f, 2.0e-3f, 2.0e-2f )));
+		shpCrossHair	= new Area( new Rectangle2D.Float( -2.0e-2f, -2.0e-3f, 4.0e-2f, 4.0e-3f ));
+		((Area) shpCrossHair).add( new Area( new Rectangle2D.Float( -2.0e-3f, -2.0e-2f, 4.0e-3f, 4.0e-2f )));
 
-		grpKeys = new ArrayList( 1 );
-		grpKeys.add( SessionGroup.MAP_KEY_USERIMAGE );
+		grpKeys = Collections.singletonList( SessionGroup.MAP_KEY_USERIMAGE );
 	}
 
 	/**
@@ -542,10 +545,10 @@ implements  VirtualSurface, TimelineListener,
 		if( !prefRcvSense ) return;
 	
 		WritableRaster  rast		= bufImg.getRaster();
-		float			scaleDown	= 1.0f / (float) bufImgExtent;
+		float			scaleDown	= 2.0f / (float) bufImgExtent;
 		int				x, y, i, rcvIdx, x1, x2, y1, y2, numRcv;
 		float			f1;
-		java.util.List	collRcv;
+		List			collRcv;
 
 		if( clipRect == null ) {
 			x1  = 0;
@@ -553,16 +556,16 @@ implements  VirtualSurface, TimelineListener,
 			x2  = bufImgExtent;
 			y2  = bufImgExtent;
 		} else {
-			x1  = Math.max( 0, (int) (clipRect.getMinX() * bufImgExtent) );
-			y1  = Math.max( 0, (int) (clipRect.getMinY() * bufImgExtent) );
-			x2  = Math.min( bufImgExtent, (int) Math.ceil( clipRect.getMaxX() * bufImgExtent ));
-			y2  = Math.min( bufImgExtent, (int) Math.ceil( clipRect.getMaxY() * bufImgExtent ));
+			x1  = Math.max( 0, (int) ((clipRect.getMinX() + 1.0) / 2 * bufImgExtent) );
+			y1  = Math.max( 0, (int) ((clipRect.getMaxY() - 1.0) / 2 * -bufImgExtent) );
+			x2  = Math.min( bufImgExtent, (int) Math.ceil( (clipRect.getMaxX() + 1.0) / 2 * bufImgExtent ));
+			y2  = Math.min( bufImgExtent, (int) Math.ceil( (clipRect.getMinY() - 1.0) / 2 * -bufImgExtent ));
 		}
 
 		// we calculate full rows at once, hence
 		// we can precalc the x coords for all rows
 		for( x = x1; x < x2; x++ ) {
-			bufImgPt[ 0 ][ x ] = x * scaleDown;
+			bufImgPt[ 0 ][ x ] = x * scaleDown - 1.0f;
 		}
 
 		if( !doc.bird.attemptShared( Session.DOOR_RCV | Session.DOOR_GRP, 250 )) return;
@@ -588,7 +591,7 @@ implements  VirtualSurface, TimelineListener,
 //					((Receiver) collRcv.get( 0 )).getSize().getHeight() );
 
 				for( y = y1; y < y2; y++ ) {
-					f1 = y * scaleDown;
+					f1 = 1f - (y * scaleDown);
 					// all points in a row share the same y coord
 					for( x = x1; x < x2; x++ ) {
 						bufImgPt[ 1 ][ x ] = f1;
@@ -622,7 +625,7 @@ implements  VirtualSurface, TimelineListener,
 				}
 			} else {		// ----------------------- linear ----------------------- 
 				for( y = y1; y < y2; y++ ) {
-					f1 = y * scaleDown;
+					f1 = 1f - (y * scaleDown);
 					// all points in a row share the same y coord
 					for( x = x1; x < x2; x++ ) {
 						bufImgPt[ 1 ][ x ] = f1;
@@ -736,13 +739,13 @@ implements  VirtualSurface, TimelineListener,
 	{
 //		super.paintComponent( g );
 		
-		Dimension			d			= getSize();
-		int					diam		= Math.min( d.width, d.height );
-		Graphics2D			g2			= (Graphics2D) g;
-		AffineTransform		trnsOrig	= g2.getTransform();
-		AffineTransform		trnsRecent;
-		Stroke				strkOrig	= g2.getStroke();
-		int					i;
+		final Dimension				d			= getSize();
+		final int					diam		= Math.min( d.width, d.height ) - 1;
+		final double				diamH		= diam * 0.5;
+		final Graphics2D			g2			= (Graphics2D) g;
+		final AffineTransform		trnsOrig	= g2.getTransform();
+		final Stroke				strkOrig	= g2.getStroke();
+		final AffineTransform		trnsRecent;
 		
 		if( (recentSize.width != d.width) || (recentSize.height != d.height) ) {
 			recentSize = d;
@@ -751,7 +754,8 @@ implements  VirtualSurface, TimelineListener,
 		}
 		if( image != null ) g.drawImage( image, 0, 0, this );
 
-		g2.scale( diam, diam );		// virtual space has dimension 1.0 x 1.0
+		g2.scale( diamH, -diamH );		// virtual space has dimension 1.0 x 1.0
+		g2.translate( 1.0, -1.0 );
 		g2.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON );
 //		g2.setRenderingHint( RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC );
 //		g2.setRenderingHint( RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY );
@@ -763,11 +767,11 @@ implements  VirtualSurface, TimelineListener,
 		// --- transmitters ---
 		if( rt_valid ) {
 			g2.setColor( prefRcvSense ? colrTrnsLight : colrTrnsDark );
-			for( i = rt_trnsNames.length - 1; i >= 0; i-- ) {
+			for( int i = rt_trnsNames.length - 1; i >= 0; i-- ) {
                 g2.translate( rt_trnsLocX[ i ], rt_trnsLocY[ i ]);
                 g2.fill( shpCrossHair );
 				g2.scale( 5.0e-3f, 5.0e-3f );   // the scaling is necessary because we cannot get font size < 1
-				if( rt_trnsNames[ i ] != null ) g2.drawString( rt_trnsNames[ i ], 1.0f, -1.0f );
+				if( rt_trnsNames[ i ] != null ) g2.drawString( rt_trnsNames[ i ], 2.0f, -2.0f );
                 g2.setTransform( trnsRecent );  // undo translation and scaling
             }
 		}
@@ -777,7 +781,7 @@ implements  VirtualSurface, TimelineListener,
 		if( activeTool != null ) activeTool.paintOnTop( g2 );
 
 		// --- invoke top painters ---
-		for( i = 0; i < collTopPainters.size(); i++ ) {
+		for( int i = 0; i < collTopPainters.size(); i++ ) {
 			((TopPainter) collTopPainters.get( i )).paintOnTop( g2 );
 		}
 
@@ -797,12 +801,12 @@ implements  VirtualSurface, TimelineListener,
 	{
 		if( image == null ) return;
 
-		int				diam		= Math.min( recentSize.width, recentSize.height );
-		Graphics2D		g2			= (Graphics2D) image.getGraphics();
-		AffineTransform trnsRecent;
-		ReceiverShape   rcvShp;
-		int				i;
-		Image			userImg;
+		final int				diam		= Math.min( recentSize.width, recentSize.height ) - 1;
+		final double			diamH		= diam * 0.5;
+		final Graphics2D		g2			= (Graphics2D) image.getGraphics();
+		final AffineTransform 	trnsRecent;
+		ReceiverShape   		rcvShp;
+		Image					userImg;
 		
 		// --- surface image ---
 		if( prefRcvSense ) {
@@ -812,13 +816,14 @@ implements  VirtualSurface, TimelineListener,
 			g2.fillRect( 0, 0, recentSize.width, recentSize.height );
 		}
 		if( prefUserImages ) {
-			for( i = 0; i < collUserImages.size(); i++ ) {
+			for( int i = 0; i < collUserImages.size(); i++ ) {
 				userImg = (Image) collUserImages.get( i );
 //System.err.println( "userImg w "+userImg.getWidth( this )+" ; h "+userImg.getHeight( this ));
 				g2.drawImage( userImg, 0, 0, diam, diam, this );
 			}
 		}
-		g2.scale( diam, diam );		// virtual space has dimension 1.0 x 1.0
+		g2.scale( diamH, diamH );		// virtual space has dimension 1.0 x 1.0
+		g2.translate( 1.0, 1.0 );
 		g2.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON );
 //		g2.setRenderingHint( RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC );
 //		g2.setRenderingHint( RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY );
@@ -826,10 +831,10 @@ implements  VirtualSurface, TimelineListener,
 
 		trnsRecent = g2.getTransform();
 	// --- active selection ---
-		for( i = 0; i < collReceiverShapes.size(); i++ ) {
+		for( int i = 0; i < collReceiverShapes.size(); i++ ) {
 			rcvShp = (ReceiverShape) collReceiverShapes.get( i );
 			if( rcvShp.selected ) {
-				g2.translate( rcvShp.loc.getX(), rcvShp.loc.getY() );
+				g2.translate( rcvShp.loc.getX(), -rcvShp.loc.getY() );
 				g2.setColor( colrSelection );
 				g2.fill( rcvShp.outline );
 				g2.setTransform( trnsRecent );  // undo translation
@@ -837,10 +842,10 @@ implements  VirtualSurface, TimelineListener,
 		}
 	// --- receivers ---
 		g2.setStroke( strkDottedLine );
-		for( i = 0; i < collReceiverShapes.size(); i++ ) {
+		for( int i = 0; i < collReceiverShapes.size(); i++ ) {
 			rcvShp = (ReceiverShape) collReceiverShapes.get( i );
 			g2.setColor( rcvShp.selected ? colrTextSelection : colrReceiver );
-			g2.translate( rcvShp.loc.getX(), rcvShp.loc.getY() );
+			g2.translate( rcvShp.loc.getX(), -rcvShp.loc.getY() );
 			g2.draw( rcvShp.outline );
 			g2.fill( shpCrossHair );
 			g2.scale( 5.0e-3f, 5.0e-3f );   // the scaling is necessary because we cannot get font size < 1
@@ -851,7 +856,7 @@ implements  VirtualSurface, TimelineListener,
 	// --- transmitter selected trajectories ---
 		if( prefTrnsTraj ) {
 			g2.setColor( prefRcvSense ? colrTrnsLight : colrTrnsDark );
-			for( i = 0; i < collTransmitterPath.size(); i++ ) {
+			for( int i = 0; i < collTransmitterPath.size(); i++ ) {
 				g2.draw( (Shape) collTransmitterPath.get( i ));
 			}
 		}
@@ -945,7 +950,6 @@ implements  VirtualSurface, TimelineListener,
 	 */
     private void updateTransmitterPath()
     {
-/* EEE
         int						j, reqLen, pathLen, len, lastLen;
         Transmitter				trns;
         Span					span;
@@ -954,7 +958,7 @@ implements  VirtualSurface, TimelineListener,
         GeneralPath				path	= null;
 		DecimationInfo			info;
 //		AudioTrail				at;
-		DecimatedTrail			dt;			
+		DecimatedWaveTrail		dwt;			
 		float					lx, ly;
 		List					collTrns;
         
@@ -964,13 +968,13 @@ implements  VirtualSurface, TimelineListener,
 			collTransmitterPath.clear();
 			if( span.getLength() < 2 ) return;
 
-			collTrns	= doc.activeTransmitters.getAll();
-			collTrns.retainAll( doc.selectedTransmitters.getAll() );
+			collTrns	= doc.getActiveTransmitters().getAll();
+			collTrns.retainAll( doc.getSelectedTransmitters().getAll() );
 			
 			for( int i = 0; i < collTrns.size(); i++ ) {
 				trns	= (Transmitter) collTrns.get( i );
 //				at		= trns.getTrackEditor();
-				dt		= trns.getDecimatedWaveTrail();
+				dwt		= trns.getDecimatedWaveTrail();
 				
 				// performance measures show that this routine is
 				// vey fast, like one or two millisecs, while the draw method
@@ -983,7 +987,7 @@ implements  VirtualSurface, TimelineListener,
 				// it actually contains, and if these exceed 256 we'll restart
 				// with a smaller subsample.
 				for( reqLen = 1024, pathLen = 257, len = -1; pathLen > 256; reqLen >>= 1 ) {
-					info	= dt.getBestSubsample( span, reqLen );
+					info	= dwt.getBestSubsample( span, reqLen );
 					lastLen = len;
 					len		= (int) info.sublength;
 					if( lastLen == len ) continue;
@@ -991,7 +995,11 @@ implements  VirtualSurface, TimelineListener,
 					if( frames == null || frames[0].length < len ) {
 						frames = new float[2][len];
 					}
-					dt.read( info, frames, 0 );
+//					dwt.readFrame( sub, pos, ch, data );
+					
+//					dwt.read( info, frames, 0 );
+trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span.start + len ));
+					
 					x		= frames[0];
 					y		= frames[1];
 					path	= new GeneralPath( GeneralPath.WIND_EVEN_ODD, len );
@@ -1019,7 +1027,6 @@ implements  VirtualSurface, TimelineListener,
 		finally {
 			doc.bird.releaseShared( Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
 		}
-*/
     }
 
 	/*
@@ -1029,24 +1036,17 @@ implements  VirtualSurface, TimelineListener,
 	 */
     private void updateReceiverShapes()
     {
-        int				i;
         Receiver		rcv;
-		java.util.List	collRcv;
-		java.util.List	collRcvSel;
+        final List		collRcv;
+		final List		collRcvSel;
 
-		try {
-			doc.bird.waitShared( Session.DOOR_RCV | Session.DOOR_GRP );
-			collRcvSel	= doc.getSelectedReceivers().getAll();
-			collRcv		= doc.getActiveReceivers().getAll();
-			collReceiverShapes.clear();
-			for( i = 0; i < collRcv.size(); i++ ) {
-				rcv = (Receiver) collRcv.get( i );
-				collReceiverShapes.add( new ReceiverShape(
-					rcv.getAnchor(), rcv.getOutline(), rcv.getName(), collRcvSel.contains( rcv )));
-			}
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_RCV | Session.DOOR_GRP );
+		collRcvSel	= doc.getSelectedReceivers().getAll();
+		collRcv		= doc.getActiveReceivers().getAll();
+		collReceiverShapes.clear();
+		for( int i = 0; i < collRcv.size(); i++ ) {
+			rcv = (Receiver) collRcv.get( i );
+			collReceiverShapes.add( new ReceiverShape(
+                rcv.getAnchor(), rcv.getOutline(), rcv.getName(), collRcvSel.contains( rcv )));
 		}
     }
 
@@ -1177,9 +1177,14 @@ implements  VirtualSurface, TimelineListener,
 	 */
 	public Point2D screenToVirtual( Point2D screenPt )
 	{
-		Dimension   d		= getSize();
-		int			diam	= Math.min( d.width, d.height );
-		return new Point2D.Double( screenPt.getX() / diam, screenPt.getY() / diam );
+		final Dimension d		= getSize();
+		final int		diam	= Math.min( d.width, d.height ) - 1;
+		final double	diamRH	= 2.0 / diam;
+
+//System.out.println( "diam " + diam + "; diamRH " + diamRH + "; screenPt " + screenPt + "; --> " +
+//                    (screenPt.getX() * diamRH - 1) + ", " + (1 - screenPt.getY() * diamRH) );
+		
+		return new Point2D.Double( screenPt.getX() * diamRH - 1, 1 - screenPt.getY() * diamRH );
 	}
 
 	/**
@@ -1194,9 +1199,10 @@ implements  VirtualSurface, TimelineListener,
 	 */
 	public Point2D virtualToScreen( Point2D virtualPt )
 	{
-		Dimension   d		= getSize();
-		int			diam	= Math.min( d.width, d.height );
-		return new Point2D.Double( virtualPt.getX() * diam, virtualPt.getY() * diam );
+		final Dimension	d		= getSize();
+		final int		diam	= Math.min( d.width, d.height ) - 1;
+		final double	diamH	= diam * 0.5;
+		return new Point2D.Double( (virtualPt.getX() + 1) * diamH, (1 - virtualPt.getY()) * diamH );
 	}
 
 	/**
@@ -1210,15 +1216,23 @@ implements  VirtualSurface, TimelineListener,
 	 */
 	public Rectangle virtualToScreenClip( Rectangle2D virtualClip )
 	{
-		Dimension   d			= getSize();
-		int			diam		= Math.min( d.width, d.height );
+		final Dimension	d			= getSize();
+		final int		diam		= Math.min( d.width, d.height ) - 1;
+		final double	diamH		= diam * 0.5;
 		// die vergroesserung der rechtecks um einige pixel haengt damit zusammen, dass das bufImg
 		// vergroessert gezeichnet wird und weitere pixel durch antialiasing interpolation
 		// eingefaerbt werden!
-		Rectangle   screenClip  = new Rectangle( (int) (virtualClip.getX() * diam) - 1, (int) (virtualClip.getY() * diam) - 1,
-												 (int) (virtualClip.getWidth() * diam) + 4, (int) (virtualClip.getHeight() * diam) + 4 );
+		final Rectangle	screenClip  = new Rectangle( (int) ((virtualClip.getX() + 1) * diamH) - 1, (int) ((virtualClip.getMaxY() - 1) * -diamH) - 1,
+		               	                             (int) (virtualClip.getWidth() * diamH) + 4, (int) (virtualClip.getHeight() * diamH) + 4 );
+		
+		System.out.println( "v = " + virtualClip + " -> s " + screenClip );
+		
 		return screenClip;
 	}
+	
+//	final AffineTransform	at		= AffineTransform.getScaleInstance( diamH, -diamH );
+//	at.translate( 1.0, -1.0 );
+	
 
 	/**
 	 *  Converts a shape in the virtual space
@@ -1229,10 +1243,16 @@ implements  VirtualSurface, TimelineListener,
 	 */
 	public Shape virtualToScreen( Shape virtualShape )
 	{
-		Dimension   d		= getSize();
-		int			diam	= Math.min( d.width, d.height );
+		final Dimension			d		= getSize();
+		final int				diam	= Math.min( d.width, d.height ) - 1;
+		final double			diamH	= diam * 0.5;
+//		final AffineTransform	at		= AffineTransform.getTranslateInstance( 1.0, 1.0 );
+//		at.scale( diam * 0.5, diam * 0.5 );
+		final AffineTransform	at		= AffineTransform.getScaleInstance( diamH, -diamH );
+		at.translate( 1.0, -1.0 );
 		
-		return AffineTransform.getScaleInstance( diam, diam ).createTransformedShape( virtualShape );
+//		return AffineTransform.getScaleInstance( diam, diam ).createTransformedShape( virtualShape );
+		return at.createTransformedShape( virtualShape );
 	}
 
 	/**
@@ -1244,10 +1264,14 @@ implements  VirtualSurface, TimelineListener,
 	 */
 	public Shape screenToVirtual( Shape screenShape )
 	{
-		Dimension   d		= getSize();
-		double		diam	= 1.0 / (double) Math.min( d.width, d.height );
+		final Dimension			d		= getSize();
+		final double			diamHR	= 2.0 / (double) (Math.min( d.width, d.height ) - 1);
+//		final AffineTransform	at		= AffineTransform.getScaleInstance( diamHR, diamHR );
+//		at.translate( -1.0, -1.0 );
+		final AffineTransform	at		= AffineTransform.getTranslateInstance( -1.0, 1.0 );
+		at.scale( diamHR, -diamHR );
 		
-		return AffineTransform.getScaleInstance( diam, diam ).createTransformedShape( screenShape );
+		return at.createTransformedShape( screenShape );
 	}
 
 	private void showCursorInfo( Point2D pt )
@@ -1744,45 +1768,44 @@ implements  VirtualSurface, TimelineListener,
 				if( ptDeltaMouse.getX()*ptDeltaMouse.getX()+ptDeltaMouse.getY()*ptDeltaMouse.getY() <= 25.0 ) return;
 			}
 
-			if( !doc.bird.attemptShared( Session.DOOR_RCV, 250 )) {
-				finishGesture();
-				return;
-			}
-			try {
-				dndColl = doc.getSelectedReceivers().getAll();
-				if( !dndDragging ) {
-					dndDragging		= true;
-					dndRecentRect   = getUnionRect( dndColl );
-					dndAnchorRef.clear();
-					for( i = 0; i < dndColl.size(); i++ ) {
-						rcv = (Receiver) dndColl.get( i );
-						dndAnchorRef.put( rcv, rcv.getAnchor() );
-					}
-				}
-				ptMouseTrns = screenToVirtual( ptDeltaMouse );
+			dndColl = doc.getSelectedReceivers().getAll();
+			if( !dndDragging ) {
+				dndDragging		= true;
+				dndRecentRect   = getUnionRect( dndColl );
+				dndAnchorRef.clear();
 				for( i = 0; i < dndColl.size(); i++ ) {
-					rcv			= (Receiver) dndColl.get( i );
-					ptAnchor	= (Point2D) dndAnchorRef.get( rcv );
-					if( ptAnchor != null ) {
+					rcv = (Receiver) dndColl.get( i );
+					dndAnchorRef.put( rcv, rcv.getAnchor() );
+				}
+			}
+//			ptMouseTrns = screenToVirtual( ptDeltaMouse );
+			final Point2D ptTrns1 = screenToVirtual( dndFirstEvent.getPoint() );
+			final Point2D ptTrns2 = screenToVirtual( e.getPoint() );
+			ptMouseTrns = new Point2D.Double( ptTrns2.getX() - ptTrns1.getX(),
+			                                  ptTrns2.getY() - ptTrns1.getY() );
+			
+			for( i = 0; i < dndColl.size(); i++ ) {
+				rcv			= (Receiver) dndColl.get( i );
+				ptAnchor	= (Point2D) dndAnchorRef.get( rcv );
+				if( ptAnchor != null ) {
 // XXX need to exclude our own anchor in the snap method() !
 //						rcv.setAnchor( snap( new Point2D.Double(
 //							Math.max( 0.0, Math.min( 1.0, ptAnchor.getX() + ptMouseTrns.getX() )), 
 //							Math.max( 0.0, Math.min( 1.0, ptAnchor.getY() + ptMouseTrns.getY() ))), true ));
-						ptAnchor = new Point2D.Double(
-							Math.max( 0.0, Math.min( 1.0, ptAnchor.getX() + ptMouseTrns.getX() )), 
-							Math.max( 0.0, Math.min( 1.0, ptAnchor.getY() + ptMouseTrns.getY() )));
-						edit	 = new EditSetReceiverAnchor( this, doc, rcv, ptAnchor );
-						doc.getUndoManager().addEdit( edit.perform() );
-					}
+					ptAnchor = new Point2D.Double(
+						Math.max( -1.0, Math.min( 1.0, ptAnchor.getX() + ptMouseTrns.getX() )), 
+						Math.max( -1.0, Math.min( 1.0, ptAnchor.getY() + ptMouseTrns.getY() )));
+					edit	 = new EditSetReceiverAnchor( this, doc, rcv, ptAnchor );
+					
+//System.out.println( "ptDeltaMouse = " + ptDeltaMouse + "; ptMouseTrns = " + ptMouseTrns + "; ptAnchor = " + ptAnchor );
+					
+					doc.getUndoManager().addEdit( edit.perform() );
 				}
-				dndCurrentRect  = getUnionRect( dndColl );
-				updateReceiverShapes();
-				efficientUpdateAndRepaint( dndRecentRect, dndCurrentRect, true );
-				dndRecentRect   = dndCurrentRect;
 			}
-			finally {
-				doc.bird.releaseShared( Session.DOOR_RCV );
-			}
+			dndCurrentRect  = getUnionRect( dndColl );
+			updateReceiverShapes();
+			efficientUpdateAndRepaint( dndRecentRect, dndCurrentRect, true );
+			dndRecentRect   = dndCurrentRect;
 		} // mouseDragged( MouseEvent e )
 	} // class SurfacePanePointerTool
 

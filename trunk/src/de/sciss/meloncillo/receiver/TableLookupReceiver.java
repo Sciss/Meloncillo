@@ -29,16 +29,25 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.datatransfer.*;
-import java.io.*;
-import java.lang.reflect.*;
-import java.util.*;
-import org.w3c.dom.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+import java.util.Set;
 
-import de.sciss.meloncillo.io.*;
-import de.sciss.meloncillo.util.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
-import de.sciss.io.*;
+import de.sciss.io.AudioFile;
+import de.sciss.io.AudioFileDescr;
+import de.sciss.io.IOUtil;
+import de.sciss.io.InterleavedStreamFile;
+import de.sciss.meloncillo.io.XMLRepresentation;
+import de.sciss.meloncillo.util.MapManager;
 
 /**
  *  This receiver is abstract and generalizes
