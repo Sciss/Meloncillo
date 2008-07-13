@@ -34,6 +34,7 @@ import java.util.List;
 
 import de.sciss.app.BasicUndoableEdit;
 import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 
@@ -43,18 +44,16 @@ import de.sciss.meloncillo.session.SessionCollection;
  *  from the session.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 13-Jul-08
  *  @see		UndoManager
  *  @see		EditAddSessionObjects
  */
 public class EditRemoveSessionObjects
 extends BasicUndoableEdit
 {
-	private final Session			doc;
-	private final List				collSessionObjects;
-	private Object					source;
-	private final int				doors;
-	private final SessionCollection	quoi;
+	private final List						collSessionObjects;
+	private Object							source;
+	private final MutableSessionCollection	quoi;
 
 	/**
 	 *  Create and perform this edit. This
@@ -70,14 +69,12 @@ extends BasicUndoableEdit
 	 *  @see	de.sciss.meloncillo.session.SessionCollection.Event
 	 *  @synchronization		waitExclusive on doors
 	 */
-	public EditRemoveSessionObjects( Object source, Session doc, SessionCollection quoi,
-									 List collSessionObjects, int doors )
+	public EditRemoveSessionObjects( Object source, MutableSessionCollection quoi,
+									 List collSessionObjects )
 	{
 		super();
 		this.source				= source;
-		this.doc				= doc;
 		this.collSessionObjects	= new ArrayList( collSessionObjects );
-		this.doors				= doors;
 		this.quoi				= quoi;
 //		perform();
 //		this.source				= this;
@@ -85,14 +82,8 @@ extends BasicUndoableEdit
 
 	public PerformableEdit perform()
 	{
-		try {
-			doc.bird.waitExclusive( doors );
-			quoi.removeAll( source, collSessionObjects );
-			source = this;
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		quoi.removeAll( source, collSessionObjects );
+		source = this;
 		return this;
 	}
 
@@ -106,13 +97,7 @@ extends BasicUndoableEdit
 	public void undo()
 	{
 		super.undo();
-		try {
-			doc.bird.waitExclusive( doors );
-			quoi.addAll( source, collSessionObjects );
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		quoi.addAll( source, collSessionObjects );
 	}
 	
 	/**

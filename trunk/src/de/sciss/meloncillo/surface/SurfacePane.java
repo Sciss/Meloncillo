@@ -131,6 +131,8 @@ import de.sciss.meloncillo.realtime.RealtimeProducer;
 import de.sciss.meloncillo.realtime.Transport;
 import de.sciss.meloncillo.receiver.Receiver;
 import de.sciss.meloncillo.receiver.ReceiverEditor;
+import de.sciss.meloncillo.session.BasicSessionCollection;
+import de.sciss.meloncillo.session.GroupableSessionObject;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionGroup;
@@ -344,7 +346,7 @@ implements  VirtualSurface, TimelineListener,
 			}
 		};
         
-		doc.activeReceivers.addListener( new SessionCollection.Listener() {
+		doc.getActiveReceivers().addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
 //System.err.println( "activeReceivers sessionCollectionChanged!" );
@@ -389,7 +391,7 @@ implements  VirtualSurface, TimelineListener,
 //			}
 		});
 		
-		doc.selectedReceivers.addListener( new SessionCollection.Listener() {
+		doc.getSelectedReceivers().addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
 				if( e.getSource() != SurfacePane.this && e.getSource() != activeTool ) {
@@ -403,7 +405,7 @@ implements  VirtualSurface, TimelineListener,
 			public void sessionObjectMapChanged( SessionCollection.Event e ) {}
 		});
 		
-		doc.activeTransmitters.addListener( new SessionCollection.Listener() {
+		doc.getActiveTransmitters().addListener( new SessionCollection.Listener() {
 			public void sessionObjectChanged( SessionCollection.Event e )
 			{
 				if( e.getModificationType() == Transmitter.OWNER_RENAMED ) {
@@ -426,7 +428,7 @@ implements  VirtualSurface, TimelineListener,
 			public void sessionObjectMapChanged( SessionCollection.Event e ) {}
 		});
 
-		doc.selectedTransmitters.addListener( new SessionCollection.Listener() {
+		doc.getSelectedTransmitters().addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
 				if( prefTrnsTraj ) {
@@ -448,7 +450,7 @@ implements  VirtualSurface, TimelineListener,
 				try {
 					doc.bird.waitShared( Session.DOOR_TRNS | Session.DOOR_GRP );
 					java.util.List coll = e.getCollection();
-					coll.retainAll( doc.selectedTransmitters.getAll() );
+					coll.retainAll( doc.getSelectedTransmitters().getAll() );
 					if( !coll.isEmpty() ) {
 						updateTransmitterPath();	// XXX optimize
 						redrawImage();				// XXX not if frame is hidden
@@ -461,7 +463,7 @@ implements  VirtualSurface, TimelineListener,
 			}
 		});
 
-		doc.selectedGroups.addListener( new SessionCollection.Listener() {
+		doc.getSelectedGroups().addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
 				if( prefUserImages ) {
@@ -565,7 +567,7 @@ implements  VirtualSurface, TimelineListener,
 
 		if( !doc.bird.attemptShared( Session.DOOR_RCV | Session.DOOR_GRP, 250 )) return;
 		try {
-			collRcv	= doc.activeReceivers.getAll();
+			collRcv	= doc.getActiveReceivers().getAll();
 			numRcv	= collRcv.size();
 
 			if( numRcv == 0 ) {
@@ -662,12 +664,10 @@ implements  VirtualSurface, TimelineListener,
 	 */
 	private Receiver createReceiver( Point2D anchor)
 	{
+		final List		collTypes	= Main.getReceiverTypes();
+		final List		collNewRcv;
 		Receiver		rcv			= null;
-		List 			collTypes	= Main.getReceiverTypes();
-		List			collRcv;
 		Class			c;
-		int				i;
-		SessionGroup	group;
 
 		try {
 			doc.bird.waitExclusive( Session.DOOR_RCV | Session.DOOR_GRP );
@@ -680,25 +680,30 @@ implements  VirtualSurface, TimelineListener,
 			rcv = (Receiver) c.newInstance();
 			rcv.setAnchor( anchor );
 //			rcv.setSize( new Dimension2DDouble( 0.5, 0.5 ));
-			rcv.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
+			rcv.setName( BasicSessionCollection.createUniqueName( Session.SO_NAME_PTRN,
 				new Object[] { new Integer( 1 ), Session.RCV_NAME_PREFIX, Session.RCV_NAME_SUFFIX },
 				doc.getReceivers().getAll() ));
 			doc.getReceivers().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
 												 MapManager.Context.NONE_EXCLUSIVE, rcv.getMap() );					
-			collRcv = Collections.singletonList( rcv );
+			collNewRcv = Collections.singletonList( rcv );
 
-			if( doc.selectedGroups.size() == 0 ) {
+			if( doc.getSelectedGroups().isEmpty() ) {
 				final PerformableEdit edit;
-				edit	= new EditAddSessionObjects( this, doc, doc.getReceivers(), collRcv, Session.DOOR_RCV );
+				edit	= new EditAddSessionObjects( this, doc.getMutableReceivers(), collNewRcv );
 				doc.getUndoManager().addEdit( edit.perform() );
 			} else {
 				final AbstractCompoundEdit edit;
 				edit	= new BasicCompoundEdit();
-				edit.addPerform( new EditAddSessionObjects( this, doc, doc.getReceivers(), collRcv, Session.DOOR_RCV ));
-				for( i = 0; i < doc.selectedGroups.size(); i++ ) {
-					group	= (SessionGroup) doc.selectedGroups.get( i );
-					edit.addPerform( new EditAddSessionObjects( this, doc, group.getReceivers(), collRcv, Session.DOOR_RCV ));
+				final List selectedGroups = doc.getSelectedGroups().getAll();
+				for( int i = 0; i < collNewRcv.size(); i++ ) {
+					final GroupableSessionObject so = (GroupableSessionObject) collNewRcv.get( i );
+					edit.addPerform( new EditAddSessionObjects( this, so.getGroups(), selectedGroups ));
 				}
+				edit.addPerform( new EditAddSessionObjects( this, doc.getMutableReceivers(), collNewRcv ));
+//				for( i = 0; i < doc.getSelectedGroups().size(); i++ ) {
+//					group	= (SessionGroup) doc.getSelectedGroups().get( i );
+//					edit.addPerform( new EditAddSessionObjects( this, group.getReceivers(), collRcv ));
+//				}
 				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
@@ -1031,8 +1036,8 @@ implements  VirtualSurface, TimelineListener,
 
 		try {
 			doc.bird.waitShared( Session.DOOR_RCV | Session.DOOR_GRP );
-			collRcvSel	= doc.selectedReceivers.getAll();
-			collRcv		= doc.activeReceivers.getAll();
+			collRcvSel	= doc.getSelectedReceivers().getAll();
+			collRcv		= doc.getActiveReceivers().getAll();
 			collReceiverShapes.clear();
 			for( i = 0; i < collRcv.size(); i++ ) {
 				rcv = (Receiver) collRcv.get( i );
@@ -1063,7 +1068,7 @@ implements  VirtualSurface, TimelineListener,
 
 		try {
 			doc.bird.waitShared( Session.DOOR_GRP );
-			collSO	= doc.selectedGroups.getAll();
+			collSO	= doc.getSelectedGroups().getAll();
 			disposeUserImages();
 			for( i = 0; i < collSO.size(); i++ ) {
 				so	= (SessionObject) collSO.get( i );
@@ -1274,7 +1279,7 @@ implements  VirtualSurface, TimelineListener,
 	
 		if( !doc.bird.attemptShared( Session.DOOR_TRNS | Session.DOOR_GRP, 250 )) return;
 		try {
-			collTrns	= doc.activeTransmitters.getAll();
+			collTrns	= doc.getActiveTransmitters().getAll();
 			numTrns		= Math.min( rt_trnsNames.length, collTrns.size() );
 			for( trnsIdx = 0; trnsIdx < numTrns; trnsIdx++ ) {
 				rt_trnsNames[ trnsIdx ] = ((SessionObject) collTrns.get( trnsIdx )).getName();
@@ -1363,7 +1368,7 @@ implements  VirtualSurface, TimelineListener,
 			request.notifyTicks		= true;
 			request.notifyOffhand	= true;
 //			collTrns				= context.getTransmitters();
-			collTrns				= doc.activeTransmitters.getAll();
+			collTrns				= doc.getActiveTransmitters().getAll();
 			numTrns					= collTrns.size();
 			if( rt_peak.length != numTrns ) {
 				rt_trnsNames= new String[ numTrns ];
@@ -1594,7 +1599,7 @@ implements  VirtualSurface, TimelineListener,
 
 			if( !doc.bird.attemptShared( Session.DOOR_RCV | Session.DOOR_GRP, 250 )) return;
 			try {
-				collRcv = doc.activeReceivers.getAll();
+				collRcv = doc.getActiveReceivers().getAll();
 				for( i = 0; i < collRcv.size(); i++ ) {
 					rcv = (Receiver) collRcv.get( i );
 					ptReceiver = rcv.getAnchor();
@@ -1617,20 +1622,20 @@ implements  VirtualSurface, TimelineListener,
 				// manage (de)selection
 				if( e.isShiftDown() || e.isMetaDown() ) {		// multi-selection by holding down the shift or cmd key
 					if( hitReceiver != null ) {					// selection changed indeed
-						coll = doc.selectedReceivers.getAll();
+						coll = doc.getSelectedReceivers().getAll();
 						if( !coll.contains( hitReceiver )) {	// add object to selection
 							coll.add( hitReceiver );
 						} else {								// remove object from selection
 							coll.remove( hitReceiver );
 						}
-						edit = new EditSetSessionObjects( this, doc.selectedReceivers, coll );
+						edit = new EditSetSessionObjects( this, doc.getMutableSelectedReceivers(), coll );
 						doc.getUndoManager().addEdit( edit.perform() );
 						updateReceiverShapes();
 						redrawImage();
 						repaint( virtualToScreenClip( hitReceiver.getBounds() ));
 					}
 				} else {				// single-selection
-					coll = doc.selectedReceivers.getAll();
+					coll = doc.getSelectedReceivers().getAll();
 					if( (hitReceiver == null && !coll.isEmpty()) ||
 						(hitReceiver != null && !coll.contains( hitReceiver ))) {  // selection changed indeed
 						
@@ -1642,7 +1647,7 @@ implements  VirtualSurface, TimelineListener,
 						} else {
 							clipRect2 = null;
 						}
-						edit = new EditSetSessionObjects( this, doc.selectedReceivers, coll );
+						edit = new EditSetSessionObjects( this, doc.getMutableSelectedReceivers(), coll );
 						doc.getUndoManager().addEdit( edit.perform() );
 						updateReceiverShapes();
 						redrawImage();
@@ -1671,13 +1676,13 @@ implements  VirtualSurface, TimelineListener,
 
 			if( !doc.bird.attemptShared( Session.DOOR_RCV, 250 )) return;
 			try {
-				if( doc.selectedReceivers.isEmpty() ) {
+				if( doc.getSelectedReceivers().isEmpty() ) {
 					if( e.getClickCount() == 2 ) {  // double click creates new Receiver
 						rcv = createReceiver( screenToVirtual( e.getPoint() ));
 						if( rcv != null ) {
-							coll = doc.selectedReceivers.getAll();
+							coll = doc.getSelectedReceivers().getAll();
 							coll.add( rcv );
-							edit = new EditSetSessionObjects( this, doc.selectedReceivers, coll );
+							edit = new EditSetSessionObjects( this, doc.getMutableSelectedReceivers(), coll );
 							doc.getUndoManager().addEdit( edit.perform() );
 							clipRect = rcv.getBounds();
 							updateSurfacePaneImage( clipRect );
@@ -1688,8 +1693,8 @@ implements  VirtualSurface, TimelineListener,
 					}
 					
 				} else { // items have been selected
-					if( e.getClickCount() == 2 && doc.selectedReceivers.size() == 1 ) {  // double click opens editor
-						rcv		= (Receiver) doc.selectedReceivers.get( 0 );
+					if( e.getClickCount() == 2 && doc.getSelectedReceivers().size() == 1 ) {  // double click opens editor
+						rcv		= (Receiver) doc.getSelectedReceivers().get( 0 );
 						final Class clz = rcv.getDefaultEditor();
 						final Constructor cons = clz.getConstructor( new Class[] { Session.class });
 						rcvEdit = (ReceiverEditor) cons.newInstance( new Object[] { doc });	// XXX deligate to SurfacePaneFrame
@@ -1744,7 +1749,7 @@ implements  VirtualSurface, TimelineListener,
 				return;
 			}
 			try {
-				dndColl = doc.selectedReceivers.getAll();
+				dndColl = doc.getSelectedReceivers().getAll();
 				if( !dndDragging ) {
 					dndDragging		= true;
 					dndRecentRect   = getUnionRect( dndColl );
@@ -2272,7 +2277,7 @@ implements  VirtualSurface, TimelineListener,
 		private void calcCursorInfo()
 		{
 			int			rcvIdx, i;
-			int			numRcv = doc.activeReceivers.size();
+			int			numRcv = doc.getActiveReceivers().size();
 			float		f1 = 0.0f, f2 = 0.0f, f3 = 0.0f, f4;
 			String		loudest1 = null, loudest2 = null;
 			Receiver	rcv;
@@ -2283,7 +2288,7 @@ implements  VirtualSurface, TimelineListener,
 			points[1][0] = (float) ptCurrentMouse.getY();
 			
 			for( rcvIdx = 0; rcvIdx < numRcv; rcvIdx++ ) {
-				rcv = (Receiver) doc.activeReceivers.get( rcvIdx );
+				rcv = (Receiver) doc.getActiveReceivers().get( rcvIdx );
 				rcv.getSensitivities( points, sense, 0, 1, 1 );
 				f4  = sense[0];
 				if( f4 > f1 ) {
@@ -2354,8 +2359,8 @@ implements  VirtualSurface, TimelineListener,
 			if( trajRplc == null ) {
 				if( doc.bird.attemptShared( Session.DOOR_TIMETRNSRCV | Session.DOOR_GRP, 250 )) {
 					try {
-						collTrns = doc.activeTransmitters.getAll();
-						collTrns.retainAll( doc.selectedTransmitters.getAll() );
+						collTrns = doc.getActiveTransmitters().getAll();
+						collTrns.retainAll( doc.getSelectedTransmitters().getAll() );
 						trajRplc = new RealtimeProducer.TrajectoryReplacement(
 										this, new Span( 0, doc.timeline.getLength() ), collTrns );
 // EEE
@@ -2562,7 +2567,7 @@ implements  VirtualSurface, TimelineListener,
 
 			initFunctionEvaluation();
 			
-			collTransmitters	= doc.selectedTransmitters.getAll();
+			collTransmitters	= doc.getSelectedTransmitters().getAll();
 			progressLen			= interpLen*collTransmitters.size();
 			edit				= new CompoundSessionObjEdit( this, collTransmitters,
 											Transmitter.OWNER_TRAJ, null, null, "Pencil" );

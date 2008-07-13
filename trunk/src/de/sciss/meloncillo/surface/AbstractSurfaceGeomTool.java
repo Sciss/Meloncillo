@@ -285,7 +285,7 @@ implements ProcessingThread.Client
 		// '-1' because the last sample shall really equal the end point of the shape
 		t_norm			= 1.0 / (interpLen - 1);
 
-		collTransmitters= doc.selectedTransmitters.getAll();
+		collTransmitters= doc.getSelectedTransmitters().getAll();
 		progressLen		= interpLen*collTransmitters.size();
 		edit			= new CompoundSessionObjEdit( this, collTransmitters, Transmitter.OWNER_TRAJ,
 													  null, null, "Geometric Tool" );

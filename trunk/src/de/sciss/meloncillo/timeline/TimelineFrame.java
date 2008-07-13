@@ -417,7 +417,7 @@ implements  TimelineListener, ToolActionListener,
 		markAxis			= new MarkerAxis( doc, wavePanel );
 		viewMarkers			= app.getUserPrefs().getBoolean( PrefsUtil.KEY_VIEWMARKERS, false );
 		markVisible			= viewMarkers && waveExpanded;
-		markAxisHeader		= new TrackRowHeader( doc.markerTrack, doc.tracks, doc.selectedTracks, doc.getUndoManager() );
+		markAxisHeader		= new TrackRowHeader( doc.markerTrack, doc.getTracks(), doc.getMutableSelectedTracks(), doc.getUndoManager() );
 		markAxisHeader.setPreferredSize( new Dimension( 63, markAxis.getPreferredSize().height ));	// XXX
 		markAxisHeader.setMaximumSize( new Dimension( 128, markAxis.getMaximumSize().height ));		// XXX
 		if( markVisible ) {
@@ -642,9 +642,10 @@ bbb.add( markAxisHeader );
 
 // EEE
 //		doc.audioTracks.addListener( new SessionCollection.Listener() { ... });
-		doc.activeTransmitters.addListener( new SessionCollection.Listener() {
+		doc.getActiveTransmitters().addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
+System.out.println( "YOOOOOOOOOOOOOOOOO" );
 				documentUpdate();
 			}
 
@@ -656,7 +657,7 @@ bbb.add( markAxisHeader );
 			}
 		});
 		
-		doc.selectedTracks.addListener( new SessionCollection.Listener() {
+		doc.getSelectedTracks().addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
 				updateSelectionAndRepaint();
@@ -1168,7 +1169,7 @@ dt = null;
 
 	protected void documentUpdate()
 	{
-		final List				collChannelMeters;
+//		final List				collChannelMeters;
 //		PeakMeter[]				meters;
 		TrackRowHeader			chanHead;
 		Track					t;
@@ -1176,8 +1177,10 @@ dt = null;
 		Axis					chanRuler;
 //		PeakMeter				chanMeter;
 
-		newNumWaveTracks	= doc.activeTransmitters.size(); // EEE doc.getDisplayDescr().channels;
+		newNumWaveTracks	= doc.getActiveTransmitters().size(); // EEE doc.getDisplayDescr().channels;
 		oldNumWaveTracks	= collChannelHeaders.size();
+		
+		System.out.println( "oldNumWaveTracks = " + oldNumWaveTracks + "; newNumWaveTracks = " + newNumWaveTracks );
 
 //		meters				= channelMeters;
 //		collChannelMeters	= new ArrayList( meters.length );
@@ -1190,7 +1193,7 @@ dt = null;
 			chanHead	= (TrackRowHeader) collChannelHeaders.get( ch );
 			t			= chanHead.getTrack();
 
-			if( !doc.activeTransmitters.contains( t )) {
+			if( !doc.getActiveTransmitters().contains( t )) {
 				chanHead	= (TrackRowHeader) collChannelHeaders.remove( ch );
 //				chanMeter	= (PeakMeter) collChannelMeters.remove( ch );
 				chanRuler	= (Axis) collChannelRulers.remove( ch );
@@ -1209,13 +1212,13 @@ dt = null;
 
 // EEE
 newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
-			t			= (Track) doc.activeTransmitters.get( ch );
+			t			= (Track) doc.getActiveTransmitters().get( ch );
 			for( int ch2 = 0; ch2 < oldNumWaveTracks; ch2++ ) {
 				chanHead = (TrackRowHeader) collChannelHeaders.get( ch );
 				if( chanHead.getTrack() == t ) continue newLp;
 			}
 			
-			chanHead = new TrackRowHeader( t, doc.tracks, doc.selectedTracks, doc.getUndoManager() );
+			chanHead = new TrackRowHeader( t, doc.getTracks(), doc.getMutableSelectedTracks(), doc.getUndoManager() );
 			collChannelHeaders.add( chanHead );
 			flagsPanel.add( chanHead, ch );
 
@@ -1432,13 +1435,13 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 			vpSelectionColors.add( colrSelection );
 			t			= doc.markerTrack;
 			vpSelections.add( markAxis.getBounds() );
-			vpSelectionColors.add( doc.selectedTracks.contains( t ) ? colrSelection : colrSelection2 );
+			vpSelectionColors.add( doc.getSelectedTracks().contains( t ) ? colrSelection : colrSelection2 );
 			for( int ch = 0; ch < waveView.getNumChannels(); ch++ ) {
 				r		= new Rectangle( waveView.rectForChannel( ch ));
 				r.translate( x, y );
 				t		= null; // EEE (Track) doc.audioTracks.get( ch );
 				vpSelections.add( r );
-				vpSelectionColors.add( doc.selectedTracks.contains( t ) ? colrSelection : colrSelection2 );
+				vpSelectionColors.add( doc.getSelectedTracks().contains( t ) ? colrSelection : colrSelection2 );
 			}
 		}
 	}
@@ -2104,7 +2107,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			try {
 				doc.bird.waitShared( Session.DOOR_TIMETRNS | Session.DOOR_GRP );
 				span = doc.timeline.getSelectionSpan();
-				if( span.isEmpty() || doc.activeTransmitters.isEmpty() ) return;
+				if( span.isEmpty() || doc.getActiveTransmitters().isEmpty() ) return;
 			}
 			finally {
 				doc.bird.releaseShared( Session.DOOR_TIMETRNS | Session.DOOR_GRP);

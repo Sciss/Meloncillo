@@ -31,6 +31,8 @@ package de.sciss.meloncillo.session;
 
 import java.awt.*;
 import java.util.*;
+import java.util.List;
+
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.*;
@@ -55,9 +57,9 @@ extends JTable
 
 	public static final int VIEW_FLAGS			=	0x100;
 
-	private final Session doc;
+	private final MutableSessionCollection	collAllSelected;
 	private final SessionCollection	collAll, collSelected;
-	private final int doors;
+//	private final int doors;
 	private final Model model;
 	
 	private static final String[] columnNames = new String[] { null, "flags" };	// XXX replace by Context.label
@@ -65,8 +67,8 @@ extends JTable
 	
 	private static final int COL_NAME	= 0;
 	private static final int COL_FLAGS	= 1;
-
-	private final JTable enc_table = this;
+	
+	private static final SessionCollection EMPTY_COLL = new BasicSessionCollection();
 	
 	public SessionGroupTable( final Session doc, SessionGroup grp, int views )
 	{
@@ -78,7 +80,6 @@ extends JTable
 			columnNum			= 2;
 		}
 		
-		this.doc	= doc;
 //		this.views	= views;
 //		this.grp	= grp;
 		
@@ -87,27 +88,31 @@ extends JTable
 		switch( views & VIEW_OBJECT_MASK ) {
 		case VIEW_RECEIVERS:
 			collAll			= grp.getReceivers();
-			collSelected	= doc.selectedReceivers;
-			doors			= Session.DOOR_RCV;
+			collSelected	= doc.getSelectedReceivers();
+			collAllSelected	= doc.getMutableSelectedReceivers();
+//			doors			= Session.DOOR_RCV;
 			columnNames[0]	= app.getResourceString( "labelReceivers" );
 			break;
 		case VIEW_TRANSMITTERS:
 			collAll			= grp.getTransmitters();
-			collSelected	= doc.selectedTransmitters;
-			doors			= Session.DOOR_TRNS;
+			collSelected	= doc.getSelectedTransmitters();
+			collAllSelected	= doc.getMutableSelectedTracks();
+//			doors			= Session.DOOR_TRNS;
 			columnNames[0]	= app.getResourceString( "labelTransmitters" );
 			break;
 		case VIEW_GROUPS:
-			collAll			= grp.getGroups();
-			collSelected	= doc.selectedGroups;
-			doors			= Session.DOOR_GRP;
+			collAll			= grp == doc ? doc.getGroups() : EMPTY_COLL;
+			collSelected	= doc.getSelectedGroups();
+			collAllSelected	= doc.getMutableSelectedGroups();
+//			doors			= Session.DOOR_GRP;
 			columnNames[0]	= app.getResourceString( "labelGroups" );
 			break;
 		default:
 			assert false : views;
 			collAll			= null;
 			collSelected	= null;
-			doors			= 0;
+			collAllSelected = null;
+//			doors			= 0;
 		}
 
 		model = new Model();
@@ -115,15 +120,15 @@ extends JTable
 		
 		if( (views & VIEW_FLAGS) != 0 ) {
 			this.setDefaultRenderer( model.getColumnClass( COL_FLAGS ),
-				new FlagsRenderer( collAll, doc.bird, doors ));
+				new FlagsRenderer( collAll ));
 			this.setDefaultEditor( model.getColumnClass( COL_FLAGS ),
-				new FlagsEditor( collAll, doc.bird, doors ));
+				new FlagsEditor( collAll ));
 		}
 
 		collAll.addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				if( e.getSource() == enc_table ) return;
+				if( e.getSource() == SessionGroupTable.this ) return;
 //System.err.println( "all sessionCollectionChanged" );
 
 				int i;
@@ -132,20 +137,20 @@ extends JTable
 			
 				switch( e.getModificationType() ) {
 				case SessionCollection.Event.ACTION_ADDED:
-					if( !doc.bird.attemptShared( doors, 250 )) {
-						model.fireTableStructureChanged();
-						return;
-					}
-					try	{
+//					if( !doc.bird.attemptShared( doors, 250 )) {
+//						model.fireTableStructureChanged();
+//						return;
+//					}
+//					try	{
 						coll = calcRowSpans( e.getCollection() );
 						for( i = 0; i < coll.size(); i++ ) {
 							p = (Point) coll.get( i );
 							model.fireTableRowsInserted( p.x, p.y );
 						}
-					}
-					finally {
-						doc.bird.releaseShared( doors );
-					}
+//					}
+//					finally {
+//						doc.bird.releaseShared( doors );
+//					}
 					break;
 				case SessionCollection.Event.ACTION_REMOVED:
 					model.fireTableStructureChanged();
@@ -165,7 +170,7 @@ extends JTable
 
 			public void sessionObjectChanged( SessionCollection.Event e )
 			{
-				if( e.getSource() == enc_table ) return;
+				if( e.getSource() == SessionGroupTable.this ) return;
 
 				int i;
 				java.util.List coll;
@@ -173,20 +178,20 @@ extends JTable
 			
 				switch( e.getModificationType() ) {
 				case SessionObject.OWNER_RENAMED:
-					if( !doc.bird.attemptShared( doors, 250 )) {
-						model.fireTableStructureChanged();
-						return;
-					}
-					try	{
+//					if( !doc.bird.attemptShared( doors, 250 )) {
+//						model.fireTableStructureChanged();
+//						return;
+//					}
+//					try	{
 						coll = calcRowSpans( e.getCollection() );
 						for( i = 0; i < coll.size(); i++ ) {
 							p = (Point) coll.get( i );
 							model.fireTableRowsUpdated( p.x, p.y );
 						}
-					}
-					finally {
-						doc.bird.releaseShared( doors );
-					}
+//					}
+//					finally {
+//						doc.bird.releaseShared( doors );
+//					}
 					break;
 					
 				default:
@@ -198,30 +203,29 @@ extends JTable
 		collSelected.addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				if( e.getSource() == enc_table ) return;
+				if( e.getSource() == SessionGroupTable.this ) return;
 //System.err.println( "selected sessionCollectionChanged" );
 			
-				int i;
-				java.util.List	coll;
-				Point p;
+				List	coll;
+				Point	p;
 			
 				switch( e.getModificationType() ) {
 				case SessionCollection.Event.ACTION_ADDED:
-					if( !doc.bird.attemptShared( doors, 250 )) {
-						model.fireTableStructureChanged();
-						return;
-					}
-					try	{
+//					if( !doc.bird.attemptShared( doors, 250 )) {
+//						model.fireTableStructureChanged();
+//						return;
+//					}
+//					try	{
 						coll = calcRowSpans( e.getCollection() );
-						for( i = 0; i < coll.size(); i++ ) {
+						for( int i = 0; i < coll.size(); i++ ) {
 							p = (Point) coll.get( i );
 	//System.err.println( "addRowSelectionInterval "+p.x+" ... "+p.y );
-							enc_table.addRowSelectionInterval( p.x, p.y );
+							SessionGroupTable.this.addRowSelectionInterval( p.x, p.y );
 						}
-					}
-					finally {
-						doc.bird.releaseShared( doors );
-					}
+//					}
+//					finally {
+//						doc.bird.releaseShared( doors );
+//					}
 					break;
 					
 				case SessionCollection.Event.ACTION_REMOVED:
@@ -246,34 +250,31 @@ extends JTable
 		this.getSelectionModel().addListSelectionListener( new ListSelectionListener() {
 			public void valueChanged( ListSelectionEvent e )
 			{
-				if( !doc.bird.attemptShared( doors, 250 )) return;
-				try	{
-//System.err.println( "valueChanged" );
-					java.util.List selected		= new ArrayList();
-					java.util.List deselected	= new ArrayList();
-					SessionObject so;
-					int i, max					= Math.min( e.getLastIndex() + 1, collAll.size() );
+//				if( !doc.bird.attemptShared( doors, 250 )) return;
+//				try	{
+					final List		selected	= new ArrayList();
+					final List		deselected	= new ArrayList();
+					final int		max			= Math.min( e.getLastIndex() + 1, collAll.size() );
+					SessionObject	so;
 				
-					for( i = Math.max( 0, e.getFirstIndex() ); i < max; i++ ) {
+					for( int i = Math.max( 0, e.getFirstIndex() ); i < max; i++ ) {
 						so = (SessionObject) collAll.get( i );
-						if( enc_table.isRowSelected( i ) && !(collSelected.contains( so ))) {
+						if( SessionGroupTable.this.isRowSelected( i ) && !(collSelected.contains( so ))) {
 							selected.add( so );
-//System.err.println( "selected.add "+i );
-						} else if( !(enc_table.isRowSelected( i )) && collSelected.contains( so )) {
+						} else if( !(SessionGroupTable.this.isRowSelected( i )) && collSelected.contains( so )) {
 							deselected.add( so );
-//System.err.println( "deselected.add "+i );
 						}
 					}
 					if( !selected.isEmpty() ) {
-						doc.getUndoManager().addEdit( new EditAddSessionObjects( enc_table, doc, collSelected, selected, doors ).perform() );
+						doc.getUndoManager().addEdit( new EditAddSessionObjects( SessionGroupTable.this, collAllSelected, selected ).perform() );
 					}
 					if( !deselected.isEmpty() ) {
-						doc.getUndoManager().addEdit( new EditRemoveSessionObjects( enc_table, doc, collSelected, deselected, doors ).perform() );
+						doc.getUndoManager().addEdit( new EditRemoveSessionObjects( SessionGroupTable.this, collAllSelected, deselected ).perform() );
 					}
-				}
-				finally {
-					doc.bird.releaseShared( doors );
-				}
+//				}
+//				finally {
+//					doc.bird.releaseShared( doors );
+//				}
 			}
 		});
 
@@ -283,9 +284,9 @@ extends JTable
 		setSelectionBackground( GraphicsUtil.colrSelection );
 	} // constructor
 	
-	private java.util.List calcRowSpans( java.util.List coll )
+	private List calcRowSpans( List coll )
 	{
-		java.util.List rowSpans = new ArrayList();
+		List rowSpans = new ArrayList();
 		int[] indices = new int[ coll.size() ];
 		int i, j, min = collAll.size(), max = -1;
 		
@@ -323,9 +324,9 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 	{
 		protected int flags;
 	
-		private FlagsRenderer( SessionCollection sc, LockManager lm, int doors )
+		private FlagsRenderer( SessionCollection sc )
 		{
-			super( sc, lm, doors );
+			super( sc );
 		}
 	
 		public Component getTableCellRendererComponent( JTable table, Object value, boolean isSelected, boolean hasFocus,
@@ -338,7 +339,6 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 			this.so = (SessionObject) collAll.get( row );
 			updateButtons( flags );
 			setBackground( isSelected ? GraphicsUtil.colrSelection : null );
-//System.err.println( "getTableCellRendererComponent() ; row "+row+"; column "+column );
 			return this;
 		}
 	}
@@ -349,9 +349,9 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 	{
 		private final FlagsRenderer fr;
 	
-		private FlagsEditor( SessionCollection sc, LockManager lm, int doors )
+		private FlagsEditor( SessionCollection sc )
 		{
-			fr = new FlagsRenderer( sc, lm, doors ) {
+			fr = new FlagsRenderer( sc ) {
 				protected void setFlags( int mask, boolean set )
 				{
 					super.setFlags( mask, set );
@@ -370,7 +370,7 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 					super.broadcastFlags( mask, set );
 					
 //					model.fireTableDataChanged();	// deletes row selection ;-(
-					enc_table.repaint();
+					SessionGroupTable.this.repaint();
 				}
 			};
 		}
@@ -398,13 +398,13 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 		
 		public int getRowCount()
 		{
-			if( !doc.bird.attemptShared( doors, 250 )) return 0;
-			try	{
+//			if( !doc.bird.attemptShared( doors, 250 )) return 0;
+//			try	{
 				return collAll.size();
-			}
-			finally {
-				doc.bird.releaseShared( doors );
-			}
+//			}
+//			finally {
+//				doc.bird.releaseShared( doors );
+//			}
 		}
 		
 		public int getColumnCount()
@@ -414,8 +414,8 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 		
 		public Object getValueAt( int row, int col )
 		{
-			if( !doc.bird.attemptShared( doors, 250 )) return null;
-			try	{
+//			if( !doc.bird.attemptShared( doors, 250 )) return null;
+//			try	{
 				if( row >= collAll.size() ) return null;
 				
 				SessionObject so = (SessionObject) collAll.get( row );
@@ -428,10 +428,10 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 				default:
 					return null;
 				}
-			}
-			finally {
-				doc.bird.releaseShared( doors );
-			}
+//			}
+//			finally {
+//				doc.bird.releaseShared( doors );
+//			}
 		}
 
 	    public Class getColumnClass( int col )
@@ -458,8 +458,8 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 		
 		public void setValueAt( Object value, int row, int col )
 		{
-			if( !doc.bird.attemptExclusive( doors, 250 )) return;
-			try	{
+//			if( !doc.bird.attemptExclusive( doors, 250 )) return;
+//			try	{
 				if( row >= collAll.size() ) return;
 				
 //				SessionObject so = (SessionObject) collAll.get( row );
@@ -473,10 +473,10 @@ findSpan: for( j = min + 1; min <= max; j++ ) {
 				default:
 					break;
 				}
-			}
-			finally {
-				doc.bird.releaseExclusive( doors );
-			}
+//			}
+//			finally {
+//				doc.bird.releaseExclusive( doors );
+//			}
 		}
 	}
 }

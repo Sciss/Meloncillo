@@ -31,11 +31,12 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.*;
-import java.awt.datatransfer.*;
-import java.awt.geom.*;
+import java.awt.Shape;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
-import de.sciss.meloncillo.session.*;
+import de.sciss.meloncillo.session.GroupableSessionObject;
 
 /**
  *  A receiver is one of the two main
@@ -66,7 +67,7 @@ import de.sciss.meloncillo.session.*;
  *  @see	de.sciss.meloncillo.gui.VirtualSurface
  */
 public interface Receiver
-extends SessionObject
+extends GroupableSessionObject
 {
 	public static final int OWNER_SENSE	=	0x2000;
 

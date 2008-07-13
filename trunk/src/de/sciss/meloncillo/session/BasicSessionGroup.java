@@ -34,6 +34,8 @@ import java.io.*;
 import java.util.*;
 import org.w3c.dom.*;
 
+import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.transmitter.Transmitter;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.gui.*;
@@ -46,20 +48,32 @@ public class BasicSessionGroup
 extends AbstractSessionObject
 implements SessionGroup
 {
-	private final SessionCollection	receivers		= new SessionCollection();
-	private final SessionCollection	transmitters	= new SessionCollection();
-	private final SessionCollection	groups			= new SessionCollection();
+	private final SessionCollection	receivers;
+	private final SessionCollection	transmitters;
+//	private final SessionCollection	groups;
 
-	public BasicSessionGroup()
+	public BasicSessionGroup( Session doc )
 	{
 		super();
 
-//		getMap().putValue( this, MAP_KEY_USERIMAGE, new File( "" ));
+		receivers = new SessionCollectionView( doc.getReceivers(), new SessionCollectionView.Filter() {
+			public boolean select( SessionObject so )
+			{
+				return ((Receiver) so).getGroups().contains( BasicSessionGroup.this );
+			}
+		});
+		
+		transmitters = new SessionCollectionView( doc.getTransmitters(), new SessionCollectionView.Filter() {
+			public boolean select( SessionObject so )
+			{
+				return ((Transmitter) so).getGroups().contains( BasicSessionGroup.this );
+			}
+		});
 	}
 	
 	public SessionCollection getReceivers() { return receivers; }
 	public SessionCollection getTransmitters() { return transmitters; }
-	public SessionCollection getGroups() { return groups; }
+//	public SessionCollection getGroups() { return groups; }
 	
 //	// sync : caller should deal with sync for session collections! (see Sesssion#clear())
 //	protected void init()
@@ -74,9 +88,9 @@ implements SessionGroup
 		getMap().putContext( this, SessionGroup.MAP_KEY_USERIMAGE, new MapManager.Context(
 		    MapManager.Context.FLAG_OBSERVER_DISPLAY, MapManager.Context.TYPE_FILE,
 		    new Integer( PathField.TYPE_INPUTFILE ), "labelUserImage", null, new File( "" )));
-		groups.clear( this );
-		receivers.clear( this );
-		transmitters.clear( this );
+//		groups.clear( this );
+//		receivers.clear( this );
+//		transmitters.clear( this );
 	}
 
 	public void dispose()
@@ -84,7 +98,7 @@ implements SessionGroup
 		super.dispose();
 		receivers.dispose();
 		transmitters.dispose();
-		groups.dispose();
+//		groups.dispose();
 	}
 
 	/**
@@ -195,7 +209,8 @@ implements SessionGroup
 					soList.add( so );
 				}
 			}
-			sc2.addAll( this, soList );
+// EEE
+//			sc2.addAll( this, soList );
 		}
 	}
 }

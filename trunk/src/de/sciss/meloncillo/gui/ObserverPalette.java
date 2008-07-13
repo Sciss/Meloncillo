@@ -73,6 +73,7 @@ import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditSetSessionObjectName;
+import de.sciss.meloncillo.session.BasicSessionCollection;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionObject;
@@ -538,9 +539,9 @@ implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentList
 		doc	= (Session) e.getDocument();
 		if( doc != null ) {
 			doc.timeline.addTimelineListener( this );
-			selColL[ 0 ] = new SessionCollectionListener( doc.selectedReceivers, doc.getReceivers(), 1, ggNames[ 0 ], ggTables[ 0 ]);
-			selColL[ 1 ] = new SessionCollectionListener( doc.selectedTransmitters, doc.getTransmitters(), 2, ggNames[ 1 ], ggTables[ 1 ]);
-			selColL[ 2 ] = new SessionCollectionListener( doc.selectedGroups, doc.getGroups(), 2, ggNames[ 2 ], ggTables[ 2 ]);
+			selColL[ 0 ] = new SessionCollectionListener( doc.getSelectedReceivers(), doc.getReceivers(), 1, ggNames[ 0 ], ggTables[ 0 ]);
+			selColL[ 1 ] = new SessionCollectionListener( doc.getSelectedTransmitters(), doc.getTransmitters(), 2, ggNames[ 1 ], ggTables[ 1 ]);
+			selColL[ 2 ] = new SessionCollectionListener( doc.getSelectedGroups(), doc.getGroups(), 2, ggNames[ 2 ], ggTables[ 2 ]);
 			if( isListening ) {
 				selColL[ 0 ].startListening();
 				selColL[ 1 ].startListening();
@@ -634,9 +635,9 @@ implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentList
 				edit	= new BasicCompoundEdit();
 				name	= ggName.getText();
 				if( num == 1 ) {
-					if( SessionCollection.findByName( coll2, name ) != null ) {
+					if( BasicSessionCollection.findByName( coll2, name ) != null ) {
 						Session.makeNamePattern( name, args );
-						name = SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
+						name = BasicSessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
 					}
 					edit.addPerform( new EditSetSessionObjectName( this, (SessionObject) coll.get( 0 ),
 					                                               name ));
@@ -644,7 +645,7 @@ implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentList
 					Session.makeNamePattern( name, args );
 					for( i = 0; i < num; i++ ) {
 						so		= (SessionObject) coll.get( i );
-						name	= SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
+						name	= BasicSessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 );
 						edit.addPerform( new EditSetSessionObjectName( this, so, name ));
 						coll2.add( so );
 					}

@@ -192,18 +192,18 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 		try {
 			doc.bird.waitShared( Session.DOOR_TRNS | Session.DOOR_RCV | Session.DOOR_GRP );
 		// ------------- Transmitters -------------
-			numTrns = doc.activeTransmitters.size();
+			numTrns = doc.getActiveTransmitters().size();
 			numLb   = collTrnsLabels.size();
 			i		= Math.min( numTrns, numLb );
 			for( trnsIdx = 0; trnsIdx < i; trnsIdx++ ) {
-				name	= doc.activeTransmitters.get( trnsIdx ).getName();
+				name	= doc.getActiveTransmitters().get( trnsIdx ).getName();
 				lb		= (SelectableLabel) collTrnsLabels.get( trnsIdx );
 				if( name != lb.getText() ) {
 					lb.setText( name );
 				}
 			}
 			for( ; trnsIdx < numTrns; trnsIdx++ ) {
-				name	= doc.activeTransmitters.get( trnsIdx ).getName();
+				name	= doc.getActiveTransmitters().get( trnsIdx ).getName();
 				lb		= new SelectableLabel( SelectableLabel.HORIZONTAL );
 				lb.setText( name );
 				lb.setMinimumSize( trnsSize );
@@ -225,18 +225,18 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 			}
 
 		// ------------- Receivers -------------
-			numRcv  = doc.activeReceivers.size();
+			numRcv  = doc.getActiveReceivers().size();
 			numLb   = collRcvLabels.size();
 			i		= Math.min( numRcv, numLb );
 			for( rcvIdx = 0; rcvIdx < i; rcvIdx++ ) {
-				name	= doc.activeReceivers.get( rcvIdx ).getName();
+				name	= doc.getActiveReceivers().get( rcvIdx ).getName();
 				lb		= (SelectableLabel) collRcvLabels.get( rcvIdx );
 				if( name != lb.getText() ) {
 					lb.setText( name );
 				}
 			}
 			for( ; rcvIdx < numRcv; rcvIdx++ ) {
-				name	= doc.activeReceivers.get( rcvIdx ).getName();
+				name	= doc.getActiveReceivers().get( rcvIdx ).getName();
 				lb		= new SelectableLabel( SelectableLabel.VERTICAL );
 				lb.setText( name );
 				lb.setMinimumSize( rcvSize );
@@ -298,8 +298,8 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 			request.notifyTicks		= true;
 			request.notifyOffhand	= true;
 
-			collRcv					= doc.activeReceivers.getAll();
-			collTrns				= doc.activeTransmitters.getAll();
+			collRcv					= doc.getActiveReceivers().getAll();
+			collTrns				= doc.getActiveTransmitters().getAll();
 			numRcv					= collRcv.size();
 			numTrns					= collTrns.size();
 
@@ -420,15 +420,15 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 		rt_valid = false;
 // EEE
 //		transport.addRealtimeConsumer( this );
-		doc.activeTransmitters.addListener( this );
-		doc.activeReceivers.addListener( this );
+		doc.getActiveTransmitters().addListener( this );
+		doc.getActiveReceivers().addListener( this );
 		syncLabels();
     }
 
     public void stopListening()
     {
-		doc.activeTransmitters.removeListener( this );
-		doc.activeReceivers.removeListener( this );
+		doc.getActiveTransmitters().removeListener( this );
+		doc.getActiveReceivers().removeListener( this );
 // EEE
 //		transport.removeRealtimeConsumer( this );
 		rt_valid = false;

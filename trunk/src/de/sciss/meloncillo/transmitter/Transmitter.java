@@ -31,6 +31,7 @@ package de.sciss.meloncillo.transmitter;
 
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.DecimatedWaveTrail;
+import de.sciss.meloncillo.session.GroupableSessionObject;
 import de.sciss.meloncillo.session.SessionObject;
 
 /**
@@ -59,7 +60,7 @@ import de.sciss.meloncillo.session.SessionObject;
  *  @see	de.sciss.meloncillo.gui.VirtualSurface
  */
 public interface Transmitter
-extends SessionObject
+extends GroupableSessionObject
 {
 	public static final int OWNER_TRAJ	=	0x3000;
 

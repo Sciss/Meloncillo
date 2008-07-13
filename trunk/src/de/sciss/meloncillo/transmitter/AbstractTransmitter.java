@@ -36,6 +36,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import de.sciss.meloncillo.session.AbstractSessionObject;
+import de.sciss.meloncillo.session.BasicSessionCollection;
+import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.timeline.Track;
 
 /**
@@ -58,6 +60,8 @@ implements Transmitter
 
 //	private static final String	MAP_KEY_AUDIOBUS	= "audiobus";
 //	private static final String	MAP_KEY_AUDIOFILE	= "audiofile";
+	
+	private final BasicSessionCollection groups = new BasicSessionCollection();
 
 	/**
 	 *  Constructs a new empty transmitter.
@@ -79,6 +83,8 @@ implements Transmitter
 //		map.putValue( this, MAP_KEY_AUDIOBUS, new Integer( 0 ));
 //		map.putValue( this, MAP_KEY_AUDIOFILE, new File( "" ));
 	}
+	
+	public MutableSessionCollection getGroups() { return groups; }
 
 // ---------------- XMLRepresentation interface ---------------- 
 

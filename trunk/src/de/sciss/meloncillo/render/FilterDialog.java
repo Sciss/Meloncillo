@@ -141,7 +141,7 @@ implements RenderConsumer
 	{
 		if( !doc.bird.attemptShared( Session.DOOR_TIMETRNS, 250 )) return null;
 		try {
-			return new RenderContext( this, collEmpty, doc.selectedTransmitters.getAll(),
+			return new RenderContext( this, collEmpty, doc.getSelectedTransmitters().getAll(),
 									  doc.timeline.getSelectionSpan(), doc.timeline.getRate() );
 		}
 		finally {
@@ -161,7 +161,7 @@ implements RenderConsumer
 	{
 		if( !doc.bird.attemptShared( Session.DOOR_TIMETRNS, 250 )) return false;
 		try {
-			return( doc.selectedTransmitters.getAll().equals( context.getTransmitters() ) &&
+			return( doc.getSelectedTransmitters().getAll().equals( context.getTransmitters() ) &&
 					doc.timeline.getSelectionSpan().equals( context.getTimeSpan() ) &&
 					doc.timeline.getRate() == context.getSourceRate() );
 		}

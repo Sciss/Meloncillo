@@ -679,9 +679,9 @@ implements  RenderHost, ProcessingThread.Client,
     {
 		doc.timeline.addTimelineListener( this );
 		doc.getTransmitters().addListener( transmittersListener );
-		doc.selectedTransmitters.addListener( selectedTransmittersListener );
+		doc.getSelectedTransmitters().addListener( selectedTransmittersListener );
 		doc.getReceivers().addListener( receiversListener );
-		doc.selectedReceivers.addListener( selectedReceiversListener );
+		doc.getSelectedReceivers().addListener( selectedReceiversListener );
 		checkReContext();
     }
 
@@ -689,9 +689,9 @@ implements  RenderHost, ProcessingThread.Client,
     {
 		doc.timeline.removeTimelineListener( this );
 		doc.getTransmitters().removeListener( transmittersListener );
-		doc.selectedTransmitters.removeListener( selectedTransmittersListener );
+		doc.getSelectedTransmitters().removeListener( selectedTransmittersListener );
 		doc.getReceivers().removeListener( receiversListener );
-		doc.selectedReceivers.removeListener( selectedReceiversListener );
+		doc.getSelectedReceivers().removeListener( selectedReceiversListener );
     }
     
 // ---------------- TimelineListener interface ---------------- 

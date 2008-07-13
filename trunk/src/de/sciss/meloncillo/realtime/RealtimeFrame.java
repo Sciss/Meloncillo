@@ -157,7 +157,7 @@ extends AbstractPlugInFrame
 	{
 		if( !doc.bird.attemptShared( Session.DOOR_TIMETRNSRCV, 250 )) return false;
 		try {
-			return( doc.selectedTransmitters.getAll().equals( context.getTransmitters() ) &&
+			return( doc.getSelectedTransmitters().getAll().equals( context.getTransmitters() ) &&
 					doc.timeline.getSelectionSpan().equals( context.getTimeSpan() ) &&
 					doc.timeline.getRate() == context.getSourceRate() );	// XXX SourceBlockSpan
 		}

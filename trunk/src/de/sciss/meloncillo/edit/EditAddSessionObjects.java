@@ -34,6 +34,7 @@ import java.util.List;
 
 import de.sciss.app.BasicUndoableEdit;
 import de.sciss.app.PerformableEdit;
+import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 
@@ -50,11 +51,9 @@ import de.sciss.meloncillo.session.SessionCollection;
 public class EditAddSessionObjects
 extends BasicUndoableEdit
 {
-	private final Session			doc;
-	private final List				collSessionObjects;
-	private Object					source;
-	private final int				doors;
-	private final SessionCollection	quoi;
+	private final List						collSessionObjects;
+	private Object							source;
+	private final MutableSessionCollection	quoi;
 
 	/**
 	 *  Create and perform this edit. This
@@ -70,14 +69,12 @@ extends BasicUndoableEdit
 	 *  @see	de.sciss.meloncillo.session.SessionCollection.Event
 	 *  @synchronization		waitExclusive on doors
 	 */
-	public EditAddSessionObjects( Object source, Session doc, SessionCollection quoi,
-								  List collSessionObjects, int doors )
+	public EditAddSessionObjects( Object source, MutableSessionCollection quoi,
+								  List collSessionObjects )
 	{
 		super();
 		this.source				= source;
-		this.doc				= doc;
 		this.quoi				= quoi;
-		this.doors				= doors;
 		this.collSessionObjects = new ArrayList( collSessionObjects );
 //		perform();
 //		this.source				= this;
@@ -85,14 +82,8 @@ extends BasicUndoableEdit
 
 	public PerformableEdit perform()
 	{
-		try {
-			doc.bird.waitExclusive( doors );
-			quoi.addAll( source, collSessionObjects );
-			this.source = this;
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		quoi.addAll( source, collSessionObjects );
+		this.source = this;
 		return this;
 	}
 
@@ -106,13 +97,7 @@ extends BasicUndoableEdit
 	public void undo()
 	{
 		super.undo();
-		try {
-			doc.bird.waitExclusive( doors );
-			quoi.removeAll( source, collSessionObjects );
-		}
-		finally {
-			doc.bird.releaseExclusive( doors );
-		}
+		quoi.removeAll( source, collSessionObjects );
 	}
 	
 	/**

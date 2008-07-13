@@ -50,6 +50,7 @@ import javax.swing.undo.UndoManager;
 
 import de.sciss.meloncillo.edit.EditSetSessionObjects;
 import de.sciss.meloncillo.gui.GraphicsUtil;
+import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionObject;
 import de.sciss.meloncillo.util.MapManager;
@@ -73,7 +74,7 @@ import de.sciss.util.Disposable;
  *	carry insert effects and the like.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.70, 20-Jun-08
+ *  @version	0.75, 13-Jul-08
  */
 public class TrackRowHeader
 extends JPanel
@@ -82,7 +83,7 @@ implements MouseListener, DynamicListening, Disposable
 	private final JLabel			lbTrackName;
 	private final Track				t;
 	private final SessionCollection	tracks;
-	private final SessionCollection	selectedTracks;
+	private final MutableSessionCollection	selectedTracks;
 	private final UndoManager		undo;
 
 	protected boolean				selected		= false;
@@ -102,7 +103,7 @@ implements MouseListener, DynamicListening, Disposable
 	
 	/**
 	 */
-	public TrackRowHeader( final Track t, final SessionCollection tracks, final SessionCollection selectedTracks,
+	public TrackRowHeader( final Track t, final SessionCollection tracks, final MutableSessionCollection selectedTracks,
 						   UndoManager undo )
 	{
 		super();
@@ -293,7 +294,7 @@ implements MouseListener, DynamicListening, Disposable
 		if( e.isAltDown() ) {
 			selected = !selected;   // toggle item
 			if( selected ) {		// select all
-//					collTracks = doc.activeTransmitters.getAll();
+//				collTracks = doc.activeTransmitters.getAll();
 				collTracks = tracks.getAll();
 			} else {				// deselect all
 				collTracks = new ArrayList( 1 );

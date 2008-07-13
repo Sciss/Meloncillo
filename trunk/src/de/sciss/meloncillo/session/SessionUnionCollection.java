@@ -29,14 +29,14 @@
 
 package de.sciss.meloncillo.session;
 
-import de.sciss.meloncillo.util.*;
+import java.util.List;
 
 /**
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 13-Jul-08
  */
 public class SessionUnionCollection
-extends SessionCollection
+extends BasicSessionCollection
 {
 	public static final int RECEIVERS		= 0;
 	public static final int TRANSMITTERS	= 1;
@@ -44,18 +44,13 @@ extends SessionCollection
 	private final SessionGroup			allGroup;
 	private final SessionCollection		selectedGroups;
 	private final Listener				selectedGroupsListener, eachGroupListener;
-	private final LockManager			lm;
-	private final int					doors;
 	private final int					type;
 	private boolean allGroupSelected;
 
-	public SessionUnionCollection( SessionGroup allGroupL, SessionCollection selectedGroupsL, int typeL,
-								   LockManager lmL, int doorsL )
+	public SessionUnionCollection( Object DONTUSEANYMORE, SessionGroup allGroupL, SessionCollection selectedGroupsL, int typeL )
 	{
 		this.allGroup		= allGroupL;
 		this.selectedGroups	= selectedGroupsL;
-		this.lm				= lmL;
-		this.doors			= doorsL;
 		this.type			= typeL;
 		
 		SessionGroup group;
@@ -64,13 +59,7 @@ extends SessionCollection
 		eachGroupListener = new Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				try {
-					lm.waitExclusive( doors );
-					updateUnionCollection( e );
-				}
-				finally {
-					lm.releaseExclusive( doors );
-				}
+				updateUnionCollection( e );
 			}
 			
 			public void sessionObjectMapChanged( SessionCollection.Event e )
@@ -87,49 +76,42 @@ extends SessionCollection
 		selectedGroupsListener = new Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-				int				i;
-				java.util.List	affectedGroups;
+				List			affectedGroups;
 				SessionGroup	group;
 			
-				try {
-					lm.waitExclusive( doors );
-					switch( e.getModificationType() ) {
-					case SessionCollection.Event.ACTION_ADDED:
-						affectedGroups = e.getCollection();
-						if( allGroupSelected && !affectedGroups.isEmpty() ) {
+				switch( e.getModificationType() ) {
+				case SessionCollection.Event.ACTION_ADDED:
+					affectedGroups = e.getCollection();
+					if( allGroupSelected && !affectedGroups.isEmpty() ) {
 //System.err.println( "stop listen "+allGroup.getName() );
-							getSessionCollection( allGroup ).removeListener( eachGroupListener );
-							allGroupSelected = false;
-						}
-						for( i = 0; i < affectedGroups.size(); i++ ) {
-							group = (SessionGroup) affectedGroups.get( i );
-//System.err.println( "new listen "+group.getName() );
-							getSessionCollection( group ).addListener( eachGroupListener );
-						}
-						updateUnionCollection( e );
-						break;
-						
-					case SessionCollection.Event.ACTION_REMOVED:
-						affectedGroups = e.getCollection();
-						for( i = 0; i < affectedGroups.size(); i++ ) {
-							group = (SessionGroup) affectedGroups.get( i );
-//System.err.println( "stop listen "+group.getName() );
-							getSessionCollection( group ).removeListener( eachGroupListener );
-						}
-						if( !allGroupSelected && selectedGroups.isEmpty() ) {
-//System.err.println( "new listen "+allGroup.getName() );
-							getSessionCollection( allGroup ).addListener( eachGroupListener );
-							allGroupSelected = true;
-						}
-						updateUnionCollection( e );
-						break;
-						
-					default:
-						break;
+						getSessionCollection( allGroup ).removeListener( eachGroupListener );
+						allGroupSelected = false;
 					}
-				}
-				finally {
-					lm.releaseExclusive( doors );
+					for( int i = 0; i < affectedGroups.size(); i++ ) {
+						group = (SessionGroup) affectedGroups.get( i );
+//System.err.println( "new listen "+group.getName() );
+						getSessionCollection( group ).addListener( eachGroupListener );
+					}
+					updateUnionCollection( e );
+					break;
+					
+				case SessionCollection.Event.ACTION_REMOVED:
+					affectedGroups = e.getCollection();
+					for( int i = 0; i < affectedGroups.size(); i++ ) {
+						group = (SessionGroup) affectedGroups.get( i );
+//System.err.println( "stop listen "+group.getName() );
+						getSessionCollection( group ).removeListener( eachGroupListener );
+					}
+					if( !allGroupSelected && selectedGroups.isEmpty() ) {
+//System.err.println( "new listen "+allGroup.getName() );
+						getSessionCollection( allGroup ).addListener( eachGroupListener );
+						allGroupSelected = true;
+					}
+					updateUnionCollection( e );
+					break;
+					
+				default:
+					break;
 				}
 			}
 			
@@ -138,23 +120,17 @@ extends SessionCollection
 		};
 		
 		// initial listener installation
-		try {
-			lm.waitExclusive( doors );
-			selectedGroups.addListener( selectedGroupsListener );
-			allGroupSelected = selectedGroups.isEmpty();
-			if( allGroupSelected ) {
+		selectedGroups.addListener( selectedGroupsListener );
+		allGroupSelected = selectedGroups.isEmpty();
+		if( allGroupSelected ) {
 //System.err.println( "new listen "+allGroup.getName() );
-				getSessionCollection( allGroup ).addListener( eachGroupListener );
-			} else {
-				for( i = 0; i < selectedGroups.size(); i++ ) {
-					group = (SessionGroup) selectedGroups.get( i );
+			getSessionCollection( allGroup ).addListener( eachGroupListener );
+		} else {
+			for( i = 0; i < selectedGroups.size(); i++ ) {
+				group = (SessionGroup) selectedGroups.get( i );
 //System.err.println( "new listen "+group.getName() );
-					getSessionCollection( group ).addListener( eachGroupListener );
-				}
+				getSessionCollection( group ).addListener( eachGroupListener );
 			}
-		}
-		finally {
-			lm.releaseExclusive( doors );
 		}
 	}
 
@@ -352,23 +328,16 @@ extends SessionCollection
 		int i;
 		SessionGroup group;
 	
-		if( lm.attemptExclusive( doors, 1000 )) {
-			try {
-				allGroupSelected = selectedGroups.isEmpty();
-				if( allGroupSelected ) {
-					getSessionCollection( allGroup ).removeListener( eachGroupListener );
-				} else {
-					for( i = 0; i < selectedGroups.size(); i++ ) {
-						group = (SessionGroup) selectedGroups.get( i );
-						getSessionCollection( group ).removeListener( eachGroupListener );
-					}
-				}
-				selectedGroups.removeListener( selectedGroupsListener );
-			}
-			finally {
-				lm.releaseExclusive( doors );
+		allGroupSelected = selectedGroups.isEmpty();
+		if( allGroupSelected ) {
+			getSessionCollection( allGroup ).removeListener( eachGroupListener );
+		} else {
+			for( i = 0; i < selectedGroups.size(); i++ ) {
+				group = (SessionGroup) selectedGroups.get( i );
+				getSessionCollection( group ).removeListener( eachGroupListener );
 			}
 		}
+		selectedGroups.removeListener( selectedGroupsListener );
 
 		super.dispose();
 	}

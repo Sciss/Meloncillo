@@ -59,6 +59,8 @@ implements Receiver
 	
 	protected static final String	SUBDIR		= "rcv";
 
+	private final BasicSessionCollection groups = new BasicSessionCollection();
+
 	/**
 	 *  Constructs a new empty receiver.
 	 *  Basic initialization is achieved by
@@ -102,6 +104,8 @@ implements Receiver
 //		this.anchorX	= orig.anchorX;
 //		this.anchorY	= orig.anchorY;
 	}
+
+	public MutableSessionCollection getGroups() { return groups; }
 	
 // ---------------- Receiver interface ---------------- 
 

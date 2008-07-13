@@ -45,26 +45,22 @@ extends AbstractFlagsPanel
 implements DynamicListening, SessionCollection.Listener
 {
 	private final SessionCollection sc;
-	private final LockManager lm;
-	private final int doors;
 	protected SessionObject so;
 
-	public FlagsPanel( SessionObject so, SessionCollection sc, LockManager lm, int doors )
+	public FlagsPanel( SessionObject so, SessionCollection sc )
 	{
-		this( sc, lm, doors );
+		this( sc );
 
 		this.so		= so;
 		setOpaque( false );
         new DynamicAncestorAdapter( this ).addTo( this );
 	}
 	
-	protected FlagsPanel( SessionCollection sc, LockManager lm, int doors )
+	protected FlagsPanel( SessionCollection sc )
 	{
 		super();
 
 		this.sc		= sc;
-		this.lm		= lm;
-		this.doors	= doors;
 	}
 
 	// sync : attempt exclusive on doors
@@ -75,8 +71,8 @@ implements DynamicListening, SessionCollection.Listener
 		MapManager		map;
 		boolean			soloChange;
 	
-		if( !lm.attemptExclusive( doors, 250 )) return;
-		try {
+//		if( !lm.attemptExclusive( doors, 250 )) return;
+//		try {
 			map		= so.getMap();
 			o		= map.getValue( SessionObject.MAP_KEY_FLAGS );
 			flags	= o == null ? 0 : ((Integer) o).intValue();
@@ -100,10 +96,10 @@ implements DynamicListening, SessionCollection.Listener
 				map.putValue( this, SessionObject.MAP_KEY_FLAGS, new Integer( flagsNew ));
 			}
 			if( soloChange ) broadcastFlags( 0, true );
-		}
-		finally {
-			lm.releaseExclusive( doors );
-		}
+//		}
+//		finally {
+//			lm.releaseExclusive( doors );
+//		}
 	}
 
 	// sync : attempt exclusive on doors
@@ -115,8 +111,8 @@ implements DynamicListening, SessionCollection.Listener
 		MapManager		map;
 		boolean			virtualMute	= false;
 
-		if( !lm.attemptExclusive( doors, 250 )) return;
-		try {
+//		if( !lm.attemptExclusive( doors, 250 )) return;
+//		try {
 			if( (mask & SessionObject.FLAGS_SOLO) == 0 &&
 				!((mask & SessionObject.FLAGS_SOLOSAFE) != 0 && set) ) {
 			
@@ -143,10 +139,10 @@ implements DynamicListening, SessionCollection.Listener
 					map.putValue( this, SessionObject.MAP_KEY_FLAGS, new Integer( flagsNew ));
 				}
 			}
-		}
-		finally {
-			lm.releaseExclusive( doors );
-		}
+//		}
+//		finally {
+//			lm.releaseExclusive( doors );
+//		}
 	}
 
 	// sync : attempt shared on doors
@@ -157,8 +153,8 @@ implements DynamicListening, SessionCollection.Listener
 		Object			o;
 		MapManager		map;
 
-		if( !lm.attemptShared( doors, 250 )) return false;
-		try {
+//		if( !lm.attemptShared( doors, 250 )) return false;
+//		try {
 			for( i = 0; i < sc.size(); i++ ) {
 				so2		= sc.get( i );
 				map		= so2.getMap();
@@ -173,10 +169,10 @@ implements DynamicListening, SessionCollection.Listener
 			}
 			
 			return false;
-		}
-		finally {
-			lm.releaseShared( doors );
-		}
+//		}
+//		finally {
+//			lm.releaseShared( doors );
+//		}
 	}
 
 	// sync : shared on doors
@@ -185,15 +181,15 @@ implements DynamicListening, SessionCollection.Listener
 		Object	o;
 		int		flags;
 	
-		lm.waitShared( doors );
-		try {
+//		lm.waitShared( doors );
+//		try {
 			o		= so.getMap().getValue( SessionObject.MAP_KEY_FLAGS );
 			flags	= o == null ? 0 : ((Integer) o).intValue();
 			updateButtons( flags );
-		}
-		finally {
-			lm.releaseShared( doors );
-		}
+//		}
+//		finally {
+//			lm.releaseShared( doors );
+//		}
 	}
 
 // ---------------- DynamicListening interface ---------------- 

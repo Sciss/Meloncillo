@@ -38,6 +38,7 @@ import javax.swing.undo.UndoableEdit;
 import de.sciss.app.BasicUndoableEdit;
 import de.sciss.app.PerformableEdit;
 
+import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.session.SessionCollection;
 
 /**
@@ -47,15 +48,15 @@ import de.sciss.meloncillo.session.SessionCollection;
  *  of the session.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.70, 01-May-06
+ *  @version	0.75, 13-Jul-08
  *  @see		UndoManager
  */
 public class EditSetSessionObjects
 extends BasicUndoableEdit
 {
-	private Object					source;
-	private final SessionCollection	quoi;
-	private final List				oldSelection, newSelection;
+	private Object							source;
+	private final MutableSessionCollection	quoi;
+	private final List						oldSelection, newSelection;
 
 	/**
 	 *  Create and perform this edit. This
@@ -74,7 +75,7 @@ extends BasicUndoableEdit
 	 *
 	 *  @synchronization			waitExclusive on doors
 	 */
-	public EditSetSessionObjects( Object source, SessionCollection quoi,
+	public EditSetSessionObjects( Object source, MutableSessionCollection quoi,
 								  List collNewSelection )
 	{
 		super();

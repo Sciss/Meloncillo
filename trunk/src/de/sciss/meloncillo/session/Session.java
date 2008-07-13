@@ -89,6 +89,7 @@ import de.sciss.meloncillo.timeline.MarkerTrack;
 import de.sciss.meloncillo.timeline.Timeline;
 import de.sciss.meloncillo.timeline.TimelineFrame;
 import de.sciss.meloncillo.timeline.Track;
+import de.sciss.meloncillo.transmitter.Transmitter;
 import de.sciss.meloncillo.util.LockManager;
 import de.sciss.meloncillo.util.MapManager;
 import de.sciss.meloncillo.util.PrefsUtil;
@@ -105,10 +106,6 @@ public class Session
 extends BasicDocument
 implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 {
-	private final SessionCollection	receivers		= new SessionCollection();
-	private final SessionCollection	transmitters	= new SessionCollection();
-	private final SessionCollection	groups			= new SessionCollection();
-
 	public static final int					EDIT_INSERT		= 0;
 	public static final int					EDIT_OVERWRITE	= 1;
 	public static final int					EDIT_MIX		= 2;
@@ -179,15 +176,20 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 	 */
 	public final Timeline timeline			= new Timeline( this );
 
-	public final SessionCollection	selectedReceivers		= new SessionCollection();
-	public final SessionCollection	selectedTransmitters	= new SessionCollection();
-	public final SessionCollection	selectedGroups			= new SessionCollection();
-	public final SessionCollection	activeReceivers			= new SessionUnionCollection( this, selectedGroups,
-																	SessionUnionCollection.RECEIVERS,
-																	bird, DOOR_RCV | DOOR_GRP );
-	public final SessionCollection	activeTransmitters		= new SessionUnionCollection( this, selectedGroups,
-																	SessionUnionCollection.TRANSMITTERS,
-																	bird, DOOR_TRNS | DOOR_GRP );
+	private final BasicSessionCollection	tracks			= new BasicSessionCollection();	// should be tracking audioTracks automatically
+	private final BasicSessionCollection	selectedTracks	= new BasicSessionCollection();	// should be tracking audioTracks automatically
+	
+	private final BasicSessionCollection	receivers		= new BasicSessionCollection();
+	private final SessionCollection			transmitters;
+	private final BasicSessionCollection	groups			= new BasicSessionCollection();
+
+	private final BasicSessionCollection	selectedReceivers		= new BasicSessionCollection();
+	private final SessionCollection			selectedTransmitters;
+	private final BasicSessionCollection	selectedGroups			= new BasicSessionCollection();
+
+	// group view
+	private final SessionCollection			activeReceivers;
+	private final SessionCollection			activeTransmitters;
 	
 	public static final String			RCV_NAME_PREFIX	= "R";
 	public static final String			TRNS_NAME_PREFIX= "T";
@@ -234,9 +236,6 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 	
 	public final MarkerTrail		markers;
 	public final MarkerTrack		markerTrack;
-
-	public final SessionCollection		tracks			= new SessionCollection();	// should be tracking audioTracks automatically
-	public final SessionCollection		selectedTracks	= new SessionCollection();	// should be tracking audioTracks automatically
 	
 	// --- actions ---
 
@@ -265,8 +264,34 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 // EEE
 //		markers.copyFromAudioFile( afds[ 0 ]);	// XXX
 		tracks.add( null, markerTrack );
-		selectedTracks.add( this, markerTrack );
-
+//		selectedTracks.add( this, markerTrack );
+		final SessionCollectionView.Filter trnsFilter = new SessionCollectionView.Filter() {
+			public boolean select( SessionObject so )
+			{
+				System.out.println( "checking " + so + " -> " + (so instanceof Transmitter) );
+				return( so instanceof Transmitter );
+			}
+		};
+		transmitters		= new SessionCollectionView( tracks, trnsFilter ); 
+		selectedTransmitters= new SessionCollectionView( selectedTracks, trnsFilter );
+//		activeReceivers		= new SessionUnionCollection( this, selectedGroups, SessionUnionCollection.RECEIVERS );
+//		activeTransmitters	= new SessionUnionCollection( this, selectedGroups, SessionUnionCollection.TRANSMITTERS );
+		activeReceivers		= new SessionCollectionUnionView( receivers, SessionCollectionUnionView.RECEIVERS, true, selectedGroups );
+		activeTransmitters	= new SessionCollectionUnionView( transmitters, SessionCollectionUnionView.TRANSMITTERS, true, selectedGroups );
+		
+activeTransmitters.addListener( new SessionCollection.Listener() {
+	public void sessionCollectionChanged( SessionCollection.Event e ) {
+		System.out.println( e.getModificationType() == SessionCollection.Event.ACTION_ADDED ? "ADDED:" : "REMOVED:" );
+		final List coll = e.getCollection();
+		for( int i = 0; i < coll.size(); i++ ) {
+			System.out.println( "  #" + (i+1) + " -> " + coll.get( i ));
+		}
+	}
+	
+	public void sessionObjectChanged( SessionCollection.Event e ) {}
+	public void sessionObjectMapChanged( SessionCollection.Event e ) {}
+});
+		
 		actionSilence		= new ActionSilence();
 		actionTrim			= new ActionTrim();
 		
@@ -335,8 +360,26 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 	}
 
 	public SessionCollection getReceivers() { return receivers; }
+	public SessionCollection getTracks() { return tracks; }
 	public SessionCollection getTransmitters() { return transmitters; }
 	public SessionCollection getGroups() { return groups; }
+
+	public SessionCollection getSelectedReceivers() { return selectedReceivers; }
+	public SessionCollection getSelectedTracks() { return selectedTracks; }
+	public SessionCollection getSelectedTransmitters() { return selectedTransmitters; }
+	public SessionCollection getSelectedGroups() { return selectedGroups; }
+
+	// !!! IMPORTANT !!! DON'T RETURN THEM IN A MUTABLE FORM !!!
+	public SessionCollection getActiveReceivers() { return activeReceivers; }
+	// !!! IMPORTANT !!! DON'T RETURN THEM IN A MUTABLE FORM !!!
+	public SessionCollection getActiveTransmitters() { return activeTransmitters; }
+
+	public MutableSessionCollection getMutableReceivers() { return receivers; }
+	public MutableSessionCollection getMutableTracks() { return tracks; }
+	public MutableSessionCollection getMutableGroups() { return groups; }
+	public MutableSessionCollection getMutableSelectedReceivers() { return selectedReceivers; }
+	public MutableSessionCollection getMutableSelectedTracks() { return selectedTracks; }
+	public MutableSessionCollection getMutableSelectedGroups() { return selectedGroups; }
 
 	/**
 	 *  Clears the document. All receivers
@@ -361,14 +404,16 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 			    MapManager.Context.FLAG_OBSERVER_DISPLAY, MapManager.Context.TYPE_FILE,
 			    new Integer( PathField.TYPE_INPUTFILE ), "labelUserImage", null, new File( "" )));
 			
+//			final List collTrns = transmitters.getAll();
+			selectedReceivers.clear( this );
+			selectedTracks.clear( this );
+			selectedGroups.clear( this );
 			groups.clear( this );
 			receivers.clear( this );
-			transmitters.clear( this );
+			tracks.removeAll( this, transmitters.getAll() );
+			selectedTracks.add(  this, markerTrack );
 
 			setFile( null );
-			selectedReceivers.clear( this );
-			selectedTransmitters.clear( this );
-			selectedGroups.clear( this );
 			timeline.clear( this );
 		}
 		finally {
@@ -666,8 +711,9 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 			bird.waitExclusive( DOOR_ALL );
 			receivers.pauseDispatcher();
 			selectedReceivers.pauseDispatcher();
-			transmitters.pauseDispatcher();
-			selectedTransmitters.pauseDispatcher();
+// EEE
+//			transmitters.pauseDispatcher();
+//			selectedTransmitters.pauseDispatcher();
 			timeline.pauseDispatcher();
 			clear();
 			
@@ -753,7 +799,8 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 																MapManager.Context.NONE_EXCLUSIVE, so.getMap() );
 							soList.add( so );
 						}
-						transmitters.addAll( this, soList );
+						tracks.addAll( this, soList );
+//						transmitters.addAll( this, soList );
 
 					} else if( val.equals( XML_VALUE_GROUPS )) {
 						soList.clear();
@@ -829,8 +876,9 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 		finally {
 			receivers.resumeDispatcher();
 			selectedReceivers.resumeDispatcher();
-			transmitters.resumeDispatcher();
-			selectedTransmitters.resumeDispatcher();
+// EEE
+//			transmitters.resumeDispatcher();
+//			selectedTransmitters.resumeDispatcher();
 			timeline.resumeDispatcher();
 			bird.releaseExclusive( DOOR_ALL );
 		}

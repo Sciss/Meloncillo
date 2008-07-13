@@ -74,7 +74,9 @@ import de.sciss.meloncillo.edit.EditSetSessionObjects;
 import de.sciss.meloncillo.gui.Axis;
 import de.sciss.meloncillo.gui.MenuFactory;
 import de.sciss.meloncillo.receiver.Receiver;
+import de.sciss.meloncillo.session.BasicSessionCollection;
 import de.sciss.meloncillo.session.DocumentFrame;
+import de.sciss.meloncillo.session.GroupableSessionObject;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionGroup;
@@ -233,7 +235,7 @@ implements ClipboardOwner, PreferenceChangeListener
 
 		try {
 			doc.bird.waitShared( Session.DOOR_RCV );
-			collSelection   = doc.selectedReceivers.getAll();
+			collSelection   = doc.getSelectedReceivers().getAll();
 			for( int i = 0; i < collSelection.size(); i++ ) {
 				o = collSelection.get( i );
 				if( o instanceof Transferable ) {
@@ -328,20 +330,27 @@ implements ClipboardOwner, PreferenceChangeListener
 					rcv = (Receiver) coll3.get( i );
 					if( doc.getReceivers().findByName( rcv.getName() ) != null ) {
 						Session.makeNamePattern( rcv.getName(), args );
-						rcv.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 ));
+						rcv.setName( BasicSessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 ));
 					}
 					coll2.add( rcv );
 				}
 				
 				if( !coll3.isEmpty() ) {
 					edit = new BasicCompoundEdit();
-					edit.addPerform( new EditAddSessionObjects( this, doc, doc.getReceivers(), coll3, Session.DOOR_RCV ));
-					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
-						group	= (SessionGroup) doc.selectedGroups.get( i );
-						edit.addPerform( new EditAddSessionObjects( this, doc, group.getReceivers(), coll3, Session.DOOR_RCV ));
+					final List selectedGroups = doc.getSelectedGroups().getAll();
+					if( !selectedGroups.isEmpty() ) {
+						for( int i = 0; i < coll3.size(); i++ ) {
+							final GroupableSessionObject so = (GroupableSessionObject) coll3.get( i );
+							edit.addPerform( new EditAddSessionObjects( this, so.getGroups(), selectedGroups ));
+						}
 					}
+					edit.addPerform( new EditAddSessionObjects( this, doc.getMutableReceivers(), coll3 ));
+//					for( int i = 0; i < doc.getSelectedGroups().size(); i++ ) {
+//						group	= (SessionGroup) doc.getSelectedGroups().get( i );
+//						edit.addPerform( new EditAddSessionObjects( this, group.getReceivers(), coll3 ));
+//					}
 
-					edit.addPerform( new EditSetSessionObjects( this, doc.selectedReceivers, coll3 ));
+					edit.addPerform( new EditSetSessionObjects( this, doc.getMutableSelectedReceivers(), coll3 ));
 					edit.perform();
 					edit.end();
 					doc.getUndoManager().addEdit( edit );
@@ -408,7 +417,7 @@ implements ClipboardOwner, PreferenceChangeListener
 	
 		try {
 			doc.bird.waitExclusive( Session.DOOR_RCV );
-			edit = new EditSetSessionObjects( this, doc.selectedReceivers, doc.getReceivers().getAll() );
+			edit = new EditSetSessionObjects( this, doc.getMutableSelectedReceivers(), doc.getMutableReceivers().getAll() );
 			doc.getUndoManager().addEdit( edit.perform() );
 		}
 		finally {

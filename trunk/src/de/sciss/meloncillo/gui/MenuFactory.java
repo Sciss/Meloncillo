@@ -101,8 +101,11 @@ import de.sciss.meloncillo.lisp.JathaDiddler;
 import de.sciss.meloncillo.receiver.Receiver;
 import de.sciss.meloncillo.render.BounceDialog;
 import de.sciss.meloncillo.render.FilterDialog;
+import de.sciss.meloncillo.session.BasicSessionCollection;
 import de.sciss.meloncillo.session.BasicSessionGroup;
 import de.sciss.meloncillo.session.DocumentFrame;
+import de.sciss.meloncillo.session.GroupableSessionObject;
+import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionGroup;
@@ -336,12 +339,12 @@ extends BasicMenuFactory
 		actionNewTransmitters = new ActionNewTransmitters( app.getResourceString( "menuNewTransmitters" ),
 							KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
 		actionNewGroup	= new ActionNewGroup( app.getResourceString( "menuNewGroup" ), null );
-		actionRemoveReceivers = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveReceivers" ),
-											null, Session.DOOR_RCV, doc.getReceivers(), doc.selectedReceivers, doc.getGroups() );
-		actionRemoveTransmitters = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveTransmitters" ),
-											null, Session.DOOR_TRNS, doc.getTransmitters(), doc.selectedTransmitters, doc.getGroups() );
-		actionRemoveGroups	= new ActionRemoveSessionObject( app.getResourceString( "menuRemoveGroups" ),
-											null, Session.DOOR_GRP, doc.getGroups(), doc.selectedGroups, null );
+		actionRemoveReceivers = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveReceivers" ), null,
+			doc.getMutableReceivers(), doc.getMutableSelectedReceivers(), doc.getSelectedReceivers() );
+		actionRemoveTransmitters = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveTransmitters" ), null,
+			doc.getMutableTracks(), doc.getMutableSelectedTracks(), doc.getSelectedTransmitters() );
+		actionRemoveGroups	= new ActionRemoveSessionObject( app.getResourceString( "menuRemoveGroups" ), null,
+			doc.getMutableGroups(), doc.getMutableSelectedGroups(), doc.getSelectedGroups() );
 
 		actionBounce	= new ActionBounce( app.getResourceString( "menuBounce" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_R, MENU_SHORTCUT ));
@@ -498,7 +501,7 @@ extends BasicMenuFactory
 		{
 			int				numi, result;
 			Receiver		rcv;
-			List			coll, coll2;
+			List			collNewRcv, coll2;
 			Point2D			anchor;
 			double			d1;
 			Class			c;
@@ -540,7 +543,7 @@ extends BasicMenuFactory
 				// apart from SigmaReceiver, we could display a selection
 				// dialog or the like...
 				c		= Class.forName( type.getKey() );
-				coll	= new ArrayList();
+				collNewRcv	= new ArrayList();
 				coll2	= doc.getReceivers().getAll();
 				for( int i = 0; i < numi; i++ ) {
 					d1  = ((double) i / (double) numi - 0.25) * Math.PI * 2;
@@ -548,26 +551,31 @@ extends BasicMenuFactory
 					rcv = (Receiver) c.newInstance();
 					rcv.setAnchor( anchor );
 //					rcv.setSize( new Dimension2DDouble( 0.5, 0.5 ));
-					rcv.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
+					rcv.setName( BasicSessionCollection.createUniqueName( Session.SO_NAME_PTRN,
 						new Object[] { new Integer( 1 ), Session.RCV_NAME_PREFIX, Session.RCV_NAME_SUFFIX },
 						coll2 ));
 					doc.getReceivers().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
 														 MapManager.Context.NONE_EXCLUSIVE, rcv.getMap() );
-					coll.add( rcv );
+					collNewRcv.add( rcv );
 					coll2.add( rcv );
 				}
-				if( doc.selectedGroups.size() == 0 ) {
+				if( doc.getSelectedGroups().isEmpty() ) {
 					final PerformableEdit edit;
-					edit = new EditAddSessionObjects( this, doc, doc.getReceivers(), coll, Session.DOOR_RCV );
+					edit = new EditAddSessionObjects( this, doc.getMutableReceivers(), collNewRcv );
 					doc.getUndoManager().addEdit( edit.perform() );
 				} else {
 					final BasicCompoundEdit edit;
 					edit	= new BasicCompoundEdit( getValue( NAME ).toString() );
-					edit.addPerform( new EditAddSessionObjects( this, doc, doc.getReceivers(), coll, Session.DOOR_RCV ));
-					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
-						group	= (SessionGroup) doc.selectedGroups.get( i );
-						edit.addPerform( new EditAddSessionObjects( this, doc, group.getReceivers(), coll, Session.DOOR_RCV ));
+					final List selectedGroups = doc.getSelectedGroups().getAll();
+					for( int i = 0; i < collNewRcv.size(); i++ ) {
+						final GroupableSessionObject so = (GroupableSessionObject) collNewRcv.get( i );
+						edit.addPerform( new EditAddSessionObjects( this, so.getGroups(), selectedGroups ));
 					}
+					edit.addPerform( new EditAddSessionObjects( this, doc.getMutableReceivers(), collNewRcv ));
+//					for( int i = 0; i < doc.getSelectedGroups().size(); i++ ) {
+//						group	= (SessionGroup) doc.getSelectedGroups().get( i );
+//						edit.addPerform( new EditAddSessionObjects( this, group.getReceivers(), coll ));
+//					}
 					edit.perform();
 					edit.end();
 					doc.getUndoManager().addEdit( edit );
@@ -616,7 +624,7 @@ extends BasicMenuFactory
 
 			try {
 				doc.bird.waitShared( Session.DOOR_TRNS | Session.DOOR_RCV );
-				b1 = doc.selectedReceivers.isEmpty() && doc.selectedTransmitters.isEmpty();
+				b1 = doc.getSelectedReceivers().isEmpty() && doc.getSelectedTransmitters().isEmpty();
 			} finally {
 				doc.bird.releaseShared( Session.DOOR_TRNS | Session.DOOR_RCV );
 			}
@@ -630,7 +638,7 @@ extends BasicMenuFactory
 
 			try {
 				doc.bird.waitShared( Session.DOOR_GRP );
-				name = SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
+				name = BasicSessionCollection.createUniqueName( Session.SO_NAME_PTRN,
 					new Object[] { new Integer( 1 ), Session.GRP_NAME_PREFIX, Session.GRP_NAME_SUFFIX },
 					doc.getGroups().getAll() );
 			} finally {
@@ -655,25 +663,29 @@ extends BasicMenuFactory
 						
 					if( result != JOptionPane.YES_OPTION ) return;
 				} else {
-					group = new BasicSessionGroup();
+					group = new BasicSessionGroup( doc );
 					group.setName( name );
 					doc.getGroups().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
 													  MapManager.Context.NONE_EXCLUSIVE, group.getMap() );
 				}
 				if( !doc.bird.attemptShared( Session.DOOR_TRNS | Session.DOOR_RCV, 250 )) return;
 				try {
-					collSO		= doc.selectedReceivers.getAll();
-					ce.addEdit( new EditAddSessionObjects( this, doc, group.getReceivers(), collSO,
-														   Session.DOOR_RCV ));
-					collSO		= doc.selectedTransmitters.getAll();
-					ce.addEdit( new EditAddSessionObjects( this, doc, group.getTransmitters(), collSO,
-														   Session.DOOR_TRNS ));
+					collSO		= doc.getSelectedReceivers().getAll();
+					final List collGroup = Collections.singletonList( group );
+					for( int i = 0; i < collSO.size(); i++ ) {
+						final GroupableSessionObject so = (GroupableSessionObject) collSO.get( i );
+						ce.addPerform( new EditAddSessionObjects( this, so.getGroups(), collGroup ));
+					}
+//					ce.addEdit( new EditAddSessionObjects( this, group.getReceivers(), collSO ));
+					collSO		= doc.getSelectedTransmitters().getAll();
+					for( int i = 0; i < collSO.size(); i++ ) {
+						final GroupableSessionObject so = (GroupableSessionObject) collSO.get( i );
+						ce.addPerform( new EditAddSessionObjects( this, so.getGroups(), collGroup ));
+					}
+//					ce.addEdit( new EditAddSessionObjects( this, group.getTransmitters(), collSO ));
 
 					if( b1 ) {
-						collSO = new ArrayList( 1 );
-						collSO.add( group );
-						ce.addPerform( new EditAddSessionObjects( this, doc, doc.getGroups(),
-																	  collSO, Session.DOOR_GRP ));
+						ce.addPerform( new EditAddSessionObjects( this, doc.getMutableGroups(), collGroup ));
 					}
 					ce.perform();
 					ce.end();
@@ -1126,7 +1138,7 @@ extends BasicMenuFactory
 
 					c		= Class.forName( s );
 					trns	= (Transmitter) c.newInstance();
-					trns.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
+					trns.setName( BasicSessionCollection.createUniqueName( Session.SO_NAME_PTRN,
 						new Object[] { new Integer( 1 ), Session.TRNS_NAME_PREFIX, Session.TRNS_NAME_SUFFIX },
 						collAllTrns ));
 					doc.getTransmitters().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
@@ -1233,11 +1245,18 @@ extends BasicMenuFactory
 //					.editAdd(
 //					    this, (AudioStake) stakes.get( i ), edit );
 //				}
-				edit.addPerform( new EditAddSessionObjects( this, doc, doc.getTransmitters(), collNewTrns, Session.DOOR_TRNS ));
-				for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
-					final SessionGroup group = (SessionGroup) doc.selectedGroups.get( i );
-					edit.addPerform( new EditAddSessionObjects( this, doc, group.getTransmitters(), collNewTrns, Session.DOOR_TRNS ));
+				final List selectedGroups = doc.getSelectedGroups().getAll();
+				if( !selectedGroups.isEmpty() ) {
+					for( int i = 0; i < collNewTrns.size(); i++ ) {
+						final GroupableSessionObject so = (GroupableSessionObject) collNewTrns.get( i );
+						edit.addPerform( new EditAddSessionObjects( this, so.getGroups(), selectedGroups ));
+					}
 				}
+				edit.addPerform( new EditAddSessionObjects( this, doc.getMutableTracks(), collNewTrns ));
+//				for( int i = 0; i < doc.getSelectedGroups().size(); i++ ) {
+//					final SessionGroup group = (SessionGroup) doc.getSelectedGroups().get( i );
+//					edit.addPerform( new EditAddSessionObjects( this, group.getTransmitters(), collNewTrns ));
+//				}
 				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
@@ -1254,21 +1273,23 @@ extends BasicMenuFactory
 	public class ActionRemoveSessionObject
 	extends MenuAction
 	{
-		private final int				doors;
-		private final SessionCollection	scAll;
-		private final SessionCollection	scSel;
-		private final SessionCollection	scGroups;
+		private final MutableSessionCollection	scAll;
+		private final MutableSessionCollection	scSelAll;
+		private final SessionCollection			scSel;
+//		private final SessionCollection			scGroups;
 	
-		private ActionRemoveSessionObject( String text, KeyStroke shortcut, int doors,
-												SessionCollection scAll, SessionCollection scSel,
-												SessionCollection scGroups )
+		private ActionRemoveSessionObject( String text, KeyStroke shortcut,
+										   MutableSessionCollection scAll,
+										   MutableSessionCollection scSelAll,
+										   SessionCollection scSel )
 		{
 			super( text, shortcut );
 			
-			this.doors		= doors;
+//			this.doors		= doors;
 			this.scAll		= scAll;
+			this.scSelAll	= scSelAll;
 			this.scSel		= scSel;
-			this.scGroups	= scGroups;
+//			this.scGroups	= scGroups;
 		}
 
 		/**
@@ -1285,47 +1306,47 @@ extends BasicMenuFactory
 		 */
 		public void perform()
 		{
-			List					collSelection, collInGroup;
+			List					collSelection;
 			AbstractCompoundEdit	edit;
 			SessionGroup			g;
 
-			try {
-				doc.bird.waitExclusive( doors );
+//			try {
+//				doc.bird.waitExclusive( doors );
 				collSelection		= scSel.getAll();
 				edit				= new BasicCompoundEdit( getValue( NAME ).toString() );
-				if( scGroups != null ) {
-					for( int i = 0; i < scGroups.size(); i++ ) {
-						g			= (SessionGroup) scGroups.get( i );
-						collInGroup	= g.getTransmitters().getAll();
-						collInGroup.retainAll( collSelection );
-						if( !collInGroup.isEmpty() ) {
-							edit.addPerform( new EditRemoveSessionObjects( this, doc, g.getTransmitters(), collInGroup,
-							                                               doors | Session.DOOR_GRP ));
-						} else {
-							collInGroup	= g.getReceivers().getAll();
-							collInGroup.retainAll( collSelection );
-							if( !collInGroup.isEmpty() ) {
-								edit.addPerform( new EditRemoveSessionObjects( this, doc, g.getReceivers(), collInGroup,
-								                                               doors | Session.DOOR_GRP ));
-//							} else {
-//								collInGroup	= g.groups.getAll().retainAll( collSelection );
-//								if( !collInGroup.isEmpty() ) {
-//									edit.addEdit( new EditRemoveSessionObjects( this, doc, g.transmitters, collInGroup,
-//																				doors | Session.DOOR_GRP ));
-//								}
-							}
-						}
-					}
-				}
-				edit.addPerform( new EditSetSessionObjects( this, scSel, Collections.EMPTY_LIST ));
-				edit.addPerform( new EditRemoveSessionObjects( this, doc, scAll, collSelection, doors ));
+//				if( scGroups != null ) {
+//					for( int i = 0; i < scGroups.size(); i++ ) {
+//						g			= (SessionGroup) scGroups.get( i );
+//						collInGroup	= g.getTransmitters().getAll();
+//						collInGroup.retainAll( collSelection );
+//						if( !collInGroup.isEmpty() ) {
+//							edit.addPerform( new EditRemoveSessionObjects( this, doc, g.getTransmitters(), collInGroup,
+//							                                               doors | Session.DOOR_GRP ));
+//						} else {
+//							collInGroup	= g.getReceivers().getAll();
+//							collInGroup.retainAll( collSelection );
+//							if( !collInGroup.isEmpty() ) {
+//								edit.addPerform( new EditRemoveSessionObjects( this, doc, g.getReceivers(), collInGroup,
+//								                                               doors | Session.DOOR_GRP ));
+////							} else {
+////								collInGroup	= g.groups.getAll().retainAll( collSelection );
+////								if( !collInGroup.isEmpty() ) {
+////									edit.addEdit( new EditRemoveSessionObjects( this, doc, g.transmitters, collInGroup,
+////																				doors | Session.DOOR_GRP ));
+////								}
+//							}
+//						}
+//					}
+//				}
+				edit.addPerform( new EditRemoveSessionObjects( this, scSelAll, collSelection ));
+				edit.addPerform( new EditRemoveSessionObjects( this, scAll, collSelection ));
 				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
-			}
-			finally {
-				doc.bird.releaseExclusive( doors );
-			}
+//			}
+//			finally {
+//				doc.bird.releaseExclusive( doors );
+//			}
 		}
 	}
 
@@ -1664,9 +1685,9 @@ extends BasicMenuFactory
 			System.err.println( "---------- all groups ----------" );
 			doc.getGroups().debugDump();
 			System.err.println( "---------- active transmitters ----------" );
-			doc.activeTransmitters.debugDump();
+			doc.getActiveTransmitters().debugDump();
 			System.err.println( "---------- active receivers ----------" );
-			doc.activeReceivers.debugDump();
+			doc.getActiveReceivers().debugDump();
 			for( int i = 0; i < doc.getGroups().size(); i++ ) {
 				SessionGroup g = (SessionGroup) doc.getGroups().get( i );
 				System.err.println( "............ group : "+g.getName() );
