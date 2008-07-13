@@ -405,6 +405,7 @@ implements  TimelineListener, ToolActionListener,
 		final TopPainter				trackPainter;
 		final MenuRoot					mr;
 		final JPanel					topPane		= GUIUtil.createGradientPanel();
+		final Trail.Listener			waveTrailListener;
 		Box								box;
 
 		internalFrames		= app.getWindowHandler().usesInternalFrames();
@@ -640,13 +641,42 @@ bbb.add( markAxisHeader );
 		
 //		checkDecimatedTrails();
 
+		waveTrailListener = new Trail.Listener() {
+			public void trailModified( Trail.Event e )
+			{
+				if( !waveExpanded || !e.getAffectedSpan().touches( timelineVis )) return;
+			
+				updateOverviews( false, false );
+			}
+		};
+// EEE
+//		doc.getAudioTrail().addListener( waveTrailListener );
+		
 // EEE
 //		doc.audioTracks.addListener( new SessionCollection.Listener() { ... });
 		doc.getActiveTransmitters().addListener( new SessionCollection.Listener() {
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
-System.out.println( "YOOOOOOOOOOOOOOOOO" );
+//System.out.println( "YOOOOOOOOOOOOOOOOO" );
 				documentUpdate();
+				updateSelectionAndRepaint();
+				final List coll = e.getCollection();
+				switch( e.getModificationType() ) {
+				case SessionCollection.Event.ACTION_ADDED:
+					for( int i = 0; i < coll.size(); i++ ) {
+						((Transmitter) coll.get( i )).getAudioTrail().addListener( waveTrailListener );
+					}
+					break;
+					
+				case SessionCollection.Event.ACTION_REMOVED:
+					for( int i = 0; i < coll.size(); i++ ) {
+						((Transmitter) coll.get( i )).getAudioTrail().removeListener( waveTrailListener );
+					}
+					break;
+				
+				default:
+					break;
+				}
 			}
 
 			public void sessionObjectMapChanged( SessionCollection.Event e ) { /* ignored */ }
@@ -675,17 +705,7 @@ System.out.println( "YOOOOOOOOOOOOOOOOO" );
 				repaintMarkers( e.getAffectedSpan() );
 			}
 		});
-
-// EEE
-//		doc.getAudioTrail().addListener( new Trail.Listener() {
-//			public void trailModified( Trail.Event e )
-//			{
-//				if( !waveExpanded || !e.getAffectedSpan().touches( timelineVis )) return;
-//			
-//				updateOverviews( false, false );
-//			}
-//		});
-
+		                                
 //		winListener = new AbstractWindow.Adapter() {
 //			public void windowClosing( AbstractWindow.Event e ) {
 //				actionClose.perform();
@@ -1194,6 +1214,7 @@ dt = null;
 			t			= chanHead.getTrack();
 
 			if( !doc.getActiveTransmitters().contains( t )) {
+System.out.println( "removing " + t );
 				chanHead	= (TrackRowHeader) collChannelHeaders.remove( ch );
 //				chanMeter	= (PeakMeter) collChannelMeters.remove( ch );
 				chanRuler	= (Axis) collChannelRulers.remove( ch );
@@ -1210,11 +1231,13 @@ dt = null;
 		}
 		// next look for newly added transmitters and create editors for them
 
+		System.out.println( "now oldNumWaveTracks = " + oldNumWaveTracks + "; collChannelHeaders.size = " + collChannelHeaders.size() );
+		
 // EEE
 newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
-			t			= (Track) doc.getActiveTransmitters().get( ch );
+			t = (Track) doc.getActiveTransmitters().get( ch );
 			for( int ch2 = 0; ch2 < oldNumWaveTracks; ch2++ ) {
-				chanHead = (TrackRowHeader) collChannelHeaders.get( ch );
+				chanHead = (TrackRowHeader) collChannelHeaders.get( ch2 );
 				if( chanHead.getTrack() == t ) continue newLp;
 			}
 			
@@ -1436,10 +1459,12 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 			t			= doc.markerTrack;
 			vpSelections.add( markAxis.getBounds() );
 			vpSelectionColors.add( doc.getSelectedTracks().contains( t ) ? colrSelection : colrSelection2 );
-			for( int ch = 0; ch < waveView.getNumChannels(); ch++ ) {
-				r		= new Rectangle( waveView.rectForChannel( ch ));
+
+			for( int i = 0; i < doc.getActiveTransmitters().size(); i++ ) {
+//				r		= new Rectangle( waveView.rectForChannel( ch ));
+				r		= new Rectangle( waveView.rectForTransmitter( i ));
 				r.translate( x, y );
-				t		= null; // EEE (Track) doc.audioTracks.get( ch );
+				t		= (Track) doc.getActiveTransmitters().get( i );
 				vpSelections.add( r );
 				vpSelectionColors.add( doc.getSelectedTracks().contains( t ) ? colrSelection : colrSelection2 );
 			}

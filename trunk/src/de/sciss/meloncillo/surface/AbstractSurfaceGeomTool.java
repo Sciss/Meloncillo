@@ -42,8 +42,10 @@ import java.io.IOException;
 import java.util.List;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.common.BasicApplication;
 import de.sciss.common.ProcessingThread;
+import de.sciss.gui.ProgressComponent;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
@@ -141,9 +143,21 @@ implements ProcessingThread.Client
 //		renderThread = new ProcessingThread( this, root, root, doc,
 //		                         			AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ),
 //		                         			ctrlPoints, Session.DOOR_TIMETRNSMTE );
+		final Span span		= doc.timeline.getSelectionSpan();
+		final List collTrns	= doc.getSelectedTransmitters().getAll();
+		if( span.isEmpty() || collTrns.isEmpty() ) return;
+
+		final AbstractCompoundEdit edit;
+		edit = new CompoundSessionObjEdit( this, collTrns, Transmitter.OWNER_TRAJ,
+		                                   null, null, "Geometric Tool" );
+
 		renderThread = new ProcessingThread( this, root,
 		    AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ));
 		renderThread.putClientArg( "points", ctrlPoints );
+		renderThread.putClientArg( "span", span );
+		renderThread.putClientArg( "trns", collTrns );
+		renderThread.putClientArg( "edit", edit );
+
 		renderThread.start();
 	}
 
@@ -257,9 +271,14 @@ implements ProcessingThread.Client
 	 */
 	public int processRun( ProcessingThread context ) throws IOException
 	{
+		final Span						span		= (Span) context.getClientArg( "span" );
+		final AbstractCompoundEdit		edit		= (AbstractCompoundEdit) context.getClientArg( "edit" ); 
+		final List						collTrns	= (List) context.getClientArg( "trns" );
+		final BlendContext				bc			= root.getBlending();
+		final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
+		final float[][]					interpBuf;
 		Transmitter						trns;
 		AudioTrail						at;
-		float[][]						interpBuf;
 		float[]							warpedTime;
 		int								i, len;
 		double							t_norm;
@@ -267,16 +286,10 @@ implements ProcessingThread.Client
 		// interpLen entspricht 'T' in der Formel (Gesamtzeit), interpOff entspricht 't' (aktueller Zeitpunkt)
 		long							start, interpOff, interpLen, progressLen;
 		long							progress	= 0;
-		Span							span;
-		CompoundSessionObjEdit			edit;
-		List							collTransmitters;
-		boolean							success		= false;
-		BlendContext					bc			= root.getBlending();
+//		boolean							success		= false;
 		AudioStake						as;
-		final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
 
-		span = doc.timeline.getSelectionSpan();
-		if( span.getLength() < 2 ) return DONE;
+//		if( span.getLength() < 2 ) return DONE;
 		if( !initFunctionEvaluation( (Point2D[]) context.getClientArg( "points" ))) return FAILED;
 
 		interpLen		= span.getLength();
@@ -285,14 +298,11 @@ implements ProcessingThread.Client
 		// '-1' because the last sample shall really equal the end point of the shape
 		t_norm			= 1.0 / (interpLen - 1);
 
-		collTransmitters= doc.getSelectedTransmitters().getAll();
-		progressLen		= interpLen*collTransmitters.size();
-		edit			= new CompoundSessionObjEdit( this, collTransmitters, Transmitter.OWNER_TRAJ,
-													  null, null, "Geometric Tool" );
+		progressLen		= interpLen*collTrns.size();
 
 		try {
-			for( i = 0; i < collTransmitters.size(); i++ ) {
-				trns	= (Transmitter) collTransmitters.get( i );
+			for( i = 0; i < collTrns.size(); i++ ) {
+				trns	= (Transmitter) collTrns.get( i );
 				at		= trns.getAudioTrail();
 				as		= at.alloc( span );
 //				bs = at.beginOverwrite( span, bc, edit );
@@ -317,28 +327,41 @@ implements ProcessingThread.Client
 					context.setProgression( (float) progress / (float) progressLen );
 				}
 //				at.finishWrite( bs, edit );
+				at.editBegin( edit );
 				at.editClear( this, span, edit );
 				at.editAdd( this, as, edit );
+				at.editEnd( edit );
 			} // for( i = 0; i < collTransmitters.size(); i++ )
 			
-			edit.perform();
-			edit.end(); // fires doc.tc.modified()
-			doc.getUndoManager().addEdit( edit );
-			success = true;
+//			edit.perform();
+//			edit.end(); // fires doc.tc.modified()
+//			doc.getUndoManager().addEdit( edit );
+//			success = true;
+			return DONE;
 		}
 		catch( IOException e1 ) {
-			edit.cancel();
+//			edit.cancel();
 			context.setException( e1 );
+			return FAILED;
 		}
-		
-		return success ? DONE : FAILED;
 	} // run()
 
 	/**
 	 *  Invoked by the <code>ProcessingThread</code> upon
 	 *  processing completion. This implementation does not nothing
 	 */
-	public void processFinished( ProcessingThread context ) {}
+	public void processFinished( ProcessingThread context )
+	{
+		final AbstractCompoundEdit edit = (AbstractCompoundEdit) context.getClientArg( "edit" );
+		
+		if( context.getReturnCode() == ProgressComponent.DONE ) {
+			edit.perform();
+			edit.end(); // fires doc.tc.modified()
+			doc.getUndoManager().addEdit( edit );
+		} else {
+			edit.cancel();
+		}
+	}
 
 	public void processCancel( ProcessingThread context ) {}
 }

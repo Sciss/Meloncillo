@@ -212,11 +212,15 @@ implements  RenderPlugIn, RenderHost, RenderConsumer, PreferenceChangeListener
 		ggTransformX	= new PrefComboBox();
 		ggTransformY	= new PrefComboBox();
 		ggCenterX		= new PrefNumberField();
-		ggCenterX.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
-		ggCenterX.setNumber( new Double( 0.5 ));
+//		ggCenterX.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
+		ggCenterX.setSpace( new NumberSpace( -1.0, 1.0, 0.0 ));
+//		ggCenterX.setNumber( new Double( 0.5 ));
+		ggCenterX.setNumber( new Double( 0.0 ));
 		ggCenterY		= new PrefNumberField();
-		ggCenterY.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
-		ggCenterY.setNumber( new Double( 0.5 ));
+//		ggCenterY.setSpace( new NumberSpace( 0.0, 1.0, 0.0 ));
+		ggCenterY.setSpace( new NumberSpace( -1.0, 1.0, 0.0 ));
+//		ggCenterY.setNumber( new Double( 0.5 ));
+		ggCenterY.setNumber( new Double( 0.0 ));
 		funcGUIX		= new JScrollPane( JScrollPane.VERTICAL_SCROLLBAR_NEVER,
 										   JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
 		funcGUIY		= new JScrollPane( JScrollPane.VERTICAL_SCROLLBAR_NEVER,

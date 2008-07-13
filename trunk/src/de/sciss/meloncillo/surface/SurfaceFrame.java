@@ -117,7 +117,8 @@ implements ClipboardOwner, PreferenceChangeListener
 		final JSplitPane		split	= new JSplitPane( JSplitPane.HORIZONTAL_SPLIT );
 		final JSplitPane		split2	= new JSplitPane( JSplitPane.VERTICAL_SPLIT );
 		final JPanel			sp		= new JPanel( new BorderLayout() );
-		final VectorSpace		space	= VectorSpace.createLinSpace( 0.0, 1.0, 0.0, 1.0, null, null, null, null );	// XXX
+//		final VectorSpace		space	= VectorSpace.createLinSpace( 0.0, 1.0, 0.0, 1.0, null, null, null, null );	// XXX
+		final VectorSpace		space	= VectorSpace.createLinSpace( -1.0, 1.0, -1.0, 1.0, null, null, null, null );	// XXX
 		final SurfaceToolBar	stb		= new SurfaceToolBar( root );
 		final Application		app		= AbstractApplication.getApplication();
 		final JPanel			gp		= GUIUtil.createGradientPanel();
@@ -128,7 +129,7 @@ implements ClipboardOwner, PreferenceChangeListener
 		gp.add( stb );
 		haxisBox	= Box.createHorizontalBox();
 		haxis		= new Axis( Axis.HORIZONTAL, Axis.FIXEDBOUNDS );
-		vaxis		= new Axis( Axis.VERTICAL, Axis.MIRROIR | Axis.FIXEDBOUNDS );
+		vaxis		= new Axis( Axis.VERTICAL, /* Axis.MIRROIR | */ Axis.FIXEDBOUNDS );
 		surface		= new SurfacePane( root, doc );
 		surface.addComponentListener( new ComponentAdapter() {
 			public void componentResized( ComponentEvent e )

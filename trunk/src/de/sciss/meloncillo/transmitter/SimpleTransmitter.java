@@ -60,7 +60,8 @@ extends AbstractTransmitter
     private AudioTrail at;
     private final DecimatedWaveTrail dwt;
 //	private static final int[] decimations	= { 0, 2, 4, 6, 8, 10, 12 };
-	private static final int[] decimations	= { 2, 4, 6, 8, 10, 12 };
+//	private static final int[] decimations	= { 2, 4, 6, 8, 10, 12 };
+	private static final int[] decimations	= { 4, 8, 12 };
 
 	/**
 	 *  Creates a new SimpleTransmitter with defaults
@@ -79,7 +80,8 @@ extends AbstractTransmitter
 		afd.sampleFormat	= AudioFileDescr.FORMAT_FLOAT;
 		afd.type			= AudioFileDescr.TYPE_AIFF;
 		at	= AudioTrail.newFrom( afd );
-		dwt	= new DecimatedWaveTrail( at, DecimatedWaveTrail.MODEL_MEDIAN, decimations );
+//		dwt	= new DecimatedWaveTrail( at, DecimatedWaveTrail.MODEL_MEDIAN, decimations );
+		dwt	= new DecimatedWaveTrail( at, DecimatedWaveTrail.MODEL_FULLWAVE_PEAKRMS, decimations );
 	}
 
 	public Class getDefaultEditor()

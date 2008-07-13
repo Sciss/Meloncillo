@@ -505,7 +505,6 @@ extends BasicMenuFactory
 			Point2D			anchor;
 			double			d1;
 			Class			c;
-			SessionGroup	group;
 
 			final List				collTypes	= Main.getReceiverTypes();
 			final JPanel			msgPane		= new JPanel( new SpringLayout() );
@@ -559,27 +558,23 @@ extends BasicMenuFactory
 					collNewRcv.add( rcv );
 					coll2.add( rcv );
 				}
-				if( doc.getSelectedGroups().isEmpty() ) {
-					final PerformableEdit edit;
-					edit = new EditAddSessionObjects( this, doc.getMutableReceivers(), collNewRcv );
-					doc.getUndoManager().addEdit( edit.perform() );
-				} else {
-					final BasicCompoundEdit edit;
-					edit	= new BasicCompoundEdit( getValue( NAME ).toString() );
+				final BasicCompoundEdit edit = new BasicCompoundEdit( getValue( NAME ).toString() );
+				if( !doc.getSelectedGroups().isEmpty() ) {
 					final List selectedGroups = doc.getSelectedGroups().getAll();
 					for( int i = 0; i < collNewRcv.size(); i++ ) {
 						final GroupableSessionObject so = (GroupableSessionObject) collNewRcv.get( i );
 						edit.addPerform( new EditAddSessionObjects( this, so.getGroups(), selectedGroups ));
 					}
-					edit.addPerform( new EditAddSessionObjects( this, doc.getMutableReceivers(), collNewRcv ));
-//					for( int i = 0; i < doc.getSelectedGroups().size(); i++ ) {
-//						group	= (SessionGroup) doc.getSelectedGroups().get( i );
-//						edit.addPerform( new EditAddSessionObjects( this, group.getReceivers(), coll ));
-//					}
-					edit.perform();
-					edit.end();
-					doc.getUndoManager().addEdit( edit );
 				}
+				edit.addPerform( new EditAddSessionObjects( this, doc.getMutableReceivers(), collNewRcv ));
+				edit.addPerform( new EditAddSessionObjects( this, doc.getMutableSelectedReceivers(), collNewRcv ));
+//				for( int i = 0; i < doc.getSelectedGroups().size(); i++ ) {
+//					group	= (SessionGroup) doc.getSelectedGroups().get( i );
+//					edit.addPerform( new EditAddSessionObjects( this, group.getReceivers(), coll ));
+//				}
+				edit.perform();
+				edit.end();
+				doc.getUndoManager().addEdit( edit );
 			}
 			catch( InstantiationException e1 ) {
 				System.err.println( e1.getLocalizedMessage() );
@@ -1253,6 +1248,7 @@ extends BasicMenuFactory
 					}
 				}
 				edit.addPerform( new EditAddSessionObjects( this, doc.getMutableTracks(), collNewTrns ));
+				edit.addPerform( new EditAddSessionObjects( this, doc.getMutableSelectedTracks(), collNewTrns ));
 //				for( int i = 0; i < doc.getSelectedGroups().size(); i++ ) {
 //					final SessionGroup group = (SessionGroup) doc.getSelectedGroups().get( i );
 //					edit.addPerform( new EditAddSessionObjects( this, group.getTransmitters(), collNewTrns ));

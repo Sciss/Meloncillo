@@ -191,7 +191,7 @@ implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentList
 			c.add( ggNames[ i ]);
 			con.fill		= GridBagConstraints.BOTH;
 			con.weighty		= 1.0;
-			ggTables[ i ]	= new SessionObjectTable( doc );
+			ggTables[ i ]	= new SessionObjectTable();
 			lay.setConstraints( ggTables[ i ], con );
 			c.add( ggTables[ i ]);
 			ggTabPane.addTab( app.getResourceString( TAB_NAMES[ i ]), null, c, null );
@@ -537,6 +537,7 @@ implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentList
 			selColL[ 2 ].stopListening(); selColL[ 2 ] = null;
 		}
 		doc	= (Session) e.getDocument();
+		for( int i = 0; i < 3; i++ ) ggTables[ i ].setDocument( doc ); // XXX dirty hack
 		if( doc != null ) {
 			doc.timeline.addTimelineListener( this );
 			selColL[ 0 ] = new SessionCollectionListener( doc.getSelectedReceivers(), doc.getReceivers(), 1, ggNames[ 0 ], ggTables[ 0 ]);

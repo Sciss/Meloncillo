@@ -92,7 +92,7 @@ public class SessionObjectTable
 extends JTable
 implements DynamicListening
 {
-	private final Document				doc;
+	private Document					doc			= null;
 	private final List					keys		= new ArrayList();
 	private final Map					contexts	= new HashMap();
 	private final List					collObjects	= new ArrayList();
@@ -103,11 +103,14 @@ implements DynamicListening
 	
 	private static final String[] columnNames = new String[] { "key", "value" };	// not used
 	
-	public SessionObjectTable( de.sciss.app.Document doc )
+	public SessionObjectTable()
 	{
 		super();
+//
+//		this.doc	= doc;
 
-		this.doc	= doc;
+//System.out.println( "doc = " + doc );
+//		
 		model		= new Model();
 		
 		setModel( model );
@@ -159,6 +162,11 @@ implements DynamicListening
         new DynamicAncestorAdapter( this ).addTo( this );
 	}
 	
+	public void setDocument( Document doc )
+	{
+		this.doc = doc;
+	}
+	
 // ---------------- DynamicListening interface ---------------- 
 
     public void startListening()
@@ -196,7 +204,7 @@ implements DynamicListening
 		}
 	}
 
-	public void setObjects( java.util.List collObjects )
+	public void setObjects( List collObjects )
 	{
 		unregisterAll();
 		this.collObjects.clear();
@@ -321,7 +329,7 @@ implements DynamicListening
 
 		public void setValueAt( Object value, int row, int col )
 		{
-			if( col != 1 || value == null ) return;
+			if( (doc == null) || (col != 1) || (value == null) ) return;
 		
 			if( row >= keys.size() ) return;
 

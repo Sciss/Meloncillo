@@ -252,19 +252,20 @@ implements RenderConsumer
 	public boolean consumerBegin( RenderContext context, RenderSource source )
 	throws IOException
 	{
+		final ConsumerContext	consc;
 		Transmitter				trns;
 		AudioTrail				at;
-		int						trnsIdx;
-		ConsumerContext			consc;
 		
 		consc			= new ConsumerContext();
 		consc.edit		= new CompoundSessionObjEdit( this, context.getTransmitters(), Transmitter.OWNER_TRAJ,
 													  null, null, "Filter" );
 //		consc.bs		= new BlendSpan[ source.numTrns ];
+		consc.as		= new AudioStake[ source.numTrns ];
 		consc.bc		= root.getBlending();
+//		if( consc.bc != null ) consc.srcBuf = new float[ 2 ][ 4096 ];
 		context.setOption( KEY_CONSC, consc );
 
-		for( trnsIdx = 0; trnsIdx < source.numTrns; trnsIdx++ ) {
+		for( int trnsIdx = 0; trnsIdx < source.numTrns; trnsIdx++ ) {
 			if( !source.trajRequest[ trnsIdx ]) continue;
 			
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
@@ -294,8 +295,10 @@ implements RenderConsumer
 
 			trns				= (Transmitter) context.getTransmitters().get( trnsIdx );
 			at					= trns.getAudioTrail();
+			at.editBegin( consc.edit );
 			at.editClear( this, consc.as[ trnsIdx].getSpan(), consc.edit );
 			at.editAdd( this, consc.as[ trnsIdx], consc.edit );
+			at.editEnd( consc.edit );
 //			at.finishWrite( consc.bs[ trnsIdx], consc.edit );
 		}
 
@@ -332,6 +335,9 @@ implements RenderConsumer
 				final long blendLen = consc.bc.getLen();	// EEE getLen?
 				final long interpOff = source.blockSpan.start - context.getTimeSpan().start;
 				final long fadeOutOff = context.getTimeSpan().getLength() - blendLen;
+				if( (consc.srcBuf == null) || (consc.srcBuf[ 0 ].length < source.blockBufLen) ) {
+					consc.srcBuf = new float[ 2 ][ source.blockBufLen ];
+				}
 				at.readFrames( consc.srcBuf, 0, source.blockSpan );
 				if( interpOff < blendLen ) {
 					consc.bc.blend( interpOff, consc.srcBuf, 0, source.trajBlockBuf[ trnsIdx ], 0, source.trajBlockBuf[ trnsIdx ], 0, source.blockBufLen );

@@ -47,6 +47,7 @@ import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.DecimatedWaveTrail;
 import de.sciss.meloncillo.io.DecimationInfo;
 import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.transmitter.Transmitter;
 import de.sciss.meloncillo.util.PrefsUtil;
 import de.sciss.gui.ComponentHost;
 import de.sciss.io.Span;
@@ -62,8 +63,7 @@ implements Disposable
 {
 //	private boolean				doRecalc		= true;
 	
-	private int					fullChannels;
-	private int[]				channelMap;
+//	private int[]				channelMap;
 	
 	private Insets				insets			= new Insets( 0, 0, 0, 0 );
 	private int					vGap			= 1;
@@ -90,6 +90,10 @@ implements Disposable
 	private DecimationInfo		info			= null; // most recent one!
 
 	private final ComponentHost	host;
+	
+//	private AudioTrail currentAT = null;
+	private int					fullChannels;
+	private int					channelOffset;
 
 	public WaveformView( Session doc )
 	{
@@ -251,10 +255,10 @@ implements Disposable
 		triggerRedisplay();
 	}
 
-	public int getNumChannels()
-	{
-		return fullChannels;
-	}
+//	public int getNumChannels()
+//	{
+//		return fullChannels;
+//	}
 	
 	/**
 	 *	@synchronization	this uses and alters one internal rectangle object,
@@ -263,6 +267,8 @@ implements Disposable
 	 */
 	public Rectangle rectForChannel( int ch )
 	{
+		ch += channelOffset;
+		
 		final int ht	= getHeight() - (insets.top + insets.bottom);
 		final int temp	= ht * ch / fullChannels;
 		final int y		= insets.top + temp;
@@ -275,6 +281,21 @@ implements Disposable
 		return r;
 	}
 	
+	public Rectangle rectForTransmitter( int trnsIdx )
+	{
+		final int numTrns = doc.getActiveTransmitters().size();
+		final int ht	= getHeight() - (insets.top + insets.bottom);
+		final int temp	= ht * trnsIdx / numTrns;
+		final int y		= insets.top + temp;
+		final int h		= (ht * (trnsIdx + 1) / numTrns) - temp - vGap;
+		
+		r.setBounds( insets.left, y, getWidth() - (insets.left + insets.right), h );
+//		r.setBounds( insets.left, insets.top, getWidth() - (insets.left + insets.right),
+//		             getHeight() - (insets.top + insets.bottom) );
+		
+		return r;
+	}
+
 	public int channelForPoint( Point p )
 	{
 		final int	py	= p.y - insets.top;
@@ -299,50 +320,64 @@ implements Disposable
 		if( viewSpan.isEmpty() ) return;
 		final Graphics2D g2 = (Graphics2D) g;
 
-// EEE
-//		switch( vertScale ) {
-//		case PrefsUtil.VSCALE_AMP_LIN:
+		switch( vertScale ) {
+		case PrefsUtil.VSCALE_AMP_LIN:
 			paintAmpLin( g2 );
-//			break;
+			break;
+// EEE
 //		case PrefsUtil.VSCALE_AMP_LOG:
 //			paintAmpLog( g2 );
 //			break;
 //		case PrefsUtil.VSCALE_FREQ_SPECT:
 //			paintFreqSpect( g2 );
 //			break;
-//		default:
-//			assert false : vertScale;
-//		}
+		default:
+			assert false : vertScale;
+		}
 	}
 	
 	private void paintAmpLin( Graphics2D g2 )
 	{
-/* EEE
-		final DecimatedWaveTrail	dt		= doc.getDecimatedWaveTrail();
-		if( dt == null ) return;
+//		final DecimatedWaveTrail	dt		= doc.getDecimatedWaveTrail();
+//		if( dt == null ) return;
 		
 		final int	w	= getWidth();
 		Rectangle	cr;
 		int			y;
 		
-		info = dt.getBestSubsample( new Span( viewSpan.start, viewSpan.stop + 1 ), w );
-		dt.drawWaveform( info, this, g2 );
-
-		if( nullLinie ) {
-			g2.setPaint( pntNull );
-			g2.setStroke( strkNull );
-			for( int ch = 0; ch < fullChannels; ch++ ) {
-				cr = rectForChannel( ch );
-				y = cr.y + (cr.height >> 1);
-				g2.drawLine( cr.x, y, cr.x + cr.width, y );
-			}
+		fullChannels = 0;
+		for( int i = 0; i < doc.getActiveTransmitters().size(); i++ ) {
+			final Transmitter t = (Transmitter) doc.getActiveTransmitters().get( i );
+			final AudioTrail at = t.getAudioTrail();
+			fullChannels += at.getChannelNum();
 		}
-*/
+		
+		channelOffset = 0;
+		for( int i = 0; i < doc.getActiveTransmitters().size(); i++ ) {
+			final Transmitter t = (Transmitter) doc.getActiveTransmitters().get( i );
+			final AudioTrail at = t.getAudioTrail();
+			final DecimatedWaveTrail dt = t.getDecimatedWaveTrail();
+			if( dt == null ) continue;
+			info = dt.getBestSubsample( new Span( viewSpan.start, viewSpan.stop + 1 ), w );
+//			fullChannels = at.getChannelNum(); // XXX dirty shit
+			dt.drawWaveform( info, this, g2 );
+	
+			if( nullLinie ) {
+				g2.setPaint( pntNull );
+				g2.setStroke( strkNull );
+				for( int ch = 0; ch < fullChannels; ch++ ) {
+					cr = rectForChannel( ch );
+					y = cr.y + (cr.height >> 1);
+					g2.drawLine( cr.x, y, cr.x + cr.width, y );
+				}
+			}
+			channelOffset += at.getChannelNum();
+		}
 	}
 
+/* EEE
 	private void paintAmpLog( Graphics2D g2 )
 	{
-/* EEE
 		final DecimatedWaveTrail	dt		= doc.getDecimatedWaveTrail();
 		if( dt == null ) return;
 		
@@ -362,9 +397,9 @@ implements Disposable
 				g2.drawLine( cr.x, y, cr.x + cr.width, y );
 			}
 		}
-*/
 	}
-
+*/
+	
 	private void triggerRedisplay()
 	{
 //		doRecalc	= true;
