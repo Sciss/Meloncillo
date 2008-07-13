@@ -682,22 +682,22 @@ implements  VirtualSurface, TimelineListener,
 //			rcv.setSize( new Dimension2DDouble( 0.5, 0.5 ));
 			rcv.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
 				new Object[] { new Integer( 1 ), Session.RCV_NAME_PREFIX, Session.RCV_NAME_SUFFIX },
-				doc.receivers.getAll() ));
-			doc.receivers.getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
+				doc.getReceivers().getAll() ));
+			doc.getReceivers().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
 												 MapManager.Context.NONE_EXCLUSIVE, rcv.getMap() );					
 			collRcv = Collections.singletonList( rcv );
 
 			if( doc.selectedGroups.size() == 0 ) {
 				final PerformableEdit edit;
-				edit	= new EditAddSessionObjects( this, doc, doc.receivers, collRcv, Session.DOOR_RCV );
+				edit	= new EditAddSessionObjects( this, doc, doc.getReceivers(), collRcv, Session.DOOR_RCV );
 				doc.getUndoManager().addEdit( edit.perform() );
 			} else {
 				final AbstractCompoundEdit edit;
 				edit	= new BasicCompoundEdit();
-				edit.addPerform( new EditAddSessionObjects( this, doc, doc.receivers, collRcv, Session.DOOR_RCV ));
+				edit.addPerform( new EditAddSessionObjects( this, doc, doc.getReceivers(), collRcv, Session.DOOR_RCV ));
 				for( i = 0; i < doc.selectedGroups.size(); i++ ) {
 					group	= (SessionGroup) doc.selectedGroups.get( i );
-					edit.addPerform( new EditAddSessionObjects( this, doc, group.receivers, collRcv, Session.DOOR_RCV ));
+					edit.addPerform( new EditAddSessionObjects( this, doc, group.getReceivers(), collRcv, Session.DOOR_RCV ));
 				}
 				edit.perform();
 				edit.end();

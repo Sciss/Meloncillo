@@ -34,6 +34,7 @@ import java.util.*;
 import org.w3c.dom.*;
 
 import de.sciss.meloncillo.io.*;
+import de.sciss.timebased.Trail;
 
 import de.sciss.app.*;
 import de.sciss.io.*;
@@ -90,10 +91,17 @@ extends AbstractTransmitter
 	{
 		return at;
 	}
-
+	
 	public DecimatedWaveTrail getDecimatedWaveTrail()
 	{
 		return dwt;
+	}
+
+// ---------------- Track imterface ---------------- 
+
+	public Trail getTrail()
+	{
+		return at;
 	}
 
 // ---------------- XMLRepresentation imterface ---------------- 

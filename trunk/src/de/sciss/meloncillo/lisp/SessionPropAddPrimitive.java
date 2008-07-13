@@ -116,13 +116,13 @@ extends BasicLispPrimitive
 			}
 		
 			if( objGrp.equals( "RECEIVERS" )) {
-				sc		= doc.receivers;
+				sc		= doc.getReceivers();
 				doors	= Session.DOOR_RCV;
 			} else if( objGrp.equals( "TRANSMITTERS" )) {
-				sc		= doc.transmitters;
+				sc		= doc.getTransmitters();
 				doors	= Session.DOOR_TRNS;
 			} else if( objGrp.equals( "GROUPS" )) {
-				sc		= doc.groups;
+				sc		= doc.getGroups();
 				doors	= Session.DOOR_GRP;
 			} else {
 				System.err.println( functionName+" : "+getResourceString( "errLispWrongArgValue" )+" : "+objGrp );

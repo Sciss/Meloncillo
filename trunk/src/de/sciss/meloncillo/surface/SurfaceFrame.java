@@ -299,7 +299,7 @@ implements ClipboardOwner, PreferenceChangeListener
 				args = new Object[ 3 ];
 				
 				doc.bird.waitExclusive( Session.DOOR_RCV | Session.DOOR_GRP );
-				coll2   = doc.receivers.getAll();
+				coll2   = doc.getReceivers().getAll();
 				coll3	= new ArrayList( coll2 );
 				for( int i = 0; i < coll.size(); i++ ) {
 					o = (Transferable) coll.get( i );
@@ -326,7 +326,7 @@ implements ClipboardOwner, PreferenceChangeListener
 				// ensure unique names
 				for( int i = 0; i < coll3.size(); i++ ) {
 					rcv = (Receiver) coll3.get( i );
-					if( doc.receivers.findByName( rcv.getName() ) != null ) {
+					if( doc.getReceivers().findByName( rcv.getName() ) != null ) {
 						Session.makeNamePattern( rcv.getName(), args );
 						rcv.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN, args, coll2 ));
 					}
@@ -335,10 +335,10 @@ implements ClipboardOwner, PreferenceChangeListener
 				
 				if( !coll3.isEmpty() ) {
 					edit = new BasicCompoundEdit();
-					edit.addPerform( new EditAddSessionObjects( this, doc, doc.receivers, coll3, Session.DOOR_RCV ));
+					edit.addPerform( new EditAddSessionObjects( this, doc, doc.getReceivers(), coll3, Session.DOOR_RCV ));
 					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
 						group	= (SessionGroup) doc.selectedGroups.get( i );
-						edit.addPerform( new EditAddSessionObjects( this, doc, group.receivers, coll3, Session.DOOR_RCV ));
+						edit.addPerform( new EditAddSessionObjects( this, doc, group.getReceivers(), coll3, Session.DOOR_RCV ));
 					}
 
 					edit.addPerform( new EditSetSessionObjects( this, doc.selectedReceivers, coll3 ));
@@ -408,7 +408,7 @@ implements ClipboardOwner, PreferenceChangeListener
 	
 		try {
 			doc.bird.waitExclusive( Session.DOOR_RCV );
-			edit = new EditSetSessionObjects( this, doc.selectedReceivers, doc.receivers.getAll() );
+			edit = new EditSetSessionObjects( this, doc.selectedReceivers, doc.getReceivers().getAll() );
 			doc.getUndoManager().addEdit( edit.perform() );
 		}
 		finally {

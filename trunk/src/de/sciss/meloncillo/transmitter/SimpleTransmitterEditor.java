@@ -376,7 +376,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
     public void startListening()
     {
 		doc.timeline.addTimelineListener( this );
-		doc.transmitters.addListener( transmittersListener );
+		doc.getTransmitters().addListener( transmittersListener );
 		xEditor.addMouseMotionListener( cursorListener );
 		yEditor.addMouseMotionListener( cursorListener );
 
@@ -387,7 +387,7 @@ implements ToolActionListener, VectorDisplay.Listener, TimelineListener, Dynamic
     public void stopListening()
     {
 		doc.timeline.removeTimelineListener( this );
-		doc.transmitters.removeListener( transmittersListener );
+		doc.getTransmitters().removeListener( transmittersListener );
 		xEditor.removeMouseMotionListener( cursorListener );
 		yEditor.removeMouseMotionListener( cursorListener );
 //System.err.println( "simpletransmittereditor stops listening" );

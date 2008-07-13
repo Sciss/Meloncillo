@@ -86,19 +86,19 @@ extends JTable
 		
 		switch( views & VIEW_OBJECT_MASK ) {
 		case VIEW_RECEIVERS:
-			collAll			= grp.receivers;
+			collAll			= grp.getReceivers();
 			collSelected	= doc.selectedReceivers;
 			doors			= Session.DOOR_RCV;
 			columnNames[0]	= app.getResourceString( "labelReceivers" );
 			break;
 		case VIEW_TRANSMITTERS:
-			collAll			= grp.transmitters;
+			collAll			= grp.getTransmitters();
 			collSelected	= doc.selectedTransmitters;
 			doors			= Session.DOOR_TRNS;
 			columnNames[0]	= app.getResourceString( "labelTransmitters" );
 			break;
 		case VIEW_GROUPS:
-			collAll			= grp.groups;
+			collAll			= grp.getGroups();
 			collSelected	= doc.selectedGroups;
 			doors			= Session.DOOR_GRP;
 			columnNames[0]	= app.getResourceString( "labelGroups" );

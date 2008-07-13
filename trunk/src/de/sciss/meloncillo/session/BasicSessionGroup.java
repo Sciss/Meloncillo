@@ -42,40 +42,38 @@ import de.sciss.gui.*;
  *  @author		Hanns Holger Rutz
  *  @version	0.75, 10-Jun-08
  */
-public class SessionGroup
+public class BasicSessionGroup
 extends AbstractSessionObject
+implements SessionGroup
 {
-	public final SessionCollection	receivers		= new SessionCollection();
-	public final SessionCollection	transmitters	= new SessionCollection();
-	public final SessionCollection	groups			= new SessionCollection();
+	private final SessionCollection	receivers		= new SessionCollection();
+	private final SessionCollection	transmitters	= new SessionCollection();
+	private final SessionCollection	groups			= new SessionCollection();
 
-	protected static final String XML_VALUE_RECEIVERS		= "receivers";
-	protected static final String XML_VALUE_TRANSMITTERS	= "transmitters";
-	protected static final String XML_VALUE_GROUPS			= "groups";
-
-	public static final String MAP_KEY_USERIMAGE	= "userimage";
-
-	public SessionGroup()
+	public BasicSessionGroup()
 	{
 		super();
 
 //		getMap().putValue( this, MAP_KEY_USERIMAGE, new File( "" ));
 	}
 	
-	// sync : caller should deal with sync for session collections! (see Sesssion#clear())
-	protected void init()
-	{
-		super.init();
-
-		getMap().putContext( this, MAP_KEY_USERIMAGE, new MapManager.Context(
-			MapManager.Context.FLAG_OBSERVER_DISPLAY, MapManager.Context.TYPE_FILE,
-			new Integer( PathField.TYPE_INPUTFILE ), "labelUserImage", null, new File( "" )));
-	}
+	public SessionCollection getReceivers() { return receivers; }
+	public SessionCollection getTransmitters() { return transmitters; }
+	public SessionCollection getGroups() { return groups; }
+	
+//	// sync : caller should deal with sync for session collections! (see Sesssion#clear())
+//	protected void init()
+//	{
+//		super.init();
+//	}
 
 	protected void clear()
 	{
-		getMap().clearValues( this );
-		init();
+		super.clear();
+//		init();
+		getMap().putContext( this, SessionGroup.MAP_KEY_USERIMAGE, new MapManager.Context(
+		    MapManager.Context.FLAG_OBSERVER_DISPLAY, MapManager.Context.TYPE_FILE,
+		    new Integer( PathField.TYPE_INPUTFILE ), "labelUserImage", null, new File( "" )));
 		groups.clear( this );
 		receivers.clear( this );
 		transmitters.clear( this );
@@ -123,14 +121,14 @@ extends AbstractSessionObject
 		SessionObject	so;
 
 		child	= (Element) node.appendChild( domDoc.createElement( XML_ELEM_COLL ));
-		child.setAttribute( XML_ATTR_NAME, XML_VALUE_RECEIVERS );
+		child.setAttribute( XML_ATTR_NAME, SessionGroup.XML_VALUE_RECEIVERS );
 		for( i = 0; i < this.receivers.size(); i++ ) {
 			so		= this.receivers.get( i );
 			child2	= (Element) child.appendChild( domDoc.createElement( XML_ELEM_OBJECT ));
 			child2.setAttribute( XML_ATTR_NAME, so.getName() );
 		}
 		child	= (Element) node.appendChild( domDoc.createElement( XML_ELEM_COLL ));
-		child.setAttribute( XML_ATTR_NAME, XML_VALUE_TRANSMITTERS );
+		child.setAttribute( XML_ATTR_NAME, SessionGroup.XML_VALUE_TRANSMITTERS );
 		for( i = 0; i < this.transmitters.size(); i++ ) {
 			so		= this.transmitters.get( i );
 			child2	= (Element) child.appendChild( domDoc.createElement( XML_ELEM_OBJECT ));
@@ -171,11 +169,11 @@ extends AbstractSessionObject
 			if( !val.equals( XML_ELEM_COLL )) continue;
 			
 			val		= child.getAttribute( XML_ATTR_NAME );
-			if( val.equals( XML_VALUE_RECEIVERS )) {
-				sc	= doc.receivers;
+			if( val.equals( SessionGroup.XML_VALUE_RECEIVERS )) {
+				sc	= doc.getReceivers();
 				sc2	= this.receivers;
-			} else if( val.equals( XML_VALUE_TRANSMITTERS )) {
-				sc	= doc.transmitters;
+			} else if( val.equals( SessionGroup.XML_VALUE_TRANSMITTERS )) {
+				sc	= doc.getTransmitters();
 				sc2	= this.transmitters;
 			} else {
 				System.err.println( "Warning: unknown session group type: '"+val+"'" );

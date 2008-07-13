@@ -72,6 +72,7 @@ import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.PerformableEdit;
 import de.sciss.common.AppWindow;
 import de.sciss.common.BasicMenuFactory;
+import de.sciss.common.BasicWindowHandler;
 import de.sciss.common.ProcessingThread;
 import de.sciss.gui.BooleanPrefsMenuAction;
 import de.sciss.gui.GUIUtil;
@@ -100,6 +101,7 @@ import de.sciss.meloncillo.lisp.JathaDiddler;
 import de.sciss.meloncillo.receiver.Receiver;
 import de.sciss.meloncillo.render.BounceDialog;
 import de.sciss.meloncillo.render.FilterDialog;
+import de.sciss.meloncillo.session.BasicSessionGroup;
 import de.sciss.meloncillo.session.DocumentFrame;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
@@ -335,11 +337,11 @@ extends BasicMenuFactory
 							KeyStroke.getKeyStroke( KeyEvent.VK_N, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
 		actionNewGroup	= new ActionNewGroup( app.getResourceString( "menuNewGroup" ), null );
 		actionRemoveReceivers = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveReceivers" ),
-											null, Session.DOOR_RCV, doc.receivers, doc.selectedReceivers, doc.groups );
+											null, Session.DOOR_RCV, doc.getReceivers(), doc.selectedReceivers, doc.getGroups() );
 		actionRemoveTransmitters = new ActionRemoveSessionObject( app.getResourceString( "menuRemoveTransmitters" ),
-											null, Session.DOOR_TRNS, doc.transmitters, doc.selectedTransmitters, doc.groups );
+											null, Session.DOOR_TRNS, doc.getTransmitters(), doc.selectedTransmitters, doc.getGroups() );
 		actionRemoveGroups	= new ActionRemoveSessionObject( app.getResourceString( "menuRemoveGroups" ),
-											null, Session.DOOR_GRP, doc.groups, doc.selectedGroups, null );
+											null, Session.DOOR_GRP, doc.getGroups(), doc.selectedGroups, null );
 
 		actionBounce	= new ActionBounce( app.getResourceString( "menuBounce" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_R, MENU_SHORTCUT ));
@@ -539,7 +541,7 @@ extends BasicMenuFactory
 				// dialog or the like...
 				c		= Class.forName( type.getKey() );
 				coll	= new ArrayList();
-				coll2	= doc.receivers.getAll();
+				coll2	= doc.getReceivers().getAll();
 				for( int i = 0; i < numi; i++ ) {
 					d1  = ((double) i / (double) numi - 0.25) * Math.PI * 2;
 					anchor = new Point2D.Double( 0.25 * (2.0 + Math.cos( d1 )), 0.25 * (2.0 + Math.sin( d1 )));
@@ -549,22 +551,22 @@ extends BasicMenuFactory
 					rcv.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
 						new Object[] { new Integer( 1 ), Session.RCV_NAME_PREFIX, Session.RCV_NAME_SUFFIX },
 						coll2 ));
-					doc.receivers.getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
+					doc.getReceivers().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
 														 MapManager.Context.NONE_EXCLUSIVE, rcv.getMap() );
 					coll.add( rcv );
 					coll2.add( rcv );
 				}
 				if( doc.selectedGroups.size() == 0 ) {
 					final PerformableEdit edit;
-					edit = new EditAddSessionObjects( this, doc, doc.receivers, coll, Session.DOOR_RCV );
+					edit = new EditAddSessionObjects( this, doc, doc.getReceivers(), coll, Session.DOOR_RCV );
 					doc.getUndoManager().addEdit( edit.perform() );
 				} else {
 					final BasicCompoundEdit edit;
 					edit	= new BasicCompoundEdit( getValue( NAME ).toString() );
-					edit.addPerform( new EditAddSessionObjects( this, doc, doc.receivers, coll, Session.DOOR_RCV ));
+					edit.addPerform( new EditAddSessionObjects( this, doc, doc.getReceivers(), coll, Session.DOOR_RCV ));
 					for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
 						group	= (SessionGroup) doc.selectedGroups.get( i );
-						edit.addPerform( new EditAddSessionObjects( this, doc, group.receivers, coll, Session.DOOR_RCV ));
+						edit.addPerform( new EditAddSessionObjects( this, doc, group.getReceivers(), coll, Session.DOOR_RCV ));
 					}
 					edit.perform();
 					edit.end();
@@ -630,7 +632,7 @@ extends BasicMenuFactory
 				doc.bird.waitShared( Session.DOOR_GRP );
 				name = SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
 					new Object[] { new Integer( 1 ), Session.GRP_NAME_PREFIX, Session.GRP_NAME_SUFFIX },
-					doc.groups.getAll() );
+					doc.getGroups().getAll() );
 			} finally {
 				doc.bird.releaseShared( Session.DOOR_GRP );
 			}
@@ -643,7 +645,7 @@ extends BasicMenuFactory
 			
 			try {
 				doc.bird.waitExclusive( Session.DOOR_GRP );
-				group	= (SessionGroup) doc.groups.findByName( name );
+				group	= (SessionGroup) doc.getGroups().findByName( name );
 				b1		= group == null;
 				if( !b1 ) {
 					result = JOptionPane.showConfirmDialog( null,
@@ -653,24 +655,24 @@ extends BasicMenuFactory
 						
 					if( result != JOptionPane.YES_OPTION ) return;
 				} else {
-					group = new SessionGroup();
+					group = new BasicSessionGroup();
 					group.setName( name );
-					doc.groups.getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
+					doc.getGroups().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
 													  MapManager.Context.NONE_EXCLUSIVE, group.getMap() );
 				}
 				if( !doc.bird.attemptShared( Session.DOOR_TRNS | Session.DOOR_RCV, 250 )) return;
 				try {
 					collSO		= doc.selectedReceivers.getAll();
-					ce.addEdit( new EditAddSessionObjects( this, doc, group.receivers, collSO,
+					ce.addEdit( new EditAddSessionObjects( this, doc, group.getReceivers(), collSO,
 														   Session.DOOR_RCV ));
 					collSO		= doc.selectedTransmitters.getAll();
-					ce.addEdit( new EditAddSessionObjects( this, doc, group.transmitters, collSO,
+					ce.addEdit( new EditAddSessionObjects( this, doc, group.getTransmitters(), collSO,
 														   Session.DOOR_TRNS ));
 
 					if( b1 ) {
 						collSO = new ArrayList( 1 );
 						collSO.add( group );
-						ce.addPerform( new EditAddSessionObjects( this, doc, doc.groups,
+						ce.addPerform( new EditAddSessionObjects( this, doc, doc.getGroups(),
 																	  collSO, Session.DOOR_GRP ));
 					}
 					ce.perform();
@@ -1078,11 +1080,8 @@ extends BasicMenuFactory
 		 */
 		public void actionPerformed( ActionEvent e )
 		{
-			String					result;
-			int						num = 0;
-			int						i;
-			java.util.List			collTypes	= Main.getTransmitterTypes();
-			java.util.List			coll;
+			String			result;
+			int				num = 0;
 		
 			result  = JOptionPane.showInputDialog( null,
 				AbstractApplication.getApplication().getResourceString( "inputDlgInsNewTransmitters" ),
@@ -1100,16 +1099,64 @@ extends BasicMenuFactory
 			if( num < 1 ) return;
 			defaultValue = num;
 
-			coll = new ArrayList( num );
-			for( i = 0; i < num; i++ ) {
-				coll.add( collTypes.get( 0 ));
+			final List				collTypes		= Main.getTransmitterTypes();
+			final List				collMap;
+			final Span				span;
+			final List				collNewTrns		= new ArrayList( num );
+			final List				collAllTrns		= doc.getTransmitters().getAll();
+			final BasicCompoundEdit	edit;
+			Class		c;
+			Transmitter	trns;
+			String		s;
+			Map			map;
+			
+			edit = new BasicCompoundEdit( getValue( NAME ).toString() );
+			
+			collMap = new ArrayList( num );
+			for( int i = 0; i < num; i++ ) {
+				collMap.add( collTypes.get( 0 ));
+			}
+
+			span = new Span( 0, doc.timeline.getLength() );
+			try {
+				for( int i = 0; i < num; i++ ) {
+					map		= (Map) collMap.get( i );
+					s		= (String) map.get( Main.KEY_CLASSNAME );
+					if( s == null ) continue;
+
+					c		= Class.forName( s );
+					trns	= (Transmitter) c.newInstance();
+					trns.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
+						new Object[] { new Integer( 1 ), Session.TRNS_NAME_PREFIX, Session.TRNS_NAME_SUFFIX },
+						collAllTrns ));
+					doc.getTransmitters().getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
+															MapManager.Context.NONE_EXCLUSIVE, trns.getMap() );
+					collNewTrns.add( trns );
+					collAllTrns.add( trns );
+					
+//					trns.getAudioTrail().editBegin( edit );
+				}
+			}
+			catch( InstantiationException e1 ) {
+				BasicWindowHandler.showErrorDialog( null, e1, getValue( NAME ).toString() );
+			}
+			catch( IllegalAccessException e1 ) {
+				BasicWindowHandler.showErrorDialog( null, e1, getValue( NAME ).toString() );
+			}
+			catch( LinkageError e1 ) {
+				BasicWindowHandler.showErrorDialog( null, e1, getValue( NAME ).toString() );
+			}
+			catch( ClassNotFoundException e1 ) {
+				BasicWindowHandler.showErrorDialog( null, e1, getValue( NAME ).toString() );
 			}
 
 			final Main root = (Main) AbstractApplication.getApplication();
 //			new ProcessingThread( this, root, root, doc, text, coll, Session.DOOR_TIMETRNSMTE | Session.DOOR_GRP );
 			final ProcessingThread pt;
 			pt = new ProcessingThread( this, root, text );
-			pt.putClientArg( "coll", coll );
+			pt.putClientArg( "trns", collNewTrns );
+			pt.putClientArg( "span", span );
+			pt.putClientArg( "edit", edit );
 			pt.start();
 		}
 
@@ -1119,104 +1166,87 @@ extends BasicMenuFactory
 		public int processRun( ProcessingThread context )
 		throws IOException
 		{
-			int						i, j;
+			final float[][]			buf			= new float[ 2 ][ 4096 ];
+			final BasicCompoundEdit	edit		= (BasicCompoundEdit) context.getClientArg( "edit" );
+			final List				collNewTrns	= (List) context.getClientArg( "trns" );
+			final int				num			= collNewTrns.size();
 			Transmitter				trns;
 			AudioTrail				at;
-			float[][]				buf			= new float[ 2 ][ 4096 ];
-			Class					c;
 			long					progress	= 0;
-			Map						map;
-			String					s;
 			double					d1;
-			BasicCompoundEdit		edit		= new BasicCompoundEdit( getValue( NAME ).toString() );
-			List					collMap		= (List) context.getClientArg( "coll" );
-			int						num			= collMap.size();
-			List					coll		= new ArrayList( num );
-			List					coll2		= doc.transmitters.getAll();
-			boolean					success		= false;
-			Span					span		= new Span( 0, doc.timeline.getLength() );
+			Span					span		= (Span) context.getClientArg( "span" );
 //			TrackSpan				ts;
-			SessionGroup			group;
 			float					f1, f2;
-			long					frames, framesWritten;
 			AudioStake				as;
+			int						chunkLen;
+			
+			if( span.isEmpty() ) return DONE;
 			
 			try {
-				for( i = 0; i < num; i++ ) {
-					map		= (Map) collMap.get( i );
-					s		= (String) map.get( Main.KEY_CLASSNAME );
-					if( s == null ) continue;
-
-					c		= Class.forName( s );
-					trns	= (Transmitter) c.newInstance();
-					trns.setName( SessionCollection.createUniqueName( Session.SO_NAME_PTRN,
-						new Object[] { new Integer( 1 ), Session.TRNS_NAME_PREFIX, Session.TRNS_NAME_SUFFIX },
-						coll2 ));
-					doc.transmitters.getMap().copyContexts( this, MapManager.Context.FLAG_DYNAMIC,
-															MapManager.Context.NONE_EXCLUSIVE, trns.getMap() );
-					coll.add( trns );
-					coll2.add( trns );
-
-					// create static trajectory track of the timeline's length
-					if( !span.isEmpty() ) {
-						d1			= ((double) i / (double) num - 0.25) * Math.PI * 2;
-						f1			= (float) (0.25 * (2.0 + Math.cos( d1 )));
-						f2			= (float) (0.25 * (2.0 + Math.sin( d1 )));
-						for( j = 0; j < 4096; j++ ) {
-							buf[0][j] = f1;
-							buf[1][j] = f2;
-						}
-						at			= trns.getAudioTrail();
-//						ts			= at.beginInsert( span, edit );
-						as			= at.alloc( span );
-						for( framesWritten = 0, frames = span.getLength(); framesWritten < frames; ) {
-							j		= (int) Math.min( 4096, frames - framesWritten );
-//							at.continueWrite( ts, buf, 0, j );
-							as.writeFrames( buf, 0, new Span( span.start + framesWritten, span.start + framesWritten + j ));
-							framesWritten += j;
-						}
-						at.editAdd( this, as, edit ); // EEE should undy the stake alloc!!!
-//						at.finishWrite( ts, edit );
+				for( int i = 0; i < num; i++ ) {
+					d1		= ((double) i / (double) num - 0.25) * Math.PI * 2;
+					f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
+					f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
+					for( int j = 0; j < 4096; j++ ) {
+						buf[0][j] = f1;
+						buf[1][j] = f2;
 					}
+					trns	= (Transmitter) collNewTrns.get( i );
+					at		= trns.getAudioTrail();
+//					ts		= at.beginInsert( span, edit );
+					as		= at.alloc( span );
+					for( long framesWritten = 0, frames = span.getLength(); framesWritten < frames; ) {
+						chunkLen = (int) Math.min( 4096, frames - framesWritten );
+//						at.continueWrite( ts, buf, 0, j );
+						as.writeFrames( buf, 0, new Span( span.start + framesWritten, span.start + framesWritten + chunkLen ));
+						framesWritten += chunkLen;
+					}
+//					stakes.add( as );
+					at.editBegin( edit );
+					try {
+						at.editAdd( this, as, edit ); // EEE should undy the stake alloc!!!
+					} finally {
+						at.editEnd( edit );
+					}
+//					at.finishWrite( ts, edit );
 					progress++;
 					context.setProgression( (float) progress / (float) num );
 				}
 
-				edit.addPerform( new EditAddSessionObjects( this, doc, doc.transmitters, coll, Session.DOOR_TRNS ));
-				for( i = 0; i < doc.selectedGroups.size(); i++ ) {
-					group	= (SessionGroup) doc.selectedGroups.get( i );
-					edit.addPerform( new EditAddSessionObjects( this, doc, group.transmitters, coll, Session.DOOR_TRNS ));
+				return DONE;
+			}
+			catch( IOException e1 ) {
+				context.setException( e1 );
+				return FAILED;
+			}
+		} // run()
+		
+		public void processFinished( ProcessingThread context )
+		{
+			final BasicCompoundEdit edit = (BasicCompoundEdit) context.getClientArg( "edit" );
+
+			if( context.getReturnCode() == ProgressComponent.DONE ) {
+				final List collNewTrns	= (List) context.getClientArg( "trns" );
+//				final List stakes		= (List) context.getClientArg( "stakes" );
+//				for( int i = 0; i < collNewTrns.size(); i++ ) {
+//					final AudioTrail at = ((Transmitter) collNewTrns.get( i )).getAudioTrail();
+//					.editAdd(
+//					    this, (AudioStake) stakes.get( i ), edit );
+//				}
+				edit.addPerform( new EditAddSessionObjects( this, doc, doc.getTransmitters(), collNewTrns, Session.DOOR_TRNS ));
+				for( int i = 0; i < doc.selectedGroups.size(); i++ ) {
+					final SessionGroup group = (SessionGroup) doc.selectedGroups.get( i );
+					edit.addPerform( new EditAddSessionObjects( this, doc, group.getTransmitters(), collNewTrns, Session.DOOR_TRNS ));
 				}
 				edit.perform();
 				edit.end();
 				doc.getUndoManager().addEdit( edit );
-				success = true;
+			} else {
+				// EEE should undo the stake alloc!!!
+				edit.cancel();
 			}
-			catch( InstantiationException e1 ) {
-				context.setException( e1 );
-			}
-			catch( IllegalAccessException e2 ) {
-				context.setException( e2 );
-			}
-			catch( IOException e3 ) {
-				context.setException( e3 );
-			}
-			catch( LinkageError e4 ) {
-				context.setException( new IOException( e4.getLocalizedMessage() ));
-			}
-			catch( ClassNotFoundException e5 ) {
-				context.setException( e5 );
-			}
-			// undo partial edits in case of error
-			if( !success ) {
-				edit.end();
-				edit.undo();
-			}
-			
-			return success ? DONE : FAILED;
-		} // run()
+		}
 		
-		public void processFinished( ProcessingThread context ) {}
 		public void processCancel( ProcessingThread context ) {}
 	}
 	
@@ -1266,16 +1296,16 @@ extends BasicMenuFactory
 				if( scGroups != null ) {
 					for( int i = 0; i < scGroups.size(); i++ ) {
 						g			= (SessionGroup) scGroups.get( i );
-						collInGroup	= g.transmitters.getAll();
+						collInGroup	= g.getTransmitters().getAll();
 						collInGroup.retainAll( collSelection );
 						if( !collInGroup.isEmpty() ) {
-							edit.addPerform( new EditRemoveSessionObjects( this, doc, g.transmitters, collInGroup,
+							edit.addPerform( new EditRemoveSessionObjects( this, doc, g.getTransmitters(), collInGroup,
 							                                               doors | Session.DOOR_GRP ));
 						} else {
-							collInGroup	= g.receivers.getAll();
+							collInGroup	= g.getReceivers().getAll();
 							collInGroup.retainAll( collSelection );
 							if( !collInGroup.isEmpty() ) {
-								edit.addPerform( new EditRemoveSessionObjects( this, doc, g.receivers, collInGroup,
+								edit.addPerform( new EditRemoveSessionObjects( this, doc, g.getReceivers(), collInGroup,
 								                                               doors | Session.DOOR_GRP ));
 //							} else {
 //								collInGroup	= g.groups.getAll().retainAll( collSelection );
@@ -1402,20 +1432,20 @@ extends BasicMenuFactory
 			if( interpType > 1 ) {
 				interpBuf   = new float[2][(int) Math.min( interpLen, 4096 )];
 			}
-			progressLen = Math.max( 1, interpLen ) * doc.transmitters.size();
+			progressLen = Math.max( 1, interpLen ) * doc.getTransmitters().size();
 
-			edit = new CompoundSessionObjEdit( this, doc.transmitters.getAll(), Transmitter.OWNER_TRAJ,
+			edit = new CompoundSessionObjEdit( this, doc.getTransmitters().getAll(), Transmitter.OWNER_TRAJ,
 											   null, null, getValue( NAME ).toString() );
 			try {
-				for( i = 0; i < doc.transmitters.size(); i++ ) {
-					trns	= (Transmitter) doc.transmitters.get( i );
+				for( i = 0; i < doc.getTransmitters().size(); i++ ) {
+					trns	= (Transmitter) doc.getTransmitters().get( i );
 					at		= trns.getAudioTrail();
 
 					switch( interpType ) {
 					case 1: // only one neighbouring sample -> repeat it
 					case 0: // session is empty -> fill with angular positions
 						if( interpType == 0 ) {
-							d1		= ((double) i / (double) doc.transmitters.size() - 0.25) * Math.PI * 2;
+							d1		= ((double) i / (double) doc.getTransmitters().size() - 0.25) * Math.PI * 2;
 							f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
 							f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
 						} else {
@@ -1628,22 +1658,22 @@ extends BasicMenuFactory
 		public void actionPerformed( ActionEvent e )
 		{
 			System.err.println( "---------- all transmitters ----------" );
-			doc.transmitters.debugDump();
+			doc.getTransmitters().debugDump();
 			System.err.println( "---------- all receivers ----------" );
-			doc.receivers.debugDump();
+			doc.getReceivers().debugDump();
 			System.err.println( "---------- all groups ----------" );
-			doc.groups.debugDump();
+			doc.getGroups().debugDump();
 			System.err.println( "---------- active transmitters ----------" );
 			doc.activeTransmitters.debugDump();
 			System.err.println( "---------- active receivers ----------" );
 			doc.activeReceivers.debugDump();
-			for( int i = 0; i < doc.groups.size(); i++ ) {
-				SessionGroup g = (SessionGroup) doc.groups.get( i );
+			for( int i = 0; i < doc.getGroups().size(); i++ ) {
+				SessionGroup g = (SessionGroup) doc.getGroups().get( i );
 				System.err.println( "............ group : "+g.getName() );
 				System.err.println( "............ group transmitters ............" );
-				g.transmitters.debugDump();
+				g.getTransmitters().debugDump();
 				System.err.println( "............ group receivers ............" );
-				g.receivers.debugDump();
+				g.getReceivers().debugDump();
 			}
 		}
 	}

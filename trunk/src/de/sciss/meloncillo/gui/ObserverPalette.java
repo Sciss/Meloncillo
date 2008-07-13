@@ -538,9 +538,9 @@ implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentList
 		doc	= (Session) e.getDocument();
 		if( doc != null ) {
 			doc.timeline.addTimelineListener( this );
-			selColL[ 0 ] = new SessionCollectionListener( doc.selectedReceivers, doc.receivers, 1, ggNames[ 0 ], ggTables[ 0 ]);
-			selColL[ 1 ] = new SessionCollectionListener( doc.selectedTransmitters, doc.transmitters, 2, ggNames[ 1 ], ggTables[ 1 ]);
-			selColL[ 2 ] = new SessionCollectionListener( doc.selectedGroups, doc.groups, 2, ggNames[ 2 ], ggTables[ 2 ]);
+			selColL[ 0 ] = new SessionCollectionListener( doc.selectedReceivers, doc.getReceivers(), 1, ggNames[ 0 ], ggTables[ 0 ]);
+			selColL[ 1 ] = new SessionCollectionListener( doc.selectedTransmitters, doc.getTransmitters(), 2, ggNames[ 1 ], ggTables[ 1 ]);
+			selColL[ 2 ] = new SessionCollectionListener( doc.selectedGroups, doc.getGroups(), 2, ggNames[ 2 ], ggTables[ 2 ]);
 			if( isListening ) {
 				selColL[ 0 ].startListening();
 				selColL[ 1 ].startListening();

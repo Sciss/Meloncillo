@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -65,11 +66,13 @@ import de.sciss.util.ParamSpace;
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.Application;
+import de.sciss.common.BasicDocument;
 import de.sciss.common.BasicWindowHandler;
 import de.sciss.common.ProcessingThread;
 import de.sciss.gui.GUIUtil;
 import de.sciss.gui.MenuAction;
 import de.sciss.gui.ParamField;
+import de.sciss.gui.PathField;
 import de.sciss.gui.SpringPanel;
 import de.sciss.io.IOUtil;
 import de.sciss.io.Span;
@@ -99,13 +102,20 @@ import de.sciss.meloncillo.util.PrefsUtil;
  *  @version	0.75, 10-Jun-08
  */
 public class Session
-extends SessionGroup
-implements FilenameFilter, EntityResolver, de.sciss.app.Document
+extends BasicDocument
+implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 {
+	private final SessionCollection	receivers		= new SessionCollection();
+	private final SessionCollection	transmitters	= new SessionCollection();
+	private final SessionCollection	groups			= new SessionCollection();
+
 	public static final int					EDIT_INSERT		= 0;
 	public static final int					EDIT_OVERWRITE	= 1;
 	public static final int					EDIT_MIX		= 2;
 
+	private	String		name;
+	private MapManager	map		= new MapManager( this, new HashMap() );
+	
 	/**
 	 *	Denotes the path to this session or
 	 *	<code>null</code> if not yet saved
@@ -324,6 +334,10 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 		}
 	}
 
+	public SessionCollection getReceivers() { return receivers; }
+	public SessionCollection getTransmitters() { return transmitters; }
+	public SessionCollection getGroups() { return groups; }
+
 	/**
 	 *  Clears the document. All receivers
 	 *  and transmitters are removed, the timeline
@@ -336,7 +350,21 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 		try {
 			bird.waitExclusive( DOOR_ALL );
 
-			super.clear();
+//			super.clear();
+			getMap().clearValues( this );
+//			init();
+			map.clearValues( this );
+			map.putContext( null, MAP_KEY_FLAGS, new MapManager.Context( MapManager.Context.FLAG_LIST_DISPLAY,
+																		 MapManager.Context.TYPE_INTEGER, null, null,
+																		 null, new Integer( 0 )));
+			map.putContext( this, SessionGroup.MAP_KEY_USERIMAGE, new MapManager.Context(
+			    MapManager.Context.FLAG_OBSERVER_DISPLAY, MapManager.Context.TYPE_FILE,
+			    new Integer( PathField.TYPE_INPUTFILE ), "labelUserImage", null, new File( "" )));
+			
+			groups.clear( this );
+			receivers.clear( this );
+			transmitters.clear( this );
+
 			setFile( null );
 			selectedReceivers.clear( this );
 			selectedTransmitters.clear( this );
@@ -356,7 +384,15 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 								" - " + e1.getLocalizedMessage() );
 		}
 	}
-	
+
+	/**
+	 *  This simply returns <code>null</code>!
+	 */
+	public Class getDefaultEditor()
+	{
+		return null;
+	}
+
 	public TimelineFrame getTimelineFrame()
 	{
 		return (TimelineFrame) AbstractApplication.getApplication().getComponent( Main.COMP_TIMELINE );
@@ -489,6 +525,31 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 	public MenuAction getTrimAction()
 	{
 		return actionTrim;
+	}
+
+	// ---------------- SessionObject interface ---------------- 
+
+	/**
+	 *  Retrieves the property map manager of the session
+	 *	object. This manager may be used to read and
+	 *	write properties and register listeners.
+	 *
+	 *	@return	the property map manager that stores
+	 *			all the properties of this session object
+	 */
+	public MapManager getMap()
+	{
+		return map;
+	}
+
+	public void setName( String newName )
+	{
+		name = newName;
+	}
+	
+	public String getName()
+	{
+		return name;
 	}
 
 // ---------------- XMLRepresentation interface ---------------- 
@@ -819,6 +880,11 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 		return null;	// unknown DTD, use default behaviour
 	}
 
+	public ProcessingThread closeDocument( boolean force, Flag wasClosed )
+	{
+		return closeDocument( AbstractApplication.getApplication().getResourceString( "menuClose" ), force, wasClosed );
+	}
+
 	public ProcessingThread closeDocument( String name, boolean force, Flag wasClosed )
 	{
 		final DocumentFrame frame = (DocumentFrame) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN );
@@ -840,11 +906,11 @@ implements FilenameFilter, EntityResolver, de.sciss.app.Document
 		
 		protected void perform()
 		{
-			final Span						selSpan, deleteBefore, deleteAfter;
+			final Span					selSpan, deleteBefore, deleteAfter;
 			final BasicCompoundEdit		edit;
-			final List						tis;
-			Track.Info						ti;
-			boolean							success	= false;
+			final List					tis;
+			Track.Info					ti;
+			boolean						success	= false;
 
 			edit			= new BasicCompoundEdit( getValue( NAME ).toString() );
 			

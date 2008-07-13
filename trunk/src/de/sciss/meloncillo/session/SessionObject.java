@@ -34,7 +34,7 @@ import de.sciss.meloncillo.util.*;
 
 /**
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 13-Jul-08
  */
 public interface SessionObject
 {
@@ -60,6 +60,12 @@ public interface SessionObject
 	public static final int FLAGS_MUTE			= 0x02;
 	public static final int FLAGS_SOLOSAFE		= 0x04;
 	public static final int FLAGS_VIRTUALMUTE	= 0x08;
+
+	public static final String XML_ATTR_NAME			= "name";
+	public static final String XML_ATTR_CLASS		= "class";
+	public static final String XML_ELEM_OBJECT		= "object";
+	public static final String XML_ELEM_COLL			= "coll";
+	public static final String XML_ELEM_MAP			= "map";
 
 	/**
 	 *  Retrieves the property map manager of the session

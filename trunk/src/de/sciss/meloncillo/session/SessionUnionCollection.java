@@ -162,9 +162,9 @@ extends SessionCollection
 	{
 		switch( type ) {
 		case RECEIVERS:
-			return group.receivers;
+			return group.getReceivers();
 		case TRANSMITTERS:
-			return group.transmitters;
+			return group.getTransmitters();
 		default:
 			assert false : type;
 			return null;

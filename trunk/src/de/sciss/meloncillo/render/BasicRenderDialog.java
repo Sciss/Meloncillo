@@ -678,9 +678,9 @@ implements  RenderHost, ProcessingThread.Client,
     public void startListening()
     {
 		doc.timeline.addTimelineListener( this );
-		doc.transmitters.addListener( transmittersListener );
+		doc.getTransmitters().addListener( transmittersListener );
 		doc.selectedTransmitters.addListener( selectedTransmittersListener );
-		doc.receivers.addListener( receiversListener );
+		doc.getReceivers().addListener( receiversListener );
 		doc.selectedReceivers.addListener( selectedReceiversListener );
 		checkReContext();
     }
@@ -688,9 +688,9 @@ implements  RenderHost, ProcessingThread.Client,
     public void stopListening()
     {
 		doc.timeline.removeTimelineListener( this );
-		doc.transmitters.removeListener( transmittersListener );
+		doc.getTransmitters().removeListener( transmittersListener );
 		doc.selectedTransmitters.removeListener( selectedTransmittersListener );
-		doc.receivers.removeListener( receiversListener );
+		doc.getReceivers().removeListener( receiversListener );
 		doc.selectedReceivers.removeListener( selectedReceiversListener );
     }
     

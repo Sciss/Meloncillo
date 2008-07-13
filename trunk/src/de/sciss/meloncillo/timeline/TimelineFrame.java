@@ -156,7 +156,6 @@ import de.sciss.meloncillo.session.SessionCollection;
 import de.sciss.meloncillo.session.SessionObject;
 import de.sciss.meloncillo.transmitter.Transmitter;
 import de.sciss.meloncillo.transmitter.TransmitterEditor;
-import de.sciss.meloncillo.transmitter.TransmitterRowHeader;
 import de.sciss.meloncillo.util.PrefsUtil;
 import de.sciss.meloncillo.util.TransferableCollection;
 import de.sciss.timebased.Trail;
@@ -1173,12 +1172,12 @@ dt = null;
 //		PeakMeter[]				meters;
 		TrackRowHeader			chanHead;
 		Track					t;
-		int						oldChannels, newChannels;
+		int						oldNumWaveTracks, newNumWaveTracks;
 		Axis					chanRuler;
 //		PeakMeter				chanMeter;
 
-		newChannels = 0; // EEE doc.getDisplayDescr().channels;
-		oldChannels	= collChannelHeaders.size();
+		newNumWaveTracks	= doc.activeTransmitters.size(); // EEE doc.getDisplayDescr().channels;
+		oldNumWaveTracks	= collChannelHeaders.size();
 
 //		meters				= channelMeters;
 //		collChannelMeters	= new ArrayList( meters.length );
@@ -1187,47 +1186,47 @@ dt = null;
 //		}
 	
 		// first kick out editors whose tracks have been removed
-		for( int ch = 0; ch < oldChannels; ch++ ) {
+		for( int ch = 0; ch < oldNumWaveTracks; ch++ ) {
 			chanHead	= (TrackRowHeader) collChannelHeaders.get( ch );
 			t			= chanHead.getTrack();
-// EEE
-//			if( !doc.audioTracks.contains( t )) {
-//				chanHead	= (TrackRowHeader) collChannelHeaders.remove( ch );
-////				chanMeter	= (PeakMeter) collChannelMeters.remove( ch );
-//				chanRuler	= (Axis) collChannelRulers.remove( ch );
-//				oldChannels--;
-//				// XXX : dispose trnsEdit (e.g. free vectors, remove listeners!!)
-//				flagsPanel.remove( chanHead );
-////				metersPanel.remove( chanMeter );
-//				rulersPanel.remove( chanRuler );
-//				ch--;
-//				chanHead.dispose();
-////				chanMeter.dispose();
-//				chanRuler.dispose();
-//			}
+
+			if( !doc.activeTransmitters.contains( t )) {
+				chanHead	= (TrackRowHeader) collChannelHeaders.remove( ch );
+//				chanMeter	= (PeakMeter) collChannelMeters.remove( ch );
+				chanRuler	= (Axis) collChannelRulers.remove( ch );
+				oldNumWaveTracks--;
+				// XXX : dispose trnsEdit (e.g. free vectors, remove listeners!!)
+				flagsPanel.remove( chanHead );
+//				metersPanel.remove( chanMeter );
+				rulersPanel.remove( chanRuler );
+				ch--;
+				chanHead.dispose();
+//				chanMeter.dispose();
+				chanRuler.dispose();
+			}
 		}
 		// next look for newly added transmitters and create editors for them
 
 // EEE
-//newLp:	for( int ch = 0; ch < newChannels; ch++ ) {
-//			t			= doc.audioTracks.get( ch );
-//			for( int ch2 = 0; ch2 < oldChannels; ch2++ ) {
-//				chanHead = (TrackRowHeader) collChannelHeaders.get( ch );
-//				if( chanHead.getTrack() == t ) continue newLp;
-//			}
-//			
-//			chanHead = new TrackRowHeader( t, doc.tracks, doc.selectedTracks, doc.getUndoManager() );
-//			collChannelHeaders.add( chanHead );
-//			flagsPanel.add( chanHead, ch );
-//
-////			chanMeter = new PeakMeter();
-////			collChannelMeters.add( chanMeter );
-////			metersPanel.add( chanMeter, ch );
-//
-//			chanRuler = new Axis( Axis.VERTICAL, Axis.FIXEDBOUNDS );
-//			collChannelRulers.add( chanRuler );
-//			rulersPanel.add( chanRuler, ch );
-//		}
+newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
+			t			= (Track) doc.activeTransmitters.get( ch );
+			for( int ch2 = 0; ch2 < oldNumWaveTracks; ch2++ ) {
+				chanHead = (TrackRowHeader) collChannelHeaders.get( ch );
+				if( chanHead.getTrack() == t ) continue newLp;
+			}
+			
+			chanHead = new TrackRowHeader( t, doc.tracks, doc.selectedTracks, doc.getUndoManager() );
+			collChannelHeaders.add( chanHead );
+			flagsPanel.add( chanHead, ch );
+
+//			chanMeter = new PeakMeter();
+//			collChannelMeters.add( chanMeter );
+//			metersPanel.add( chanMeter, ch );
+
+			chanRuler = new Axis( Axis.VERTICAL, Axis.FIXEDBOUNDS );
+			collChannelRulers.add( chanRuler );
+			rulersPanel.add( chanRuler, ch );
+		}
 		
 //		meters	= new PeakMeter[ collChannelMeters.size() ];
 //		for( int ch = 0; ch < meters.length; ch++ ) {
@@ -2729,13 +2728,13 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 										 timelineVis.getLength());
 			if( (pos < 0) || (pos >= timelineLen) ) return;
 		
-			final String			chName	= ""; // EEE doc.audioTracks.get( ch ).getName();
-			final double			seconds	= pos / timelineRate;
-			final AudioTrail 		at;
+			final String				chName	= ""; // EEE doc.audioTracks.get( ch ).getName();
+			final double				seconds	= pos / timelineRate;
+			final AudioTrail 			at;
 			final DecimatedWaveTrail	dt;
-			final float[][]			data;
-			final float[]			frame;
-			float					f1;
+			final float[][]				data;
+			final float[]				frame;
+			float						f1;
 			
 			argsCsr[3]		= chName;
 			argsCsr[0]		= new Long( pos );

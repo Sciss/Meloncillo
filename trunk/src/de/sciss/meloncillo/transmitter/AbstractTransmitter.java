@@ -36,6 +36,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import de.sciss.meloncillo.session.AbstractSessionObject;
+import de.sciss.meloncillo.timeline.Track;
 
 /**
  *  A simple implementation of the <code>Transmitter</code>
@@ -50,7 +51,7 @@ import de.sciss.meloncillo.session.AbstractSessionObject;
  *  @version	0.75, 10-Jun-08
  */
 public abstract class AbstractTransmitter
-extends AbstractSessionObject
+extends Track // AbstractSessionObject
 implements Transmitter
 {
 	protected static final String	SUBDIR			= "trns";

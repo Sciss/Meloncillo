@@ -116,8 +116,8 @@ extends BasicRenderDialog
 	
 		if( !doc.bird.attemptShared( Session.DOOR_TIMETRNSRCV, 250 )) return null;
 		try {
-			return new RenderContext( this, doc.receivers.getAll(),
-											doc.transmitters.getAll(),
+			return new RenderContext( this, doc.getReceivers().getAll(),
+											doc.getTransmitters().getAll(),
 				all || doc.timeline.getSelectionSpan().isEmpty() ?
 					new Span( 0, doc.timeline.getLength() ) : doc.timeline.getSelectionSpan(),
 											doc.timeline.getRate() );
@@ -145,8 +145,8 @@ extends BasicRenderDialog
 			timeSpan = all || doc.timeline.getSelectionSpan().isEmpty() ?
 				new Span( 0, doc.timeline.getLength() ) : doc.timeline.getSelectionSpan();
 					
-			return( doc.transmitters.getAll().equals( context.getTransmitters() ) &&
-					doc.receivers.getAll().equals( context.getReceivers() ) &&
+			return( doc.getTransmitters().getAll().equals( context.getTransmitters() ) &&
+					doc.getReceivers().getAll().equals( context.getReceivers() ) &&
 					timeSpan.equals( context.getTimeSpan() ) &&
 					doc.timeline.getRate() == context.getSourceRate() );
 		}

@@ -45,7 +45,7 @@ import de.sciss.meloncillo.util.MapManager;
 
 /**
  *  @author		Hanns Holger Rutz
- *  @version	0.70, 07-Dec-07
+ *  @version	0.71, 13-Jul-08
  */
 public class SessionCollection
 extends AbstractSessionObject
@@ -53,8 +53,6 @@ implements EventManager.Processor
 {
 	protected final List			collObjects			= new ArrayList();
 	protected final MapManager.Listener	objectListener;
-
-	protected static final Set EMPTY_SET				= new HashSet( 1 );
 	
 //	private final Set	dynamicSet	= new HashSet();
 
@@ -528,7 +526,7 @@ implements EventManager.Processor
 
 	// XXX TO-DO : Event should have a getDocumentCollection method
 	// XXX TO-DO : Event should have indices of all elements
-	public class Event
+	public static class Event
 	extends BasicEvent
 	{
 	// --- ID values ---
@@ -553,7 +551,7 @@ implements EventManager.Processor
 		public static final int ACTION_REMOVED		= 1;
 		public static final int ACTION_CHANGED		= 2;
 
-		private final List	affectedColl;
+		private final List				affectedColl;
 		private final int				affectedType;
 		private final Set				affectedSet;
 		private final Object			affectedParam;
@@ -575,7 +573,7 @@ implements EventManager.Processor
 			this.affectedColl	= new ArrayList( affectedColl );
 			this.affectedType	= type;
 			this.affectedParam	= null;
-			this.affectedSet	= EMPTY_SET;
+			this.affectedSet	= Collections.EMPTY_SET;
 		}
 		
 		protected Event( Event superEvent, List affectedColl )
@@ -592,8 +590,7 @@ implements EventManager.Processor
 		{
 			super( source, e.getID() == MapManager.Event.MAP_CHANGED ? MAP_CHANGED : OBJECT_CHANGED, when );
 
-			this.affectedColl	= new ArrayList( 1 );
-			this.affectedColl.add( e.getOwner() );
+			this.affectedColl	= Collections.singletonList( e.getOwner() );
 
 			if( getID() == MAP_CHANGED ) {
 				this.affectedType	= ACTION_CHANGED;
@@ -602,7 +599,7 @@ implements EventManager.Processor
 			} else {
 				this.affectedType	= e.getOwnerModType();
 				this.affectedParam	= e.getOwnerModParam();
-				this.affectedSet	= EMPTY_SET;
+				this.affectedSet	= Collections.EMPTY_SET;
 			}
 		}
 

@@ -102,7 +102,7 @@ implements ReceiverEditor, SessionCollection.Listener
 	{
 		setVisible( false );
 		dispose();
-		doc.receivers.removeListener( this );
+		doc.getReceivers().removeListener( this );
 		receiverDied();
 		rcv = null;
 	}
@@ -155,7 +155,7 @@ implements ReceiverEditor, SessionCollection.Listener
 		
 		this.rcv	= rcv;
 //		init();
-		doc.receivers.addListener( this );
+		doc.getReceivers().addListener( this );
 		updateTitle();
 	}
 	

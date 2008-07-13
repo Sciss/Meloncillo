@@ -41,19 +41,13 @@ import de.sciss.io.IOUtil;
 
 /**
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 13-Jul-08
  */
 public abstract class AbstractSessionObject
 implements SessionObject, XMLRepresentation, MapManager.Listener
 {
 	private	String		name;
 	private MapManager	map		= new MapManager( this, new HashMap() );
-
-	protected static final String XML_ATTR_NAME			= "name";
-	protected static final String XML_ATTR_CLASS		= "class";
-	protected static final String XML_ELEM_OBJECT		= "object";
-	protected static final String XML_ELEM_COLL			= "coll";
-	protected static final String XML_ELEM_MAP			= "map";
 
 	/**
 	 */
@@ -74,6 +68,12 @@ implements SessionObject, XMLRepresentation, MapManager.Listener
 	protected void init()
 	{
 		map.addListener( this );
+		clear();
+	}
+	
+	protected void clear()
+	{
+		map.clearValues( this );
 		map.putContext( null, MAP_KEY_FLAGS, new MapManager.Context( MapManager.Context.FLAG_LIST_DISPLAY,
 																	 MapManager.Context.TYPE_INTEGER, null, null,
 																	 null, new Integer( 0 )));

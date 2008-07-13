@@ -74,7 +74,7 @@ import de.sciss.gui.WindowListenerWrapper;
 
 /**
  *  @author		Hanns Holger Rutz
- *  @version	0.71, 10-Jun-08
+ *  @version	0.72, 13-Jul-08
  */
 public class BasicWindowHandler
 extends AbstractWindowHandler
@@ -456,7 +456,7 @@ extends AbstractWindowHandler
 		return result;
 	}
 
-	public static void showErrorDialog( Component component, Exception exception, String title )
+	public static void showErrorDialog( Component component, Throwable exception, String title )
 	{
 		final StringBuffer	strBuf  = new StringBuffer( GUIUtil.getResourceString( "errException" ));
 		final JOptionPane	op;

@@ -456,7 +456,7 @@ implements PlugIn, PreferenceChangeListener
 	
 		// --------------- create lisp symbols ---------------
 		// GROUPS : list (list elements : hashtable)
-		collGroups	= doc.groups.getAll();
+		collGroups	= doc.getGroups().getAll();
 		collGroups2	= new ArrayList( collGroups.size() );
 		collGroups3	= new ArrayList( collGroups.size() );
 		collGroups4	= new ArrayList( collGroups.size() );
@@ -478,7 +478,7 @@ implements PlugIn, PreferenceChangeListener
 			sessionObjectToLispHash( so, lispHash );
 			coll2.add( lispHash );
 			for( j = 0; j < collGroups.size(); j++ ) {
-				if( ((SessionGroup) collGroups.get( j )).receivers.contains( so )) {
+				if( ((SessionGroup) collGroups.get( j )).getReceivers().contains( so )) {
 					((java.util.List) collGroups3.get( j )).add( lispHash );
 				}
 			}
@@ -494,7 +494,7 @@ implements PlugIn, PreferenceChangeListener
 			sessionObjectToLispHash( so, lispHash );
 			coll2.add( lispHash );
 			for( j = 0; j < collGroups.size(); j++ ) {
-				if( ((SessionGroup) collGroups.get( j )).transmitters.contains( so )) {
+				if( ((SessionGroup) collGroups.get( j )).getTransmitters().contains( so )) {
 					((java.util.List) collGroups4.get( j )).add( lispHash );
 				}
 			}
