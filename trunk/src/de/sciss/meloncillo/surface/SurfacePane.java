@@ -106,6 +106,7 @@ import de.sciss.app.DynamicListening;
 import de.sciss.app.DynamicPrefChangeManager;
 import de.sciss.app.PerformableEdit;
 import de.sciss.common.ProcessingThread;
+import de.sciss.gui.ProgressComponent;
 import de.sciss.gui.StringItem;
 import de.sciss.gui.TopPainter;
 import de.sciss.io.Span;
@@ -2352,12 +2353,30 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 //				dndVelocity = false;
 				repaint( virtualToScreenClip( dndRecentRect ));
 				if( success && !previewOnly ) {
+					if( dndFreehandPoints.size() < 2 ) return;
+					final List collTrns	= doc.getSelectedTransmitters().getAll();
+					if( collTrns.isEmpty() ) return;
+
+					final PointInTime pit, pit2;
+					pit		= (PointInTime) dndFreehandPoints.get( 0 );
+					pit2	= (PointInTime) dndFreehandPoints.get( dndFreehandPoints.size() - 1 );
+					final Span span = new Span( pit.getWhen(), pit2.getWhen() );
+					if( span.getLength() < 2 ) return;
+					
+					if( !doc.checkProcess( 1000 )) return;
 //					renderThread = new ProcessingThread( this, root, root, doc,
 //					             						AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ),
 //					             						null, Session.DOOR_TIMETRNSMTE );
-					renderThread = new ProcessingThread( this, root,
-						AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ));
+					final String name = AbstractApplication.getApplication().
+						getResourceString( "toolWriteTransmitter" );
+
+					renderThread = new ProcessingThread( this, root, name );
+					renderThread.putClientArg( "span", span );
+					renderThread.putClientArg( "trns", collTrns );
 					renderThread.putClientArg( "blend", root.getBlending() );
+					renderThread.putClientArg( "edit",
+					    new CompoundSessionObjEdit( this, collTrns,
+					        Transmitter.OWNER_TRAJ, null, null, "Pencil" ));
 					renderThread.start();
 				}
 			}
@@ -2498,8 +2517,8 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 
 			// check replacement
 			if( trajRplc == null ) {
-				if( doc.bird.attemptShared( Session.DOOR_TIMETRNSRCV | Session.DOOR_GRP, 250 )) {
-					try {
+//				if( doc.bird.attemptShared( Session.DOOR_TIMETRNSRCV | Session.DOOR_GRP, 250 )) {
+//					try {
 						collTrns = doc.getActiveTransmitters().getAll();
 						collTrns.retainAll( doc.getSelectedTransmitters().getAll() );
 						trajRplc = new RealtimeProducer.TrajectoryReplacement(
@@ -2507,10 +2526,10 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 // EEE
 //						transport.addTrajectoryReplacement( trajRplc );
 						calcCursorInfo();
-					} finally {
-						doc.bird.releaseShared( Session.DOOR_TIMETRNSRCV | Session.DOOR_GRP );
-					}
-				}
+//					} finally {
+//						doc.bird.releaseShared( Session.DOOR_TIMETRNSRCV | Session.DOOR_GRP );
+//					}
+//				}
 			}
 
 			// check auto-step-mode
@@ -2600,7 +2619,9 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 			}
 
 			ptCurrentMouse  = screenToVirtual( e.getPoint() );
-			when		= rt_pos;
+//			when		= rt_pos;
+// EEE
+when = transport.getCurrentFrame();
 			recentLatest= dndLatest;
 			dndLatest   = new PointInTime( ptCurrentMouse, when );
 			pit			= (PointInTime) dndFreehandPoints.get( dndFreehandPoints.size() - 1 );
@@ -2648,14 +2669,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 				dndFreehandPoints.add( dndLatestIdx, dndLatest );
 			} // if( pit.getWhen() < when )
 
-			if( doc.bird.attemptShared( Session.DOOR_RCV | Session.DOOR_GRP, 250 )) {
-				try {
-					calcCursorInfo();
-				}
-				finally {
-					doc.bird.releaseShared( Session.DOOR_RCV | Session.DOOR_GRP );
-				}
-			}
+			calcCursorInfo();
 		} // mouseDragged( MouseEvent e )
 
 		protected void cancelGesture()
@@ -2671,32 +2685,25 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 		 */
 		public int processRun( ProcessingThread context )
 		{
+			final CompoundSessionObjEdit	edit		= (CompoundSessionObjEdit) context.getClientArg( "edit" );
+			final List						collTrns	= (List) context.getClientArg( "trns" );
+			final BlendContext				bc			= (BlendContext) context.getClientArg( "blend" );
+			final Span						span		= (Span) context.getClientArg( "span" );
+			final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
+			final double					t_norm;
+			final float[][]					interpBuf;
+			final float[]					warpedTime;
+			final float						v_start_norm, dv_norm;
+			final long						interpLen, progressLen;
 			Transmitter						trns;
 			AudioTrail						at;
-			float[][]						interpBuf;
-			float[]							warpedTime;
-			int								i, j, len;
+			int								len;
 			long							t, tt;
 //			BlendSpan						bs;
 			// interpLen entspricht 'T' in der Formel (Gesamtzeit), interpOff entspricht 't' (aktueller Zeitpunkt)
-			long							start, interpOff, interpLen, progressLen;
+			long							start, interpOff;
 			long							progress	= 0;
-			Span							span;
-			float							v_start_norm, dv_norm;
-			double							t_norm;
-			CompoundSessionObjEdit			edit;
-			List							collTransmitters;
-			PointInTime						pit, pit2;
-			boolean							success		= false;
-			final BlendContext				bc			= (BlendContext) context.getClientArg( "blend" );
 			AudioStake						as;
-			final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
-
-			if( dndFreehandPoints.size() < 2 ) return DONE;
-			pit		= (PointInTime) dndFreehandPoints.get( 0 );
-			pit2	= (PointInTime) dndFreehandPoints.get( dndFreehandPoints.size() - 1 );
-			span	= new Span( pit.getWhen(), pit2.getWhen() );
-			if( span.getLength() < 2 ) return DONE;
 				
 			interpLen   = span.getLength();
 			warpedTime  = new float[(int) Math.min( interpLen, 4096 )];
@@ -2706,26 +2713,27 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 			v_start_norm	= (float) (vStart * t_norm);
 			dv_norm			= (float) ((vStop - vStart) / 2 * t_norm * t_norm);
 
-			initFunctionEvaluation();
+//			initFunctionEvaluation();
 			
-			collTransmitters	= doc.getSelectedTransmitters().getAll();
-			progressLen			= interpLen*collTransmitters.size();
-			edit				= new CompoundSessionObjEdit( this, collTransmitters,
-											Transmitter.OWNER_TRAJ, null, null, "Pencil" );
-
+			progressLen			= interpLen*collTrns.size();
+			
 			try {
-				for( i = 0; i < collTransmitters.size(); i++ ) {
-					trns	= (Transmitter) collTransmitters.get( i );
+				for( int i = 0; i < collTrns.size(); i++ ) {
+					trns	= (Transmitter) collTrns.get( i );
 					at		= trns.getAudioTrail();
 
 //					bs = at.beginOverwrite( span, bc, edit );
 					as = at.alloc( span );
-					
+
+					// XXX has to be called for each trns?
+					initFunctionEvaluation();
+
 					for( start = span.getStart(), interpOff = 0; start < span.getStop();
 						 start += len, interpOff += len ) {
 						 
-						len = (int) Math.min( 4096, span.getStop() - start );
-						for( j = 0, t = interpOff; j < len; j++, t++ ) {
+						len	= (int) Math.min( 4096, span.getStop() - start );
+						t	= interpOff;
+						for( int j = 0; j < len; j++, t++ ) {
 							tt				= t*t;
 							warpedTime[j]   = v_start_norm * t + dv_norm * tt;
 //							warpedTime[j]   = (v_start_norm * t + dv_norm * tt) * 1.5f - 0.25f;  // extrap. 
@@ -2745,25 +2753,37 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 						progress += len;
 						context.setProgression( (float) progress / (float) progressLen );
 					}
+					at.editBegin( edit );
 					at.editClear( this, span, edit );
 					at.editAdd( this, as, edit );
+					at.editEnd( edit );
 //					at.finishWrite( bs, edit );
 				} // for( i = 0; i < collTransmitters.size(); i++ )
 				
-				edit.perform();
-				edit.end(); // fires doc.tc.modified()
-				doc.getUndoManager().addEdit( edit );
-				success = true;
+//				edit.perform();
+//				edit.end(); // fires doc.tc.modified()
+//				doc.getUndoManager().addEdit( edit );
+				return DONE;
 			}
 			catch( IOException e1 ) {
 				edit.cancel();
 				context.setException( e1 );
+				return FAILED;
 			}
-			
-			return success ? DONE : FAILED;
 		} // run()
 
-		public void processFinished( ProcessingThread context ) {}
+		public void processFinished( ProcessingThread context )
+		{
+			final AbstractCompoundEdit edit = (AbstractCompoundEdit) context.getClientArg( "edit" );
+			if( context.getReturnCode() == ProgressComponent.DONE ) {
+				edit.perform();
+				edit.end(); // fires doc.tc.modified()
+				doc.getUndoManager().addEdit( edit );
+			} else {
+				edit.cancel();
+			}
+		}
+		
 		public void processCancel( ProcessingThread context ) {}
 
 		private void initFunctionEvaluation()

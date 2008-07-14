@@ -36,6 +36,8 @@
 package de.sciss.meloncillo.session;
 
 import java.awt.EventQueue;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -58,6 +60,7 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import de.sciss.timebased.Trail;
 import de.sciss.util.DefaultUnitTranslator;
 import de.sciss.util.Flag;
 import de.sciss.util.Param;
@@ -74,6 +77,7 @@ import de.sciss.gui.MenuAction;
 import de.sciss.gui.ParamField;
 import de.sciss.gui.PathField;
 import de.sciss.gui.SpringPanel;
+import de.sciss.io.AudioFileDescr;
 import de.sciss.io.IOUtil;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
@@ -83,6 +87,7 @@ import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.gui.BlendingAction;
 import de.sciss.meloncillo.gui.MainFrame;
 import de.sciss.meloncillo.io.AudioTrail;
+import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.MarkerTrail;
 import de.sciss.meloncillo.io.XMLRepresentation;
 import de.sciss.meloncillo.realtime.Transport;
@@ -242,10 +247,14 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 	
 	// --- actions ---
 
+	private final ActionCut				actionCut;
+	protected final ActionCopy			actionCopy;
+	private final ActionPaste			actionPaste;
+	private final ActionDelete			actionDelete;
 	private final ActionSilence			actionSilence;
 	private final ActionTrim			actionTrim;
 	
-	private final BlendingAction			blending;
+	private final BlendingAction		blending;
 
 	/**
 	 *  Creates a new Session. This should be invoked only once at
@@ -297,6 +306,10 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 	public void sessionObjectMapChanged( SessionCollection.Event e ) {}
 });
 		
+		actionCut			= new ActionCut();
+		actionCopy			= new ActionCopy();
+		actionPaste			= new ActionPaste();
+		actionDelete		= new ActionDelete();
 		actionSilence		= new ActionSilence();
 		actionTrim			= new ActionTrim();
 
@@ -567,6 +580,7 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 
 	public void dispose()
 	{
+		discardEditsAndClipboard();
 		// XXX
 	}
 
@@ -582,16 +596,6 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 			MainFrame	mf = (MainFrame) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN );
 			if( mf != null ) mf.updateTitle();
 		}
-	}
-
-	public MenuAction getSilenceAction()
-	{
-		return actionSilence;
-	}
-	
-	public MenuAction getTrimAction()
-	{
-		return actionTrim;
 	}
 
 	// ---------------- SessionObject interface ---------------- 
@@ -617,6 +621,22 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 	public String getName()
 	{
 		return name;
+	}
+
+	public BlendContext createBlendContext( long maxLeft, long maxRight, boolean hasSelectedAudio )
+	{
+		if( !hasSelectedAudio || ((maxLeft == 0L) && (maxRight == 0L)) ) {
+			return null;
+		} else {
+			return blending.createBlendContext( maxLeft, maxRight );
+		}
+	}
+
+	protected void discardEditsAndClipboard()
+	{
+		undo.discardAllEdits();
+//		ClipboardTrackList.checkDispose( AbstractApplication.getApplication().getClipboard() );
+		ClipboardTrackList.disposeAll( this );
 	}
 
 // ---------------- XMLRepresentation interface ---------------- 
@@ -950,6 +970,53 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 		return null;	// unknown DTD, use default behaviour
 	}
 
+	public ProcessingThread procDelete( String name, Span span, int mode )
+	{
+		return actionDelete.initiate( name, span, mode );
+	}
+
+// EEE
+//	public ProcessingThread procSave( String name, Span span, AudioFileDescr[] targetAFDs,
+//									  int[] channelMap, boolean saveMarkers, boolean asCopy )
+//	{
+//		return actionSave.initiate( name, span, targetAFDs, channelMap, saveMarkers, asCopy );
+//	}
+	
+	public MenuAction getCutAction()
+	{
+		return actionCut;
+	}
+
+	public MenuAction getCopyAction()
+	{
+		return actionCopy;
+	}
+
+	public MenuAction getPasteAction()
+	{
+		return actionPaste;
+	}
+
+	public MenuAction getDeleteAction()
+	{
+		return actionDelete;
+	}
+	
+	public MenuAction getSilenceAction()
+	{
+		return actionSilence;
+	}
+	
+	public MenuAction getTrimAction()
+	{
+		return actionTrim;
+	}
+	
+	public ProcessingThread insertSilence( long pos, long numFrames )
+	{
+		return actionSilence.initiate( pos, numFrames );
+	}
+
 	public ProcessingThread closeDocument( boolean force, Flag wasClosed )
 	{
 		return closeDocument( AbstractApplication.getApplication().getResourceString( "menuClose" ), force, wasClosed );
@@ -961,8 +1028,598 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 		return frame.closeDocument( name, force, wasClosed );	// XXX should be in here not frame!!!
 	}
 
+	public ClipboardTrackList getSelectionAsTrackList()
+	{
+		return actionCopy.getSelectionAsTrackList();
+	}
+	
+	public ProcessingThread pasteTrackList( ClipboardTrackList tl, long insertPos, String name, int mode )
+	{
+		return actionPaste.initiate( tl, insertPos, name, mode );
+	}
+
+	protected static String getResourceString( String key )
+	{
+		return AbstractApplication.getApplication().getResourceString( key );
+	}
+
+	protected static boolean checkSyncedAudio( List tis, boolean changesTimeline, ProcessingThread context, Flag hasSelectedAudio )
+	{
+		Track.Info ti;
+
+		hasSelectedAudio.set( false );
+	
+		for( int i = 0; i < tis.size(); i++ ) {
+			ti = (Track.Info) tis.get( i );
+			if( changesTimeline && !ti.getChannelSync() ) {
+				if( context != null ) context.setException( new IllegalStateException( AbstractApplication.getApplication().getResourceString( "errAudioWillLooseSync" )));
+				return false;
+			}
+			if( (ti.trail instanceof AudioTrail) && ti.selected ) {
+				hasSelectedAudio.set( true );
+			}
+		}
+		return true;
+	}
+
 	// ---------------------- internal classes ----------------------
 	
+	private class ActionCut
+	extends MenuAction
+	{
+		protected ActionCut() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+		
+		protected void perform()
+		{
+			final ProcessingThread proc; // = null;
+			
+			if( actionCopy.perform() ) {
+//				if( !bird.attemptShared( Session.DOOR_TIME | Session.DOOR_MTE )) return;
+//				try {
+					proc = procDelete( getValue( NAME ).toString(), timeline.getSelectionSpan(), getEditMode() );
+//				}
+//				finally {
+//					bird.releaseShared( Session.DOOR_TIME | Session.DOOR_MTE );
+//				}
+				if( proc != null ) start( proc );
+			}
+		}
+	}
+
+	private class ActionCopy
+	extends MenuAction
+	{
+		protected ActionCopy() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+
+		protected ClipboardTrackList getSelectionAsTrackList()
+		{
+			final Span span;
+			
+//			if( !bird.attemptShared( Session.DOOR_TIME | Session.DOOR_TRACKS, 250 )) return null;
+//			try {
+				span = timeline.getSelectionSpan();
+				if( span.isEmpty() ) return null;
+
+				return new ClipboardTrackList( Session.this );
+//			}
+//			finally {
+//				bird.releaseShared( Session.DOOR_TIME | Session.DOOR_TRACKS );
+//			}
+		}
+
+		protected boolean perform()
+		{
+			boolean						success	= false;
+			final ClipboardTrackList	tl		= getSelectionAsTrackList();
+
+System.out.println( "A" );
+			if( tl == null ) return success;
+System.out.println( "B" );
+
+			try {
+				AbstractApplication.getApplication().getClipboard().setContents( tl, tl );
+				success = true;
+			}
+			catch( IllegalStateException e1 ) {
+				System.err.println( getResourceString( "errClipboard" ));
+			}
+
+			return success;
+		}
+	}
+	
+	private class ActionPaste
+	extends MenuAction
+	implements ProcessingThread.Client
+	{
+		protected ActionPaste() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+		
+		protected void perform()
+		{
+			perform( getValue( NAME ).toString(), getEditMode() );
+		}
+		
+		private void perform( String name, int mode )
+		{
+			final Transferable			t;
+			final ClipboardTrackList	tl;
+
+			try {
+System.out.println( "C" );
+				t = AbstractApplication.getApplication().getClipboard().getContents( this );
+				if( t == null ) return;
+System.out.println( "D" );
+				
+				if( !t.isDataFlavorSupported( ClipboardTrackList.trackListFlavor )) return;
+System.out.println( "E" );
+				tl = (ClipboardTrackList) t.getTransferData( ClipboardTrackList.trackListFlavor );
+			}
+			catch( IOException e11 ) {
+				System.err.println( e11.getLocalizedMessage() );
+				return;
+			}
+			catch( UnsupportedFlavorException e11 ) {
+				System.err.println( e11.getLocalizedMessage() );
+				return;
+			}
+			catch( IllegalStateException e11 ) {
+				System.err.println( getResourceString( "errClipboard" ));
+				return;
+			}
+			
+			if( !checkProcess() ) return;
+System.out.println( "F" );
+			final ProcessingThread proc = initiate( tl, timeline.getPosition(), name, mode );	// XXX sync
+			if( proc != null ) {
+				start( proc );
+			}
+		}
+
+		protected ProcessingThread initiate( ClipboardTrackList tl, long insertPos, String name, int mode )
+		{
+			if( !checkProcess() ) return null;
+			
+			if( (insertPos < 0) || (insertPos > timeline.getLength()) ) throw new IllegalArgumentException( String.valueOf( insertPos ));
+			
+			final ProcessingThread		proc;
+			final Span					oldSelSpan, insertSpan, copySpan, cutTimelineSpan;
+			final AbstractCompoundEdit	edit;
+			final Flag					hasSelectedAudio;
+			final List					tis;
+			final boolean				expTimeline, cutTimeline;
+			final long					docLength, pasteLength, preMaxLen, postMaxLen;
+			final BlendContext			bcPre, bcPost;
+			
+			hasSelectedAudio	= new Flag( false );
+			tis					= Track.getInfos( selectedTracks.getAll(), tracks.getAll() );
+			if( !checkSyncedAudio( tis, mode == EDIT_INSERT, null, hasSelectedAudio )) return null;
+
+			expTimeline			= (mode == EDIT_INSERT) && hasSelectedAudio.isSet();
+			docLength			= timeline.getLength();
+			pasteLength			= expTimeline ? tl.getSpan().getLength() :
+				Math.min( tl.getSpan().getLength(), docLength - insertPos );
+			if( pasteLength == 0 ) return null;
+			
+			if( mode == EDIT_INSERT ) {
+				/*
+				 *	before paste:
+				 * 
+				 *	 maxRight / post   maxLeft / pre
+				 *
+				 *	|                 |              |
+				 *	|                 |              |
+				 *	|                 |              |
+				 *	|        A        |     B        |
+				 *	+-----------------+--------------+
+				 *	                  |
+				 *	               insertPos
+				 *
+				 *	after paste:
+				 * 
+				 *	|                 | B #$$$$# A |              |
+				 *	|                 |  ##$$$$##  |              |
+				 *	|                 | ###$$$$### |              |
+				 *	|        A        |####$$$$####|      B       |
+				 *	+-----------------+------------+--------------+
+				 *	                  |
+				 *	               insertPos
+				 */
+				// note: now the discrepancy between postMaxLen and preMaxLen is
+				// limited to 100%, so pasting at the very end or beginning of
+				// a doc will not produce a single sided xfade any more
+				// (answering bug 1922862)
+				if( insertPos < (docLength - insertPos) ) {
+					postMaxLen	= Math.min( insertPos, pasteLength >> 1 );
+//					preMaxLen	= Math.min( docLength - insertPos, pasteLength - postMaxLen );
+					preMaxLen	= Math.min( postMaxLen << 1, Math.min( docLength - insertPos, pasteLength - postMaxLen ));
+//System.out.println( "A" );
+				} else {
+					preMaxLen	= Math.min( docLength - insertPos, pasteLength >> 1 );
+					postMaxLen	= Math.min( preMaxLen << 1, Math.min( insertPos, pasteLength - preMaxLen ));
+//System.out.println( "B" );
+				}
+			} else {
+				preMaxLen	= pasteLength >> 1;	// note: pasteLength already clipped to be <= docLength - insertPos !
+				postMaxLen	= pasteLength - preMaxLen;
+//System.out.println( "C" );
+			}
+			bcPre			= createBlendContext( preMaxLen, 0, hasSelectedAudio.isSet() );
+			bcPost			= createBlendContext( postMaxLen, 0, hasSelectedAudio.isSet() );
+//System.out.println( "D ; preMaxLen = " + preMaxLen + "; postMaxLen = " + postMaxLen + "; bcPre.getLeftLen() = " + (bcPre == null ? null : String.valueOf( bcPre.getLeftLen())) + "; bcPre.getRightLen() = " + (bcPre == null ? null : String.valueOf( bcPre.getRightLen() )) + "; bcPost.getLeftLen() = " + (bcPost == null ? null : String.valueOf( bcPost.getLeftLen() )) + "; bcPost.getRightLen() = " + (bcPost == null ? null : String.valueOf( bcPost.getRightLen() )));
+
+//			if( bcPre != null )  System.out.println( "bcPre  : " + bcPre.getLen() + ", " + bcPre.getLeftLen() + ", "+ bcPre.getRightLen() );
+//			if( bcPost != null ) System.out.println( "bcPost : " + bcPost.getLen() + ", " + bcPost.getLeftLen() + ", "+ bcPost.getRightLen() );
+			
+			insertSpan			= new Span( insertPos, insertPos + pasteLength );
+			copySpan			= new Span( tl.getSpan().start, tl.getSpan().start + pasteLength );
+			cutTimeline			= (mode == EDIT_INSERT) && !hasSelectedAudio.isSet();
+			cutTimelineSpan		= cutTimeline ? new Span( docLength, docLength + pasteLength ) : null;
+			
+			edit			= new BasicCompoundEdit( name );
+			oldSelSpan		= timeline.getSelectionSpan();
+			if( !oldSelSpan.isEmpty() ) { // deselect
+				edit.addPerform( TimelineVisualEdit.select( this, Session.this, new Span() ));
+			}
+
+			proc	= new ProcessingThread( this, getFrame(), name );
+			proc.putClientArg( "tl", tl );
+			proc.putClientArg( "pos", new Long( insertPos ));
+			proc.putClientArg( "mode", new Integer( mode ));
+			proc.putClientArg( "tis", tis );
+			proc.putClientArg( "pasteLen", new Long( pasteLength ));
+			proc.putClientArg( "exp", new Boolean( expTimeline ));
+			proc.putClientArg( "bcPre", bcPre );
+			proc.putClientArg( "bcPost", bcPost );
+			proc.putClientArg( "insertSpan", insertSpan );
+			proc.putClientArg( "copySpan", copySpan );
+			proc.putClientArg( "cut", new Boolean( cutTimeline ));
+			proc.putClientArg( "cutSpan", cutTimelineSpan );
+			proc.putClientArg( "edit", edit );
+
+			return proc;
+		}
+		
+		// --------- ProcessingThread.Client interface ---------
+
+		/**
+		 *  This method is called by ProcessingThread
+		 */
+		public int processRun( ProcessingThread context )
+		throws IOException
+		{
+			final ClipboardTrackList		tl					= (ClipboardTrackList) context.getClientArg( "tl" );
+			final long						insertPos			= ((Long) context.getClientArg( "pos" )).longValue();
+			final int						mode				= ((Integer) context.getClientArg( "mode" )).intValue();
+			final List						tis					= (List) context.getClientArg( "tis" );
+			final AbstractCompoundEdit		edit				= (AbstractCompoundEdit) context.getClientArg( "edit" );
+			final BlendContext				bcPre				= (BlendContext) context.getClientArg( "bcPre" );
+			final BlendContext				bcPost				= (BlendContext) context.getClientArg( "bcPost" );
+			final Span						insertSpan			= (Span) context.getClientArg( "insertSpan" );
+			final Span						copySpan			= (Span) context.getClientArg( "copySpan" );
+			final boolean					cutTimeline			= ((Boolean) context.getClientArg( "cut" )).booleanValue();
+			final Span						cutTimelineSpan		= (Span) context.getClientArg( "cutSpan" );
+			final long						delta				= insertPos - tl.getSpan().start;
+			Track.Info						ti;
+			Trail							srcTrail;
+			AudioTrail						audioTrail;
+			boolean[]						trackMap;
+			boolean							isAudio, pasteAudio;
+
+			for( int i = 0; i < tis.size(); i++ ) {
+				ti		= (Track.Info) tis.get( i );
+				if( ti.selected ) {	// ----------------- selected tracks -----------------
+					try {
+						ti.trail.editBegin( edit );
+						isAudio	= ti.trail instanceof AudioTrail;
+						srcTrail = tl.getSubTrail( ti.trail.getClass() );
+					
+						if( isAudio ) {
+							pasteAudio = (srcTrail != null) && (((AudioTrail) srcTrail).getChannelNum() > 0);
+						} else {
+							pasteAudio = false;
+						}
+						
+						if( mode == EDIT_INSERT ) {
+							ti.trail.editInsert( this, insertSpan, edit );
+							if( cutTimeline ) ti.trail.editRemove( this, cutTimelineSpan, edit );
+//							} else if( (mode == EDIT_OVERWRITE) && (pasteAudio || !isAudio) ) { // Audio needs to be cleared even in Mix mode!
+						} else if( pasteAudio || ((mode == EDIT_OVERWRITE) && !isAudio) ) { // Audio needs to be cleared even in Mix mode!
+							ti.trail.editClear( this, insertSpan, edit );
+						}
+						
+						if( pasteAudio ) {
+							audioTrail			= (AudioTrail) ti.trail;
+							trackMap	= tl.getTrackMap( ti.trail.getClass() );
+							
+//System.err.println( "clipboard tm : " );
+//for( int x = 0; x < trackMap.length; x++ ) { System.err.println( "  " + trackMap[ x ]); }
+							int[] trackMap2 = new int[ audioTrail.getChannelNum() ];
+							for( int j = 0, k = 0; j < trackMap2.length; j++ ) {
+								if( ti.trackMap[ j ]) {	// target track selected
+									for( ; (k < trackMap.length) && !trackMap[ k ] ; k++ ) ;
+									if( k < trackMap.length ) {	// source track exiting
+										trackMap2[ j ] = k++;
+									} else if( tl.getTrackNum( ti.trail.getClass() ) > 0 ) {		// ran out of source tracks, fold over (simple mono -> stereo par exemple)
+										for( k = 0; !trackMap[ k ] ; k++ ) ;
+										trackMap2[ j ] = k++;
+									} else {
+										trackMap2[ j ] = -1;		// there aren't any clipboard tracks ....
+									}
+								} else {							// target track not selected
+									trackMap2[ j ] = -1;
+								}
+							}
+							if( !audioTrail.copyRangeFrom( (AudioTrail) srcTrail, copySpan, insertPos, mode, this, edit, trackMap2, bcPre, bcPost )) return CANCELLED;
+
+						} else if( (ti.numTracks == 1) && (tl.getTrackNum( ti.trail.getClass() ) == 1) ) {
+							ti.trail.editAddAll( this, srcTrail.getCuttedRange(
+								copySpan, true, srcTrail.getDefaultTouchMode(), delta ), edit );
+						}
+					}
+					finally {
+						ti.trail.editEnd( edit );
+					}
+				}
+			}
+
+			return DONE;
+		}
+
+		public void processFinished( ProcessingThread context )
+		{
+			final ProcessingThread.Client	doneAction	= (ProcessingThread.Client) context.getClientArg( "doneAction" );
+			final AbstractCompoundEdit		edit		= (AbstractCompoundEdit) context.getClientArg( "edit" );
+			final boolean					expTimeline	= ((Boolean) context.getClientArg( "exp" )).booleanValue();
+			final long						pasteLength	= ((Long) context.getClientArg( "pasteLen" )).longValue();
+			final Span						insertSpan	= (Span) context.getClientArg( "insertSpan" );
+			
+			if( (context.getReturnCode() == DONE) ) {
+				if( expTimeline && (pasteLength != 0) ) {	// adjust timeline
+					edit.addPerform( new EditSetTimelineLength( this, Session.this, timeline.getLength() + pasteLength ));
+					if( timeline.getVisibleSpan().isEmpty() ) {
+						edit.addPerform( TimelineVisualEdit.scroll( this, Session.this, insertSpan ));
+					}
+				}
+				if( !insertSpan.isEmpty() ) {
+					edit.addPerform( TimelineVisualEdit.select( this, Session.this, insertSpan ));
+					edit.addPerform( TimelineVisualEdit.position( this, Session.this, insertSpan.stop ));
+				}
+
+				edit.perform();
+				edit.end();
+				getUndoManager().addEdit( edit );
+			} else {
+				edit.cancel();
+			}
+
+//			if( doneAction != null ) doneAction.processFinished( context, doc );
+			if( doneAction != null ) doneAction.processFinished( context );
+		}
+
+		// mte will check pt.shouldCancel() itself
+		public void processCancel( ProcessingThread context ) { /* ignored */ }
+	} // class actionPasteClass
+
+	/**
+	 *	@todo	when a cutted region spans entire view,
+	 *			selecting undo results in empty visible span
+	 */
+	private class ActionDelete
+	extends MenuAction
+	implements ProcessingThread.Client
+	{
+		protected ActionDelete() { /* empty */ }
+
+		public void actionPerformed( ActionEvent e )
+		{
+			perform();
+		}
+		
+		protected void perform()
+		{		
+			final Span				span	= timeline.getSelectionSpan(); // XXX sync
+			if( span.isEmpty() ) return;
+			
+			final ProcessingThread	proc		= initiate( getValue( NAME ).toString(), span, getEditMode() );
+			if( proc != null ) start( proc );
+		}
+		
+		// XXX sync
+		protected ProcessingThread initiate( String name, Span span, int mode )
+		{
+			if( !checkProcess() ) return null;
+
+			final BlendContext			bc;
+			final long					cutLength, docLength, newDocLength, maxLen;
+			final Flag					hasSelectedAudio;
+			final List					tis;
+			final AbstractCompoundEdit	edit;
+			final boolean 				cutTimeline;
+			final Span					cutTimelineSpan, selSpan;
+			Span						visiSpan;
+
+			hasSelectedAudio	= new Flag( false );
+			tis					= Track.getInfos( selectedTracks.getAll(), tracks.getAll() );
+			if( !checkSyncedAudio( tis, mode == EDIT_INSERT, null, hasSelectedAudio )) return null;
+			
+			docLength			= timeline.getLength();
+			cutLength			= span.getLength();
+			if( mode == EDIT_INSERT ) {
+				/*
+				 *	before delete:
+				 * 
+				 *	|,,,,,,,,,,,,,,,,,|$$$$$$$#######|............|
+				 *	|,,,,,,,,,,,,,,,,,|$$$$$$$#######|............|
+				 *	|,,,,,,,,,,,,,,,,,|$$$$$$$#######|............|
+				 *	|,,,,,,,,A,,,,,,,,|$$B1$$$###B2##|......C.....|
+				 *	+-----------------+--------------+------------+
+				 *	                  |     span     |
+				 *
+				 *	after delete:
+				 *	              left right
+				 *	|,,,,,,,,,,,,,    |            |
+				 *	|,,,,,,,,,,,,,,,  |            |
+				 *	|,,,,,,,,,,,,,,,,,|            |
+				 *	|,,,,,,,,,,,,,,,,,|$$          |
+				 *	|,,,,,,,,,,,,,,,,,|$$$$        |
+				 *	|,,,,,,,,A,,,,,,,,|$B2$$$      |
+				 *	+-----------------+------------+
+				 *	                  |
+				 *			plus
+				 *	|                 |    ........|
+				 *	|                 |  ..........|
+				 *	|                 |............|
+				 *	|               ##|............|
+				 *	|             ####|............|
+				 *	|           ###B2#|......C.....|
+				 *	+-----------------+------------+
+				 *	                  |
+				 *	              span.start
+				 */
+				maxLen				= Math.min( cutLength, Math.min( span.start, docLength - span.stop ) << 1 );
+				bc					= createBlendContext( maxLen >> 1, (maxLen + 1) >> 1, hasSelectedAudio.isSet() );
+			} else {
+				/*
+				 *	after delete:
+				 *                     blend-   blend-
+				 *                     Len      Len
+				 *	|,,,,,,,,,,,,,,,,,|$            #|............|
+				 *	|,,,,,,,,,,,,,,,,,|$$          ##|............|
+				 *	|,,,,,,,,,,,,,,,,,|$$$        ###|............|
+				 *	|,,,,,,,,A,,,,,,,,|$B1$      #B2#|......C.....|
+				 *	+-----------------+--------------+------------+
+				 *	                  |     span     |
+				 */
+				maxLen				= cutLength >> 1;
+				bc					= createBlendContext( maxLen, 0, hasSelectedAudio.isSet() );
+			}
+//			bc					= createBlendContext( Math.min( cutLength, span.start ), Math.min( cutLength, docLength - span.stop ), hasSelectedAudio );
+			edit				= new BasicCompoundEdit( name );
+
+//			if( bc != null )  System.out.println( "bc  : " + bc.getLen() + ", " + bc.getLeftLen() + ", "+ bc.getRightLen() );
+			
+			cutTimeline			= (mode == EDIT_INSERT) && hasSelectedAudio.isSet();
+			newDocLength		= cutTimeline ? docLength - cutLength : docLength;
+			cutTimelineSpan		= cutTimeline ? new Span( newDocLength, docLength ) : null;
+			selSpan				= timeline.getSelectionSpan();
+			
+			if( (mode == EDIT_INSERT) && !selSpan.isEmpty() ) {
+				edit.addPerform( TimelineVisualEdit.position( this, Session.this, span.start ));
+				edit.addPerform( TimelineVisualEdit.select( this, Session.this, new Span() ));
+			}
+			if( cutTimeline ) {
+				visiSpan = timeline.getVisibleSpan();
+				if( visiSpan.stop > span.start ) {
+					if( visiSpan.stop > newDocLength ) {
+						visiSpan = new Span( Math.max( 0, newDocLength - visiSpan.getLength() ), newDocLength );
+						TimelineVisualEdit tve = TimelineVisualEdit.scroll( this, Session.this, visiSpan );
+						edit.addPerform( tve );
+					} // else visiSpan untouched
+				}
+				edit.addPerform( new EditSetTimelineLength( this, Session.this, newDocLength ));
+			}
+
+			final ProcessingThread proc = new ProcessingThread( this, getFrame(), name );
+			proc.putClientArg( "span", span );
+			proc.putClientArg( "mode", new Integer( mode ));
+			proc.putClientArg( "tis", tis );
+			proc.putClientArg( "edit", edit );
+			proc.putClientArg( "bc", bc );
+			proc.putClientArg( "cut", new Boolean( cutTimeline ));
+			proc.putClientArg( "cutSpan", cutTimelineSpan );
+			return proc;
+		}
+
+		// --------- ProcessingThread.Client interface ---------
+		
+		/**
+		 *  This method is called by ProcessingThread
+		 */
+		public int processRun( ProcessingThread context )
+		throws IOException
+		{
+			final Span						span				= (Span) context.getClientArg( "span" );
+			final int						mode				= ((Integer) context.getClientArg( "mode" )).intValue();
+			final List						tis					= (List) context.getClientArg( "tis" );
+			final AbstractCompoundEdit		edit				= (AbstractCompoundEdit) context.getClientArg( "edit" );
+			final BlendContext				bc					= (BlendContext) context.getClientArg( "bc" );
+			final long						left				= bc == null ? 0L : bc.getLeftLen();
+			final long						right				= bc == null ? 0L : bc.getRightLen();
+			final boolean					cutTimeline			= ((Boolean) context.getClientArg( "cut" )).booleanValue();
+			final Span						cutTimelineSpan		= (Span) context.getClientArg( "cutSpan" );
+			AudioTrail						audioTrail;
+			Track.Info						ti;
+			boolean							isAudio;
+
+			for( int i = 0; i < tis.size(); i++ ) {
+				ti		= (Track.Info) tis.get( i );
+				try {
+					ti.trail.editBegin( edit );
+					isAudio = ti.trail instanceof AudioTrail;
+					if( ti.selected ) {
+						if( mode == EDIT_INSERT ) {
+							if( isAudio ) {
+								if( bc == null ) {
+									ti.trail.editRemove( this, span, edit );
+								} else {
+									ti.trail.editRemove( this, new Span( span.start - left, span.stop + right ), edit );
+									ti.trail.editInsert( this, new Span( span.start - left, span.start + right ), edit );
+								}
+								audioTrail = (AudioTrail) ti.trail;
+								audioTrail.clearRange( span, EDIT_INSERT, this, edit, ti.trackMap, bc );
+							} else {
+								ti.trail.editRemove( this, span, edit );
+							}
+						} else {
+							ti.trail.editClear( this, span, edit );
+							if( isAudio ) {
+								audioTrail = (AudioTrail) ti.trail;
+								audioTrail.clearRange( span, EDIT_OVERWRITE, this, edit, ti.trackMap, bc );
+							}
+						}
+					} else if( cutTimeline ) {
+						ti.trail.editRemove( this, cutTimelineSpan, edit );
+					}
+				}
+				finally {
+					ti.trail.editEnd( edit );
+				}
+			}
+			return DONE;
+		} // run
+
+		public void processFinished( ProcessingThread context )
+		{
+			final AbstractCompoundEdit edit = (AbstractCompoundEdit) context.getClientArg( "edit" );
+
+			if( context.getReturnCode() == DONE ) {
+				edit.perform();
+				edit.end();
+				getUndoManager().addEdit( edit );
+			} else {
+				edit.cancel();
+			}
+		}
+
+		// mte will check pt.shouldCancel() itself
+		public void processCancel( ProcessingThread context ) { /* ignore */ }
+	} // class actionDeleteClass
+
 	private class ActionTrim
 	extends MenuAction
 	{

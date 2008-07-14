@@ -63,22 +63,11 @@ extends AppWindow
 		this.doc	= doc;
 
 		final BasicApplication	app	= (BasicApplication) AbstractApplication.getApplication();
-		final MenuRoot			mr	= app.getMenuBarRoot();
+//		final MenuRoot			mr	= app.getMenuBarRoot();
 		
 		actionSave		= new ActionSave();
 		actionSaveAs	= new ActionSaveAs();
-		
-		mr.putMimic( "file.clearSession", this, new ActionClearSession() );
-		mr.putMimic( "file.save", this, actionSave );
-		mr.putMimic( "file.saveAs", this, actionSaveAs );
-		mr.putMimic( "edit.undo", this, doc.getUndoManager().getUndoAction() );
-		mr.putMimic( "edit.redo", this, doc.getUndoManager().getRedoAction() );
-		mr.putMimic( "edit.cut", this, getCutAction() );
-		mr.putMimic( "edit.copy", this, getCopyAction() );
-		mr.putMimic( "edit.paste", this, getPasteAction() );
-		mr.putMimic( "edit.clear", this, getDeleteAction() );
-		mr.putMimic( "edit.selectAll", this, getSelectAllAction() );
-		
+				
 		Listener winListener = new AbstractWindow.Adapter() {
 // EEE
 //			public void windowClosing( AbstractWindow.Event e ) {
@@ -96,6 +85,24 @@ extends AppWindow
 			}
 		};
 		this.addListener( winListener );
+	}
+	
+	public void init()
+	{
+		final BasicApplication	app	= (BasicApplication) AbstractApplication.getApplication();
+		final MenuRoot			mr	= app.getMenuBarRoot();
+		
+		mr.putMimic( "file.clearSession", this, new ActionClearSession() );
+		mr.putMimic( "file.save", this, actionSave );
+		mr.putMimic( "file.saveAs", this, actionSaveAs );
+		mr.putMimic( "edit.undo", this, doc.getUndoManager().getUndoAction() );
+		mr.putMimic( "edit.redo", this, doc.getUndoManager().getRedoAction() );
+		mr.putMimic( "edit.cut", this, getCutAction() );
+		mr.putMimic( "edit.copy", this, getCopyAction() );
+		mr.putMimic( "edit.paste", this, getPasteAction() );
+		mr.putMimic( "edit.clear", this, getDeleteAction() );
+		mr.putMimic( "edit.selectAll", this, getSelectAllAction() );
+		super.init();
 	}
 	
 	protected abstract Action getCutAction();

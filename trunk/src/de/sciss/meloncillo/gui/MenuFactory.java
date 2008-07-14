@@ -547,8 +547,9 @@ extends BasicMenuFactory
 				collNewRcv	= new ArrayList();
 				coll2	= doc.getReceivers().getAll();
 				for( int i = 0; i < numi; i++ ) {
-					d1  = ((double) i / (double) numi - 0.25) * Math.PI * 2;
-					anchor = new Point2D.Double( 0.25 * (2.0 + Math.cos( d1 )), 0.25 * (2.0 + Math.sin( d1 )));
+					d1  = ((double) i / (double) numi - 0.25) * Math.PI * -2;
+//					anchor = new Point2D.Double( 0.25 * (2.0 + Math.cos( d1 )), 0.25 * (2.0 + Math.sin( d1 )));
+					anchor = new Point2D.Double( 0.5 * + Math.cos( d1 ), 0.5 * Math.sin( d1 ));
 					rcv = (Receiver) c.newInstance();
 					rcv.setAnchor( anchor );
 //					rcv.setSize( new Dimension2DDouble( 0.5, 0.5 ));
@@ -1193,9 +1194,11 @@ extends BasicMenuFactory
 			
 			try {
 				for( int i = 0; i < num; i++ ) {
-					d1		= ((double) i / (double) num - 0.25) * Math.PI * 2;
-					f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
-					f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
+					d1		= ((double) i / (double) num - 0.25) * Math.PI * -2;
+//					f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
+//					f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
+					f1		= (float) (0.5 * Math.cos( d1 ));
+					f2		= (float) (0.5 * Math.sin( d1 ));
 					for( int j = 0; j < 4096; j++ ) {
 						buf[0][j] = f1;
 						buf[1][j] = f2;

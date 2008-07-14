@@ -1834,10 +1834,10 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 
 // ---------------- DocumentFrame abstract methods ----------------
 	
-	protected Action getCutAction() { return new ActionCut(); }
-	protected Action getCopyAction() { return new ActionCopy(); }
-	protected Action getPasteAction() { return new ActionPaste(); }
-	protected Action getDeleteAction() { return new ActionDelete(); }
+	protected Action getCutAction() { return doc.getCutAction(); /* new ActionCut() */ }
+	protected Action getCopyAction() { return doc.getCopyAction(); /* new ActionCopy() */ }
+	protected Action getPasteAction() { return doc.getPasteAction(); /* new ActionPaste() */ }
+	protected Action getDeleteAction() { return doc.getDeleteAction(); /* new ActionDelete() */ }
 	protected Action getSelectAllAction() { return new ActionSelectAll(); }
 	
 	// ---------------- PreferenceChangeListener interface ---------------- 
@@ -1888,6 +1888,7 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 
 // ---------------- internal action classes ---------------- 
 
+/*
 	private class ActionPaste
 	extends MenuAction
 	implements ProcessingThread.Client
@@ -1941,13 +1942,11 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 			pt.start();
 		}
 		
-		/**
-		 *  This method is called by ProcessingThread
-		 */
+		//
+		//  This method is called by ProcessingThread
+		//
 		public int processRun( ProcessingThread context ) throws IOException
 		{
-			return FAILED;
-/* EEE
 			final List						coll		= (List) context.getClientArg( "coll" );
 			List							collAffectedTransmitters;
 			Transferable					t;
@@ -2068,12 +2067,12 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			}
 			
 			return success ? DONE : FAILED;
-*/
 		}
 
 		public void processFinished( ProcessingThread context ) {}
 		public void processCancel( ProcessingThread context ) {}
 	} // class actionPasteClass
+*/
 
 	private class ActionSelectAll
 	extends MenuAction
@@ -2097,19 +2096,24 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		}
 	}
 
+/*
 	private class ActionCut
 	extends MenuAction
 	{
 		private final ActionDelete actionClear = new ActionDelete();
 		
-		protected ActionCut() { /* empty */ }
+		protected ActionCut() {
+			// empty
+		}
 
 		public void actionPerformed( ActionEvent e )
 		{
 			if( editCopy() ) actionClear.perform();
 		}
 	}
+*/
 
+/*
 	private class ActionDelete
 	extends MenuAction
 	implements ProcessingThread.Client
@@ -2144,13 +2148,11 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			pt.start();
 		}
 		
-		/**
-		 *  This method is called by ProcessingThread
-		 */
+		//
+		//  This method is called by ProcessingThread
+		//
 		public int processRun( ProcessingThread context )
 		{
-			return FAILED;
-/* EEE
 			Span							span, span2, span3;
 			List							collAffectedTransmitters;
 			List							collUnaffectedTransmitters;
@@ -2221,13 +2223,12 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			}
 			
 			return success ? DONE : FAILED;
-*/
 		} // run
 
 		public void processFinished( ProcessingThread context ) {}
 		public void processCancel( ProcessingThread context ) {}
 	}
-
+*/
 	/**
 	 *  Increase or decrease the height
 	 *  of the rows of the selected transmitters

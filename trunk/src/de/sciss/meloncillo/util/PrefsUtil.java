@@ -454,7 +454,7 @@ public class PrefsUtil
 //		putBooleanDontOverwrite( mainPrefs, KEY_VIEWCHANMETERS , true );
 		putBooleanDontOverwrite( mainPrefs, KEY_VIEWMARKERS , true );
 		putBooleanDontOverwrite( mainPrefs, KEY_VIEWNULLLINIE , true );
-		putBooleanDontOverwrite( mainPrefs, KEY_VIEWVERTICALRULERS, true );
+		putBooleanDontOverwrite( mainPrefs, KEY_VIEWVERTICALRULERS, false );
 		putBooleanDontOverwrite( mainPrefs, KEY_CATCH, true );
 		
 		putIntDontOverwrite( mainPrefs, KEY_TIMEUNITS, TIME_MINSECS );
