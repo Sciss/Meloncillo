@@ -701,7 +701,7 @@ extends BasicMenuFactory
 	// action for the Open-Session menu item
 	private class ActionOpen
 	extends MenuAction
-	implements ProcessingThread.Client
+	implements ProcessingThread.Listener
 	{
 		private String text;
 	
@@ -747,7 +747,16 @@ extends BasicMenuFactory
 		private void queryAndPerform()
 		{
 			File f = queryFile();
-			if( f != null ) perform( f );
+			if( f != null ) {
+				perform( f );
+			}
+		}
+		
+		private void perform( File f )
+		{
+			final ProcessingThread pt = doc.initiateLoad( f );
+			pt.addListener( this );
+			pt.start();
 		}
 
 		private File queryFile()
@@ -772,117 +781,28 @@ extends BasicMenuFactory
 			return( new File( strDir, strFile ));
 		}
 		
-		/**
-		 *  Loads a new session file.
-		 *  If transport is running, is will be stopped.
-		 *  The console window is cleared an a <code>ProcessingThread</code>
-		 *  started which loads the new session.
-		 *
-		 *  @param  path	the file of the session to be loaded
-		 *  
-		 *  @synchronization	this method must be called in event thread
-		 */
-		protected ProcessingThread perform( File path )
+		public void processStopped( ProcessingThread.Event e )
 		{
-			final Main root = (Main) AbstractApplication.getApplication();
-			doc.getTransport().stop();
-			((MainFrame) root.getComponent( Main.COMP_MAIN )).clearLog();
-			Map options = new HashMap();
-			options.put( "file", path );
-//			return( new ProcessingThread( this, root, root, doc, text, options, Session.DOOR_ALL ));
-			final ProcessingThread pt;
-			pt = new ProcessingThread( this, root, text );
-			pt.putClientArg( "options", options );
-			pt.start();
-			return pt;
-		}
-
-		public int processRun( ProcessingThread context )
-		throws IOException
-		{
-			org.w3c.dom.Document	domDoc;
-			DocumentBuilderFactory  builderFactory;
-			DocumentBuilder			builder;
-			boolean					success = false;
-			Map						options	= (Map) context.getClientArg( "options" );
-			File					f		= (File) options.get( "file" );
-
-			builderFactory  = DocumentBuilderFactory.newInstance();
-			builderFactory.setValidating( true );
-//			builderFactory.setIgnoringComments( true );
-//			builderFactory.setIgnoringElementContentWhitespace( true );
-//			builderFactory.setNamespaceAware(true);
-			doc.getUndoManager().discardAllEdits();
-			
-			context.setProgression( -1f );
-
-			try {
-				builder	=   builderFactory.newDocumentBuilder();
-				builder.setEntityResolver( doc );
-				domDoc  =   builder.parse( f );
-				context.setProgression( -1f );
-				options.put( XMLRepresentation.KEY_BASEPATH, f.getParentFile() );
-				doc.fromXML( domDoc, domDoc.getDocumentElement(), options );
-//				doc.getMap().putValue( this, Session.MAP_KEY_PATH, f );
-//				doc.setName( f.getName() );
-				doc.setFile( f );
-
-				context.setProgression( 1.0f );
-				success = true;
-			}
-			catch( ParserConfigurationException e1 ) {
-				context.setException( e1 );
-			}
-			catch( SAXParseException e2 ) {
-				context.setException( e2 );
-			}
-			catch( SAXException e3 ) {
-				context.setException( e3 );
-			}
-			catch( IOException e4 ) {
-				context.setException( e4 );
-			}
-		
-			if( !success ) {
-				doc.clear();
-			}
-			return success ? DONE : FAILED;
-		} // run()
-
-		public void processCancel( ProcessingThread context ) {}
-
-		/**
-		 *  When the sesion was successfully
-		 *  loaded, its name will be put in the
-		 *  Open-Recent menu. All frames' bounds will be
-		 *  restored depending on the users preferences.
-		 *  <code>setModified</code> will be called on
-		 *  the <code>Main</code> class and the
-		 *  main frame's title is updated
-		 */
-		public void processFinished( ProcessingThread context )
-		{
-			final Map		options = (Map) context.getClientArg( "options" );
-			Object			warn;
-			final MainFrame mf		= (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
-		
-			if( context.getReturnCode() == DONE ) {
+			final ProcessingThread pt = e.getProcessingThread(); 
+			if( pt.getReturnCode() == ProgressComponent.DONE ) {
+				final Map options = (Map) pt.getClientArg( "options" ); 
 				addRecent( (File) options.get( "file" ));
-				if( AbstractApplication.getApplication().getUserPrefs().getBoolean(
-					PrefsUtil.KEY_RECALLFRAMES, false )) {
-
-//					BasicFrame.restoreAllFromPrefs();
 // EEE
-				}
-				warn = options.get( XMLRepresentation.KEY_WARNING );
+//				if( AbstractApplication.getApplication().getUserPrefs().getBoolean(
+//					PrefsUtil.KEY_RECALLFRAMES, false )) {
+//					BasicFrame.restoreAllFromPrefs();
+//				}
+				final Object warn = options.get( XMLRepresentation.KEY_WARNING );
 				if( warn != null ) {
-					JOptionPane.showMessageDialog( mf.getWindow(), warn, getValue( Action.NAME ).toString(),
+//					final MainFrame mf = (MainFrame) getApplication().getComponent( Main.COMP_MAIN );
+					JOptionPane.showMessageDialog( null, warn, getValue( Action.NAME ).toString(),
 												   JOptionPane.WARNING_MESSAGE );
 				}
+				((MainFrame) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN )).updateTitle();
 			}
-			doc.setDirty( false );
-			mf.updateTitle();
 		}
+		
+		public void processStarted( ProcessingThread.Event e ) { /* nada */ }
 	}
 	
 	// action for Bounce-to-Disk menu item

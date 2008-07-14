@@ -52,13 +52,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.prefs.BackingStoreException;
 
+import javax.swing.Action;
 import javax.swing.JOptionPane;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import de.sciss.timebased.Trail;
 import de.sciss.util.DefaultUnitTranslator;
@@ -76,6 +81,7 @@ import de.sciss.gui.GUIUtil;
 import de.sciss.gui.MenuAction;
 import de.sciss.gui.ParamField;
 import de.sciss.gui.PathField;
+import de.sciss.gui.ProgressComponent;
 import de.sciss.gui.SpringPanel;
 import de.sciss.io.AudioFileDescr;
 import de.sciss.io.IOUtil;
@@ -246,7 +252,8 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 	public final MarkerTrack		markerTrack;
 	
 	// --- actions ---
-
+	
+	private final ActionLoad			actionLoad;
 	private final ActionCut				actionCut;
 	protected final ActionCopy			actionCopy;
 	private final ActionPaste			actionPaste;
@@ -305,7 +312,8 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 	public void sessionObjectChanged( SessionCollection.Event e ) {}
 	public void sessionObjectMapChanged( SessionCollection.Event e ) {}
 });
-		
+
+		actionLoad			= new ActionLoad();
 		actionCut			= new ActionCut();
 		actionCopy			= new ActionCopy();
 		actionPaste			= new ActionPaste();
@@ -425,8 +433,8 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 	{
 		final Application	app = AbstractApplication.getApplication();
 	
-		try {
-			bird.waitExclusive( DOOR_ALL );
+//		try {
+//			bird.waitExclusive( DOOR_ALL );
 
 //			super.clear();
 			getMap().clearValues( this );
@@ -445,15 +453,16 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 			selectedGroups.clear( this );
 			groups.clear( this );
 			receivers.clear( this );
-			tracks.removeAll( this, transmitters.getAll() );
+			tracks.removeAll( this, transmitters.getAll() ); // not the marker track
+			markerTrack.clear( this );
 			selectedTracks.add(  this, markerTrack );
 
 			setFile( null );
 			timeline.clear( this );
-		}
-		finally {
-			bird.releaseExclusive( DOOR_ALL );
-		}
+//		}
+//		finally {
+//			bird.releaseExclusive( DOOR_ALL );
+//		}
 		
 		// clear session prefs
 		try {
@@ -622,6 +631,11 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 	{
 		return name;
 	}
+	
+	public ProcessingThread initiateLoad( File f )
+	{
+		return actionLoad.initiate( f );
+	}
 
 	public BlendContext createBlendContext( long maxLeft, long maxRight, boolean hasSelectedAudio )
 	{
@@ -750,9 +764,11 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 
 //		updateFileAttr( domDoc, node );
 		try {
-			bird.waitExclusive( DOOR_ALL );
+//			bird.waitExclusive( DOOR_ALL );
 			receivers.pauseDispatcher();
 			selectedReceivers.pauseDispatcher();
+			tracks.pauseDispatcher();
+			selectedTracks.pauseDispatcher();
 // EEE
 //			transmitters.pauseDispatcher();
 //			selectedTransmitters.pauseDispatcher();
@@ -918,11 +934,13 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 		finally {
 			receivers.resumeDispatcher();
 			selectedReceivers.resumeDispatcher();
+			tracks.resumeDispatcher();
+			selectedTracks.resumeDispatcher();
 // EEE
 //			transmitters.resumeDispatcher();
 //			selectedTransmitters.resumeDispatcher();
 			timeline.resumeDispatcher();
-			bird.releaseExclusive( DOOR_ALL );
+//			bird.releaseExclusive( DOOR_ALL );
 		}
 	}
 
@@ -1064,6 +1082,108 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 
 	// ---------------------- internal classes ----------------------
 	
+	private class ActionLoad
+//	extends MenuAction
+	implements ProcessingThread.Client
+	{
+		/**
+		 *  Loads a new session file.
+		 *  If transport is running, is will be stopped.
+		 *  The console window is cleared an a <code>ProcessingThread</code>
+		 *  started which loads the new session.
+		 *
+		 *  @param  path	the file of the session to be loaded
+		 *  
+		 *  @synchronization	this method must be called in event thread
+		 */
+		protected ProcessingThread initiate( File path )
+		{
+			final Main root = (Main) AbstractApplication.getApplication();
+			getTransport().stop();
+			((MainFrame) root.getComponent( Main.COMP_MAIN )).clearLog();
+//			Map options = new HashMap();
+//			options.put( "file", path );
+//			return( new ProcessingThread( this, root, root, doc, text, options, Session.DOOR_ALL ));
+			final ProcessingThread pt;
+			final Map options = new HashMap();
+			pt = new ProcessingThread( this, root, getResourceString( "menuOpen" ));
+			options.put( "file", path );
+			options.put( XMLRepresentation.KEY_BASEPATH, path.getParentFile() );
+			pt.putClientArg( "options", options );
+//			pt.start();
+			
+			final org.w3c.dom.Document		domDoc;
+			final DocumentBuilderFactory	builderFactory;
+			final DocumentBuilder			builder;
+
+			builderFactory  = DocumentBuilderFactory.newInstance();
+			builderFactory.setValidating( true );
+			getUndoManager().discardAllEdits();
+
+			try {
+				builder	=   builderFactory.newDocumentBuilder();
+				builder.setEntityResolver( Session.this );
+				domDoc  =   builder.parse( path );
+//				context.setProgression( -1f );
+				fromXML( domDoc, domDoc.getDocumentElement(), options );
+//				doc.getMap().putValue( this, Session.MAP_KEY_PATH, f );
+//				doc.setName( f.getName() );
+//				setFile( path );
+
+//				context.setProgression( 1.0f );
+//				success = true;
+			}
+			catch( ParserConfigurationException e1 ) {
+				pt.putClientArg( "exception", e1 );
+			}
+			catch( SAXParseException e1 ) {
+				pt.putClientArg( "exception", e1 );
+			}
+			catch( SAXException e1 ) {
+				pt.putClientArg( "exception", e1 );
+			}
+			catch( IOException e1 ) {
+				pt.putClientArg( "exception", e1 );
+			}
+		
+			return pt;
+		}
+
+		// ...is very tricky. since timeline changes may only
+		// be performed on the event thread, we do all in the
+		// initiate method, and use the processRun merely to
+		// generate a result
+		public int processRun( ProcessingThread context )
+		throws IOException
+		{
+			final Exception e = (Exception) context.getClientArg( "exception" );
+			if( e != null ) context.setException( e );
+			return e == null ? DONE : FAILED;
+		} // run()
+
+		public void processCancel( ProcessingThread context ) {}
+
+		/**
+		 *  When the sesion was successfully
+		 *  loaded, its name will be put in the
+		 *  Open-Recent menu. All frames' bounds will be
+		 *  restored depending on the users preferences.
+		 *  <code>setModified</code> will be called on
+		 *  the <code>Main</code> class and the
+		 *  main frame's title is updated
+		 */
+		public void processFinished( ProcessingThread context )
+		{
+			setDirty( false );
+			if( context.getReturnCode() == ProgressComponent.DONE ) {
+				final Map options = (Map) context.getClientArg( "options" );
+				setFile( (File) options.get( "file" ));
+			} else {
+				setFile( null );
+				clear();
+			}
+		}
+	}
 	private class ActionCut
 	extends MenuAction
 	{
