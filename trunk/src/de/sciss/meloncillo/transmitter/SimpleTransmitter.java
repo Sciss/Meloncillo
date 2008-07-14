@@ -58,7 +58,7 @@ extends AbstractTransmitter
     
 //  private final AudioTrail at;
     private AudioTrail at;
-    private final DecimatedWaveTrail dwt;
+    private DecimatedWaveTrail dwt;
 //	private static final int[] decimations	= { 0, 2, 4, 6, 8, 10, 12 };
 //	private static final int[] decimations	= { 2, 4, 6, 8, 10, 12 };
 	private static final int[] decimations	= { 4, 8, 12 };
@@ -194,8 +194,11 @@ extends AbstractTransmitter
 		final AudioFile af = AudioFile.openAsRead( new File( new File(
 			(File) options.get( XMLRepresentation.KEY_BASEPATH ), SUBDIR ), getName() + SUFFIX_TRAJECTORY ));
 			
+		at.dispose();
+		dwt.dispose();
 //		at.clear( null );
 //		at.insert( iff, 0, new Span( 0, iff.getFrameNum() ), null, 0.0f, 1.0f );		// XXX edit ?
 		at	= AudioTrail.newFrom( af );
+		dwt	= new DecimatedWaveTrail( at, DecimatedWaveTrail.MODEL_FULLWAVE_PEAKRMS, decimations );
 	}
 }

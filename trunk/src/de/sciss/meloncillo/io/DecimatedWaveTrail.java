@@ -58,7 +58,7 @@ import de.sciss.io.Span;
 import de.sciss.util.MutableInt;
 
 /**
- *	@version	0.70, 28-Jun-08
+ *	@version	0.75, 15-Jul-08
  *	@author		Hanns Holger Rutz
  * 
  *	@todo	common superclass of AudioTrail and DecimatedTrail
@@ -571,6 +571,10 @@ extends DecimatedTrail
 		int					readOffset, nextOffset = dataOffset;
 		int					len			= (int) (readSpan.getLength() >> decimHelps[ sub ].shift);
 
+//if( idx < 0 ) {
+//	System.out.println( "Doh! readSpan = " + readSpan + " ; this.span " + getSpan() );
+//}
+		
 		while( (len > 0) && (idx < coll.size()) ) {
 			stake		= (DecimatedStake) coll.get( idx );
 			subSpan		= new Span( Math.max( stake.getSpan().start, readSpan.start ),
@@ -863,7 +867,7 @@ Thread.currentThread().setPriority( pri - 2 );
 		if( (audioFiles.length == 0) || (audioFiles[0] == null) ) return null;
 
 		final CacheManager cm = PrefCacheManager.getInstance();
-		if( !cm.isActive() ) return null;
+		if( (cm == null) || !cm.isActive() ) return null;
 
 		final File[] f = new File[ audioFiles.length ];
 		for( int i = 0; i < f.length; i++ ) {
