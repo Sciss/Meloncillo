@@ -874,7 +874,7 @@ bbb.add( markAxisHeader );
 		documentUpdate();
 
 		addDynamicListening( new DynamicPrefChangeManager( app.getUserPrefs(), new String[] {
-			/* PrefsUtil.KEY_VIEWNULLLINIE, */ PrefsUtil.KEY_VIEWVERTICALRULERS, PrefsUtil.KEY_VIEWMARKERS,
+			PrefsUtil.KEY_VIEWNULLLINIE, PrefsUtil.KEY_VIEWVERTICALRULERS, PrefsUtil.KEY_VIEWMARKERS,
 			PrefsUtil.KEY_TIMEUNITS, PrefsUtil.KEY_VERTSCALE /*, PrefsUtil.KEY_VIEWCHANMETERS */},
 			this ));
 
@@ -1241,7 +1241,7 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 				if( chanHead.getTrack() == t ) continue newLp;
 			}
 			
-			chanHead = new TrackRowHeader( t, doc.getTracks(), doc.getMutableSelectedTracks(), doc.getUndoManager() );
+			chanHead = new TransmitterRowHeader( t, doc.getTracks(), doc.getMutableSelectedTracks(), doc.getUndoManager() );
 			collChannelHeaders.add( chanHead );
 			flagsPanel.add( chanHead, ch );
 
@@ -1845,11 +1845,10 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 	public void preferenceChange( PreferenceChangeEvent e )
 	{
 		final String key = e.getKey();
-// EEE		
-//		if( key == PrefsUtil.KEY_VIEWNULLLINIE ) {
-//			waveView.setNullLinie( e.getNode().getBoolean( e.getKey(), false ));
-//		} else
-		if( key == PrefsUtil.KEY_VIEWVERTICALRULERS ) {
+
+		if( key == PrefsUtil.KEY_VIEWNULLLINIE ) {
+			waveView.setNullLinie( e.getNode().getBoolean( e.getKey(), false ));
+		} else if( key == PrefsUtil.KEY_VIEWVERTICALRULERS ) {
 			final boolean visible = e.getNode().getBoolean( e.getKey(), false );
 			rulersPanel.setVisible( visible );
 // EEE

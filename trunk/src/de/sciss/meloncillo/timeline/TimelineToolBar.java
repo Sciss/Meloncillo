@@ -24,28 +24,34 @@
  *
  *
  *  Changelog:
- *		25-Mar-05	created from SurfaceToolBar
+ *		12-May-05	created from de.sciss.meloncillo.timeline.TimelineToolBar
+ *		08-Sep-05	selectTool method
+ *		14-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.timeline;
 
 import java.awt.event.KeyEvent;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.prefs.Preferences;
-
 import javax.swing.AbstractButton;
+import javax.swing.ButtonGroup;
 import javax.swing.JToggleButton;
 import javax.swing.KeyStroke;
+import javax.swing.SwingConstants;
 
 import de.sciss.app.AbstractApplication;
-import de.sciss.gui.GUIUtil;
+
 import de.sciss.meloncillo.gui.BlendingAction;
 import de.sciss.meloncillo.gui.CatchAction;
+import de.sciss.meloncillo.gui.EditModeAction;
 import de.sciss.meloncillo.gui.ToolAction;
 import de.sciss.meloncillo.gui.ToolBar;
 import de.sciss.meloncillo.session.Session;
-import de.sciss.meloncillo.util.PrefsUtil;
+import de.sciss.gui.GUIUtil;
+
 import de.sciss.util.Disposable;
 
 /**
@@ -56,79 +62,161 @@ import de.sciss.util.Disposable;
  *	the blending option.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 07-Dec-07
  */
 public class TimelineToolBar
 extends ToolBar
 implements Disposable
 {
 	private final Map					mapToolButtons	= new HashMap();
-
+	
 	/**
 	 *	Creates a tool palette with
 	 *	default buttons for editing the timeline frame.
-	 *
-	 *	@param	root	Application root
 	 */
 	public TimelineToolBar( Session doc )
 	{
-		super( ToolBar.HORIZONTAL );
+		super( SwingConstants.HORIZONTAL );
 
-		ToolAction			toolAction;
-		BlendingAction		actionBlending;
-		CatchAction			actionCatch;
-		JToggleButton		toggle;
-		final Preferences	prefs = AbstractApplication.getApplication().getUserPrefs();
+		final Preferences		prefs = AbstractApplication.getApplication().getUserPrefs();
+		final CatchAction		actionCatch;
+		final EditModeAction	actionEditMode;
+		final AbstractButton	button;
+		final BlendingAction	actionBlending;
+		ToolAction				toolAction;
+		JToggleButton			toggle;
+		ButtonGroup				bg;
+		Enumeration				en;
 
-		actionCatch		= new CatchAction( prefs.node( PrefsUtil.NODE_SHARED ));
+		actionCatch		= new CatchAction( prefs ); // .node( PrefsUtil.NODE_SHARED ));
 		toggle			= actionCatch.getButton();
 //		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_V, 0 )));
-// EEE
-//        HelpGlassPane.setHelp( toggle, "ToolCatch" );	// EEE
-        this.addToggleButton( toggle, 2 );
-		this.addSeparator();
+GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_V, 0 ));
+//        HelpGlassPane.setHelp( toggle, "ToolCatch" );
+        addToggleButton( toggle, 2 );
+		addSeparator();
+
+		actionEditMode	= new EditModeAction( doc );
+		bg				= actionEditMode.getButtons();
+		en				= bg.getElements();
+		for( int i = 0; en.hasMoreElements(); i++ ) {
+			toggle		= (JToggleButton) en.nextElement();
+GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F1 + i, 0 ));
+			addToggleButton( toggle, 3 );
+		}
+		addSeparator();
 
 		toolAction		= new ToolAction( ToolAction.POINTER );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
-		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F1, 0 ));
-//        HelpGlassPane.setHelp( toggle, "TimelineToolPointer" );	// EEE
-  		this.addToggleButton( toggle, 0 );
+		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F5, 0 ));
+//        HelpGlassPane.setHelp( toggle, "TimelineToolPointer" );
+  		addToggleButton( toggle, 0 );
 		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
         
-		toolAction		= new ToolAction( ToolAction.LINE );
-        toggle			= new JToggleButton( toolAction );
-		toolAction.setIcons( toggle );
-		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F2, 0 ));
-//        HelpGlassPane.setHelp( toggle, "TimelineToolLine" );	// EEE
-toolAction.setEnabled( false );	// XXX not yet implemented
-  		this.addToggleButton( toggle, 0 );
-		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
-
-		toolAction		= new ToolAction( ToolAction.PENCIL );
-        toggle			= new JToggleButton( toolAction );
-		toolAction.setIcons( toggle );
-		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F3, 0 ));
-//        HelpGlassPane.setHelp( toggle, "TimelineToolPencil" );	// EEE
-  		this.addToggleButton( toggle, 0 );
-		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
+//		toolAction		= new ToolAction( ToolAction.LINE );
+//        toggle			= new JToggleButton( toolAction );
+//		toolAction.setIcons( toggle );
+//		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F6, 0 ));
+////        HelpGlassPane.setHelp( toggle, "TimelineToolLine" );
+//toolAction.setEnabled( false );	// XXX not yet implemented
+//  		addToggleButton( toggle, 0 );
+//		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
+//
+//		toolAction		= new ToolAction( ToolAction.PENCIL );
+//        toggle			= new JToggleButton( toolAction );
+//		toolAction.setIcons( toggle );
+//		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F7, 0 ));
+////        HelpGlassPane.setHelp( toggle, "TimelineToolPencil" );
+//toolAction.setEnabled( false );	// XXX not yet implemented
+//  		addToggleButton( toggle, 0 );
+//		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
       
 		toolAction		= new ToolAction( ToolAction.ZOOM );
         toggle			= new JToggleButton( toolAction );
 		toolAction.setIcons( toggle );
-		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F4, 0 ));
-//        HelpGlassPane.setHelp( toggle, "TimelineToolZoom" );	// EEE
-  		this.addToggleButton( toggle, 0 );
+		GUIUtil.createKeyAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_F6, 0 ));
+//        HelpGlassPane.setHelp( toggle, "TimelineToolZoom" );
+  		addToggleButton( toggle, 0 );
 		mapToolButtons.put( new Integer( toolAction.getID() ), toggle );
-
-		this.addSeparator();
-		actionBlending  = new BlendingAction( prefs.node( PrefsUtil.NODE_SHARED ));
-		toggle			= actionBlending.getButton();
+      
+		addSeparator();
+		actionBlending  = doc.getBlendingAction();
+		button			= actionBlending.getButton();
 //		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 )));
-//        HelpGlassPane.setHelp( toggle, "ToolBlending" );		// EEE
-        this.addToggleButton( toggle, 1 );
-	}
+GUIUtil.createKeyAction( button, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 ));
 
+// ... DOESN'T WORK
+//		try {
+//			final Robot r = new Robot();
+//			button.getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW ).put( KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 ), "shortcut" );
+//			button.getActionMap().put( "shortcut", new DoClickAction( button ) {
+//				public void validActionPerformed( ActionEvent e )
+//				{
+//					super.validActionPerformed( e );
+//					r.keyRelease( KeyEvent.VK_CAPS_LOCK );
+//					r.keyPress( KeyEvent.VK_CAPS_LOCK );
+//					r.keyRelease( KeyEvent.VK_CAPS_LOCK );
+//				}
+//			});
+//		}
+//		catch( AWTException e1 ) { /* ignored */ }
+
+//final JComboBox ggCombo = new JComboBox() {
+//	public void setBackground( Color c )
+//	{
+//		setOpaque( (c != null) && (c.getAlpha() == 0xFF) );
+//		super.setBackground( c );
+//	}
+//	
+//	public void paintComponent( Graphics g )
+//	{
+////		final Color bg = getBackground();
+//		final Color bg = Color.red;
+////		getParent().paint( g );
+////		((JComponent) getParent()).paintComponent( g );
+//		if( (bg != null) && (bg.getAlpha() > 0) ) {
+//			g.setColor( bg );
+//			g.fillRect( 0, 0, getWidth(), getHeight() );
+//		}
+//		super.paintComponent( g );
+//	}
+//};
+//final JComboBox ggCombo = new JComboBox();
+
+		add( actionBlending.getComboBox() );
+
+		
+//		final MultiStateButton ggBlendHisto = new MultiStateButton();
+//		ggBlendHisto.setNumColumns( 3 );
+////		ggBlendHisto.addItem( "V", Color.black, new Color( 0xA3, 0xB6, 0xCC ));	// Hue: 0.5952 = graphite
+//		ggBlendHisto.addItem( "V", Color.black, new Color( 0xAD, 0xBA, 0xCC ));	// Hue: 0.595 = graphite
+//		ggBlendHisto.setFocusable( false );
+//		add( ggBlendHisto );
+	}
+	
+//	private void updateRecentBlends()
+//	{
+//		System.err.println( "updateRecentBlends" );
+//		
+//		final Preferences	cPrefs;
+//		Preferences			prefs;
+//		
+//		ggBlend.removeAllItems();
+//		try {
+//			cPrefs = actionBlending.getRecentPreferences();
+//			final String[] names = cPrefs.childrenNames();
+//			for( int j = 0; j < names.length; j++ ) {
+//				prefs = cPrefs.node( names[ j ]);
+//System.err.println( " ... add " + prefs.get( BlendingAction.KEY_DURATION, null ));
+//				ggBlend.addItem( prefs.get( BlendingAction.KEY_DURATION, null ));
+//			}
+//		}
+//		catch( BackingStoreException e1 ) {
+//			System.err.println( e1 );
+//		}
+//	}
+	
 	public void selectTool( int toolID )
 	{
 		final AbstractButton b = (AbstractButton) mapToolButtons.get( new Integer( toolID ));

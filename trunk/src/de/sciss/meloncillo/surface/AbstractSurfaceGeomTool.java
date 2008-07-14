@@ -157,6 +157,7 @@ implements ProcessingThread.Client
 		renderThread.putClientArg( "span", span );
 		renderThread.putClientArg( "trns", collTrns );
 		renderThread.putClientArg( "edit", edit );
+		renderThread.putClientArg( "blend", root.getBlending() );
 
 		renderThread.start();
 	}
@@ -274,7 +275,7 @@ implements ProcessingThread.Client
 		final Span						span		= (Span) context.getClientArg( "span" );
 		final AbstractCompoundEdit		edit		= (AbstractCompoundEdit) context.getClientArg( "edit" ); 
 		final List						collTrns	= (List) context.getClientArg( "trns" );
-		final BlendContext				bc			= root.getBlending();
+		final BlendContext				bc			= (BlendContext) context.getClientArg( "blend" );
 		final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
 		final float[][]					interpBuf;
 		Transmitter						trns;

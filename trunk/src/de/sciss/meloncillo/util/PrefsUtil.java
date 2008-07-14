@@ -389,6 +389,13 @@ public class PrefsUtil
 	public static final String KEY_VIEWUSERIMAGES = "viewuserimages";
 
 	/**
+	 *  Value: Boolean indicating whether a null-line
+	 *  should be painted in the overviews or not.<br>
+	 *  Has default value: yes!<br>
+	 *  Node: 
+	 */
+	public static final String KEY_VIEWNULLLINIE	= "viewnulllinie";		// boolean
+	/**
 	 *  Value: Boolean indicating whether the
 	 *  surface should display rulers.<br>
 	 *  Has default value: yes!<br>
@@ -446,7 +453,7 @@ public class PrefsUtil
 		putBooleanDontOverwrite( mainPrefs, KEY_INSERTIONFOLLOWSPLAY, true );
 //		putBooleanDontOverwrite( mainPrefs, KEY_VIEWCHANMETERS , true );
 		putBooleanDontOverwrite( mainPrefs, KEY_VIEWMARKERS , true );
-//		putBooleanDontOverwrite( mainPrefs, KEY_VIEWNULLLINIE , true );
+		putBooleanDontOverwrite( mainPrefs, KEY_VIEWNULLLINIE , true );
 		putBooleanDontOverwrite( mainPrefs, KEY_VIEWVERTICALRULERS, true );
 		putBooleanDontOverwrite( mainPrefs, KEY_CATCH, true );
 		

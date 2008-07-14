@@ -122,7 +122,7 @@ extends TableLookupReceiver
 		super.init();
 		
 //		final NumberSpace	spcDiam		= new NumberSpace( 0.0, 1.0, 0.0001, 0.5, 0.1 );
-		final NumberSpace	spcDiam		= new NumberSpace( 0.0, 1.0, 0, 0, 4, 0.5 );
+		final NumberSpace	spcDiam		= new NumberSpace( 0.0, 2.0, 0, 0, 4, 0.5 );
 //		final NumberSpace	spcArc		= new NumberSpace( -360.0, 360.0, 0.0001, 0.0, 0.1 );
 		final NumberSpace	spcArc		= new NumberSpace( -360.0, 360.0, 0.0, 0, 4, 0.1 );
 		final MapManager	map			= getMap();

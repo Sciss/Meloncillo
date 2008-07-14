@@ -82,7 +82,7 @@ implements Receiver
 		super.init();
 		
 //		final NumberSpace		spcCoord	= new NumberSpace( 0.0, 1.0, 0.0001, 0.5, 0.1 );
-		final NumberSpace		spcCoord	= new NumberSpace( 0.0, 1.0, 0.0, 0, 4, 0.5 );
+		final NumberSpace		spcCoord	= new NumberSpace( -1.0, 1.0, 0.0, 0, 4, 0.5 );
 		final MapManager		map			= getMap();
 		
 		map.putContext( null, MAP_KEY_X, new MapManager.Context( MapManager.Context.FLAG_OBSERVER_DISPLAY |

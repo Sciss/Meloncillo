@@ -40,6 +40,7 @@ package de.sciss.meloncillo.gui;
 import java.awt.FileDialog;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.geom.Point2D;
 import java.io.File;
@@ -252,7 +253,8 @@ extends BasicMenuFactory
 		mg	= new MenuGroup( "timeline", getResourceString( "menuTimeline" ));
 //		mg.add( new MenuItem( "insTimeSpan", actionInsTimeSpan ));
 		mg.add( new MenuItem( "trimToSelection", getResourceString( "menuTrimToSelection" )));
-		mg.add( new MenuItem( "insertSilence", getResourceString( "menuInsTimeSpan" )));
+		mg.add( new MenuItem( "insertSilence", getResourceString( "menuInsTimeSpan" ),
+							  KeyStroke.getKeyStroke( KeyEvent.VK_E, MENU_SHORTCUT + InputEvent.SHIFT_MASK )));
 		mg.add( new MenuItem( "selectionForward", actionSelectionForward ));
 		mg.add( new MenuItem( "selectionBackwards", actionSelectionBackwards ));
 		mg.addSeparator();

@@ -24,16 +24,22 @@
  *
  *
  *  Changelog:
- *		31-Jul-04   commented
- *		26-Mar-05	added zoom tool
+ *		25-Jan-05	created from de.sciss.meloncillo.gui.GraphicsUtil
+ *		14-Jul-08	copied back from EisK
  */
 
 package de.sciss.meloncillo.gui;
 
-import java.awt.*;
-import java.awt.geom.*;
-import java.awt.image.*;
-import javax.swing.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.TexturePaint;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import javax.swing.AbstractButton;
+import javax.swing.Icon;
 
 import de.sciss.gui.TiledImage;
 
@@ -42,48 +48,12 @@ import de.sciss.gui.TiledImage;
  *  and public objects for common graphics operations
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.70, 06-May-06
  *
  *	@todo	the tool buttons on non-macos look-and-feel are far to wide
  */
 public class GraphicsUtil
 {
-	/**
-	 *  Blue translucent colour
-	 *  for consistent style in selected objects
-	 */
-	public static final Color		colrSelection   = new Color( 0x00, 0x00, 0xFF, 0x2F );
-	/**
-	 *  Yellow translucent colour
-	 *  for consistent style in optional adjustment objects
-	 */
-	public static final Color		colrAdjusting   = new Color( 0xFF, 0xFF, 0x00, 0x2F );
-	/**
-	 *  Default font for GUI elements.
-	 *
-	 *  @see	GUIUtil#setDeepFont( Container, Font )
-	 *  @todo   this is rather small and could be
-	 *			user adjustable in a future version.
-	 */
-	public static final Font		smallGUIFont	= new Font( "Helvetica", Font.PLAIN, 10 );
-	/**
-	 *  MacOS X Aqua style bar gradient with a size of 15 pixels
-	 *
-	 *  @see	de.sciss.meloncillo.timeline.TimelineAxis
-	 *  @todo   this should look different on Windows and Linux
-	 *			depending on their VM's chrome.
-	 */
-	public static final Paint		pntBarGradient;
-	/**
-	 *  Collection of toolbar icons. The corresponding IDs are those
-	 *  named ICON_... (e.g. <code>ICON_PLAY</code> for the transport
-	 *  play icon).
-	 *
-	 *  @see	#createToolIcons( int )
-	 */
-//	protected static final TiledImage  imgToolIcons	= new TiledImage( "images/toolicons.png", 16, 16 );
-	protected static final TiledImage  imgToolIcons	= new TiledImage( GraphicsUtil.class.getResource( "toolicons.png" ), 16, 16 );
-	
 	/**
 	 *  Tool icon ID: transport play
 	 */
@@ -164,7 +134,54 @@ public class GraphicsUtil
 	 *  Tool icon ID: postroll blending (not used)
 	 */
 	public static final int ICON_POSTEXTRA	= 21;
+	/**
+	 *  Tool icon ID: insert mode
+	 */
+	public static final int ICON_INSERTMODE	= 22;
+	/**
+	 *  Tool icon ID: replace mode
+	 */
+	public static final int ICON_OVERWRITEMODE	= 23;
+	/**
+	 *  Tool icon ID: mix mode
+	 */
+	public static final int ICON_MIXMODE	= 24;
 
+	/**
+	 *  Blue translucent colour
+	 *  for consistent style in selected objects
+	 */
+	public static final Color		colrSelection   = new Color( 0x00, 0x00, 0xFF, 0x2F );
+	/**
+	 *  Yellow translucent colour
+	 *  for consistent style in optional adjustment objects
+	 */
+	public static final Color		colrAdjusting   = new Color( 0xFF, 0xFF, 0x00, 0x2F );
+	/**
+	 *  Default font for GUI elements.
+	 *
+	 *  @see	de.sciss.gui.GUIUtil#setDeepFont( Container, Font )
+	 *  @todo   this is rather small and could be
+	 *			user adjustable in a future version.
+	 */
+	public static final Font		smallGUIFont	= new Font( "Helvetica", Font.PLAIN, 10 );
+	/**
+	 *  MacOS X Aqua style bar gradient with a size of 15 pixels
+	 *
+	 *  @see	de.sciss.eisenkraut.timeline.TimelineAxis
+	 *  @todo   this should look different on Windows and Linux
+	 *			depending on their VM's chrome.
+	 */
+	public static final Paint		pntBarGradient;
+	/**
+	 *  Collection of toolbar icons. The corresponding IDs are those
+	 *  named ICON_... (e.g. <code>ICON_PLAY</code> for the transport
+	 *  play icon).
+	 *
+	 *  @see	#createToolIcons( int )
+	 */
+	protected static final TiledImage  imgToolIcons	= new TiledImage( GraphicsUtil.class.getResource( "toolicons.png" ), 16, 16 );
+	
 	private static final int[] pntBarGradientPixels = { 0xFFB8B8B8, 0xFFC0C0C0, 0xFFC8C8C8, 0xFFD3D3D3,
 														0xFFDBDBDB, 0xFFE4E4E4, 0xFFEBEBEB, 0xFFF1F1F1,
 														0xFFF6F6F6, 0xFFFAFAFA, 0xFFFBFBFB, 0xFFFCFCFC,
@@ -176,7 +193,7 @@ public class GraphicsUtil
 		pntBarGradient = new TexturePaint( img, new Rectangle( 0, 0, 1, 15 ));
 	}
 	
-	private GraphicsUtil() {}
+	private GraphicsUtil() { /* empty */ }
 	
 	/**
 	 *  Creates an array of icons which display
@@ -228,9 +245,6 @@ public class GraphicsUtil
 		b.setPressedIcon( icons[3] );
 		b.setDisabledIcon( icons[2] );
 //        Insets defInsets = b.getInsets();
-//        int minMargin = Math.min( Math.min( defInsets.left, defInsets.right ),
-//                                  Math.min( defInsets.top, defInsets.bottom ));
-//        b.setMargin( new Insets( minMargin, minMargin, minMargin, minMargin ));
 	}
 	
 	/**
@@ -241,7 +255,7 @@ public class GraphicsUtil
 	 *  @return		the length as given by the distance
 	 *				of the start point to the end point
 	 *
-	 *  @see	java.awt.geom.Point2D#distance( double, double, double, double )
+	 *  @see	java.awt.geom.Paint2D#distance( double, double, double, double )
 	 */
 	public static double getLineLength( Line2D ln )
 	{

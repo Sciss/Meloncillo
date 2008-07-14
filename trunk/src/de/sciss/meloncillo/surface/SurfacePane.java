@@ -60,6 +60,8 @@ import java.awt.Stroke;
 import java.awt.Toolkit;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
@@ -94,6 +96,7 @@ import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 
 import javax.swing.JComponent;
+import javax.swing.Timer;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractCompoundEdit;
@@ -131,6 +134,7 @@ import de.sciss.meloncillo.realtime.RealtimeConsumerRequest;
 import de.sciss.meloncillo.realtime.RealtimeContext;
 import de.sciss.meloncillo.realtime.RealtimeProducer;
 import de.sciss.meloncillo.realtime.Transport;
+import de.sciss.meloncillo.realtime.TransportListener;
 import de.sciss.meloncillo.receiver.Receiver;
 import de.sciss.meloncillo.receiver.ReceiverEditor;
 import de.sciss.meloncillo.session.BasicSessionCollection;
@@ -141,6 +145,7 @@ import de.sciss.meloncillo.session.SessionGroup;
 import de.sciss.meloncillo.session.SessionObject;
 import de.sciss.meloncillo.timeline.TimelineEvent;
 import de.sciss.meloncillo.timeline.TimelineListener;
+import de.sciss.meloncillo.timeline.TimelineScroll;
 import de.sciss.meloncillo.transmitter.TrajectoryGenerator;
 import de.sciss.meloncillo.transmitter.Transmitter;
 import de.sciss.meloncillo.util.Dimension2DDouble;
@@ -171,7 +176,7 @@ import de.sciss.meloncillo.util.PrefsUtil;
  */
 public class SurfacePane
 extends JComponent		// JPanel
-implements  VirtualSurface, TimelineListener,
+implements  VirtualSurface, TimelineListener, TransportListener,
 			ToolActionListener, DynamicListening, RealtimeConsumer, PreferenceChangeListener
 {
     // --- global communication ---
@@ -179,6 +184,12 @@ implements  VirtualSurface, TimelineListener,
 	private final Main		root;
 	private final Session	doc;
 	private final Transport transport;
+	
+	private double	timelineRate;
+	private long	timelinePos;
+	private long	timelineLen;
+	private final Timer						playTimer;
+	private double							playRate		= 1.0;
 
     // --- shapes and paints ---
         
@@ -234,6 +245,8 @@ implements  VirtualSurface, TimelineListener,
 	private static final MessageFormat  msgCursorY		= new MessageFormat( "Y {1,number,0.0000}", Locale.US );   // XXX
 	
 	// --- points and paths ---
+	
+	private final float[][]	trnsBuf	= new float[ 2 ][ 1 ];
 
     /*
      *  elements are GeneralPath objects with the transmitter
@@ -263,7 +276,7 @@ implements  VirtualSurface, TimelineListener,
 	private boolean		rt_valid		= false;			// false if rt shouldn't update transmitter locs
 	private String[]	rt_trnsNames	= new String[0];	// names of all transmitters
 	private float[]		rt_trnsLocX		= new float[0];		// x locations of all transmitters
-	private float[]		rt_trnsLocY		= new float[0];		// y locations of all transmitters
+	private float[]		rt_trnsLocY		= new float[0];		// y locations of all transmitters FLIPPED
 	private int[]		rt_peak			= new int[0];		// maps active transmitter indices to context indices
 	private long		rt_pos;
 
@@ -300,6 +313,10 @@ implements  VirtualSurface, TimelineListener,
 		this.root   = root;
 		this.doc	= doc;
 		transport   = doc.getTransport();
+		
+		timelinePos		= doc.timeline.getPosition();
+		timelineRate	= doc.timeline.getRate();
+		timelineLen		= doc.timeline.getLength();
 		
 		setPreferredSize( new Dimension( 480, 640 ));
 
@@ -421,7 +438,8 @@ implements  VirtualSurface, TimelineListener,
 			public void sessionCollectionChanged( SessionCollection.Event e )
 			{
 				if( rt_valid ) {
-					rt_valid = false;
+//					rt_valid = false;
+					createRealtime();
 // EEE
 //					transport.removeRealtimeConsumer( SurfacePane.this );
 //					transport.addRealtimeConsumer( SurfacePane.this );
@@ -489,6 +507,16 @@ implements  VirtualSurface, TimelineListener,
 						repaint();
 					}
 				}
+			}
+		});
+
+		playTimer = new Timer( 20 /* 33 */, new ActionListener() {
+			public void actionPerformed( ActionEvent e )
+			{
+				timelinePos = transport.getCurrentFrame();
+//				updatePositionAndRepaint();
+//				scroll.setPosition( timelinePos, 50, TimelineScroll.TYPE_TRANSPORT );
+				offhandTick();
 			}
 		});
 
@@ -754,8 +782,10 @@ implements  VirtualSurface, TimelineListener,
 		}
 		if( image != null ) g.drawImage( image, 0, 0, this );
 
-		g2.scale( diamH, -diamH );		// virtual space has dimension 1.0 x 1.0
-		g2.translate( 1.0, -1.0 );
+//		g2.scale( diamH, -diamH );		// virtual space has dimension 1.0 x 1.0
+//		g2.translate( 1.0, -1.0 );
+		g2.scale( diamH, diamH );		// virtual space has dimension 1.0 x 1.0
+		g2.translate( 1.0, 1.0 );
 		g2.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON );
 //		g2.setRenderingHint( RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC );
 //		g2.setRenderingHint( RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY );
@@ -776,6 +806,7 @@ implements  VirtualSurface, TimelineListener,
             }
 		}
 
+		g2.scale( 1.0, -1.0 );
 		// --- paint tool state ---
 		
 		if( activeTool != null ) activeTool.paintOnTop( g2 );
@@ -1362,6 +1393,56 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 		}
 	}
 
+	private void offhandTick()
+	{
+		if( !rt_valid ) return;
+
+		final SessionCollection	collTrns	= doc.getActiveTransmitters();
+		final int				numTrns 	= Math.min( rt_trnsLocX.length, collTrns.size() );
+		final long				pos			= Math.min( timelineLen - 1, timelinePos );
+		if( pos < 0 ) return;
+		
+		try {
+			for( int trnsIdx = 0; trnsIdx < numTrns; trnsIdx++ ) {
+				final Transmitter	trns	= (Transmitter) collTrns.get( trnsIdx );
+				final AudioTrail	at		= trns.getAudioTrail();
+				at.readFrames( trnsBuf, 0, new Span( pos, pos + 1 ));
+				rt_trnsLocX[ trnsIdx ]  = trnsBuf[ 0 ][ 0 ];
+				rt_trnsLocY[ trnsIdx ]  = -trnsBuf[ 1 ][ 0 ];
+			}
+		}
+		catch( IOException e1 ) {
+			e1.printStackTrace();
+		}
+
+		repaint();
+	}
+
+	private void createRealtime()
+	{
+		final List	collTrns;
+		final int	numTrns;
+		
+		rt_valid				= false;
+		collTrns				= doc.getActiveTransmitters().getAll();
+		numTrns					= collTrns.size();
+		if( rt_trnsNames.length != numTrns ) {
+			rt_trnsNames= new String[ numTrns ];
+			rt_trnsLocX = new float[ numTrns ];
+			rt_trnsLocY = new float[ numTrns ];
+//			rt_peak		= new int[ numTrns ];
+		}
+
+		for( int trnsIdx = 0; trnsIdx < numTrns; trnsIdx++ ) {
+			rt_trnsNames[ trnsIdx ]	= ((Transmitter) collTrns.get( trnsIdx )).getName();
+		}
+		rt_valid		= true;
+		
+		if( !doc.getTransport().isRunning() ) {
+			offhandTick();
+		}
+	}
+
 // ---------------- RealtimeConsumer interface ---------------- 
 
 	/**
@@ -1478,9 +1559,11 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
     public void startListening()
     {
 		doc.timeline.addTimelineListener( this );
-		rt_valid = false;
+		createRealtime();
+//		doc.getActiveReceivers()
 // EEE
 //		transport.addRealtimeConsumer( this );
+		transport.addTransportListener( this );
 
 		if( prefTrnsTraj ) {
 			updateTransmitterPath();
@@ -1492,8 +1575,10 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
     public void stopListening()
     {
 		doc.timeline.removeTimelineListener( this );
+		playTimer.stop();
 // EEE
 //		transport.removeRealtimeConsumer( this );
+		transport.removeTransportListener( this );
 		rt_valid = false;
     }
 
@@ -1527,14 +1612,46 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 		}
     }
     
-	public void timelinePositioned( TimelineEvent e ) {}
-//    {
-//        updateTransmitterShapes();
-//        repaint();
-//    }
+	public void timelinePositioned( TimelineEvent e )
+	{
+		if( !doc.getTransport().isRunning() ) {
+			timelinePos	= doc.timeline.getPosition();
+			offhandTick();
+		}
+//      updateTransmitterShapes();
+//      repaint();
+	}
 
-	public void timelineChanged( TimelineEvent e ) {}
+	public void timelineChanged( TimelineEvent e )
+	{
+		timelineRate	= doc.timeline.getRate();
+		timelineLen		= doc.timeline.getLength();
+//		playTimer.setDelay( Math.min( (int) (1000 / (vpScale * timelineRate * playRate)), 33 ));
+	}
+	
     public void timelineScrolled( TimelineEvent e ) {}
+
+ // ---------------- TransportListener interface ---------------- 
+
+	public void transportPlay( Transport t, long pos, double rate )
+	{
+		playRate = rate;
+//		playTimer.setDelay( Math.min( (int) (1000 / (vpScale * timelineRate * playRate)), 33 ));
+		playTimer.restart();
+	}
+	
+	public void transportStop( Transport t, long pos )
+	{
+		playTimer.stop();
+	}
+
+	public void transportPosition( Transport t, long pos, double rate ) { /* ignored */ }
+	public void transportReadjust( Transport t, long pos, double rate ) { /* ignored */ }
+
+	public void transportQuit( Transport t )
+	{
+		playTimer.stop();
+	}
 
 // ---------------- Shape information classes ---------------- 
 
@@ -2240,6 +2357,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 //					             						null, Session.DOOR_TIMETRNSMTE );
 					renderThread = new ProcessingThread( this, root,
 						AbstractApplication.getApplication().getResourceString( "toolWriteTransmitter" ));
+					renderThread.putClientArg( "blend", root.getBlending() );
 					renderThread.start();
 				}
 			}
@@ -2570,7 +2688,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 			List							collTransmitters;
 			PointInTime						pit, pit2;
 			boolean							success		= false;
-			BlendContext					bc			= root.getBlending();
+			final BlendContext				bc			= (BlendContext) context.getClientArg( "blend" );
 			AudioStake						as;
 			final float[][]					srcBuf		= bc == null ? null : new float[ 2 ][ 4096 ];
 

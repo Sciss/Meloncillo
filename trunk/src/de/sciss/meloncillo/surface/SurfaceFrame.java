@@ -119,7 +119,7 @@ implements ClipboardOwner, PreferenceChangeListener
 		final JPanel			sp		= new JPanel( new BorderLayout() );
 //		final VectorSpace		space	= VectorSpace.createLinSpace( 0.0, 1.0, 0.0, 1.0, null, null, null, null );	// XXX
 		final VectorSpace		space	= VectorSpace.createLinSpace( -1.0, 1.0, -1.0, 1.0, null, null, null, null );	// XXX
-		final SurfaceToolBar	stb		= new SurfaceToolBar( root );
+		final SurfaceToolBar	stb		= new SurfaceToolBar( doc );
 		final Application		app		= AbstractApplication.getApplication();
 		final JPanel			gp		= GUIUtil.createGradientPanel();
 

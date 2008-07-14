@@ -80,6 +80,7 @@ import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.edit.EditSetTimelineLength;
 import de.sciss.meloncillo.edit.TimelineVisualEdit;
+import de.sciss.meloncillo.gui.BlendingAction;
 import de.sciss.meloncillo.gui.MainFrame;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.MarkerTrail;
@@ -112,7 +113,9 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 
 	private	String		name;
 	private MapManager	map		= new MapManager( this, new HashMap() );
-	
+
+	private int								editMode		= EDIT_INSERT;
+
 	/**
 	 *	Denotes the path to this session or
 	 *	<code>null</code> if not yet saved
@@ -242,6 +245,8 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 	private final ActionSilence			actionSilence;
 	private final ActionTrim			actionTrim;
 	
+	private final BlendingAction			blending;
+
 	/**
 	 *  Creates a new Session. This should be invoked only once at
 	 *  the application startup. Subsequent session loading and clearing
@@ -294,6 +299,8 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 		
 		actionSilence		= new ActionSilence();
 		actionTrim			= new ActionTrim();
+
+		blending			= new BlendingAction( timeline, null );
 		
 		clear();
 	}
@@ -357,6 +364,21 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 		} else {
 			args[ 0 ]	= new Integer( 1 );
 		}
+	}
+
+	public BlendingAction getBlendingAction()
+	{
+		return blending;
+	}
+
+	public void setEditMode( int mode )
+	{
+		editMode = mode;
+	}
+	
+	public int getEditMode()
+	{
+		return editMode;
 	}
 
 	public SessionCollection getReceivers() { return receivers; }

@@ -32,10 +32,14 @@
 package de.sciss.meloncillo.surface;
 
 import java.awt.event.*;
+import java.util.prefs.Preferences;
+
 import javax.swing.*;
 
 import de.sciss.meloncillo.*;
 import de.sciss.meloncillo.gui.*;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.timeline.Timeline;
 import de.sciss.meloncillo.util.*;
 
 import de.sciss.app.*;
@@ -60,7 +64,7 @@ extends ToolBar
 	 *
 	 *	@param	root	Application root
 	 */
-	public SurfaceToolBar( Main root )
+	public SurfaceToolBar( Session doc )
 	{
 		super( ToolBar.HORIZONTAL );
 
@@ -112,11 +116,14 @@ extends ToolBar
   		this.addToggleButton( toggle, 0 );
         
 		this.addSeparator();
-		actionBlending  = new BlendingAction( AbstractApplication.getApplication().getUserPrefs().node( PrefsUtil.NODE_SHARED ));
-		toggle			= actionBlending.getButton();
-//		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 )));
-// EEE
-//        HelpGlassPane.setHelp( toggle, "ToolBlending" );	// EEE
-        this.addToggleButton( toggle, 1 );
+// XXX DESIGN FEHLER, BUTTON KANN NUR EINMAL ADDIERT WERDEN!!
+//		actionBlending  = doc.getBlendingAction();
+//		actionBlending = new BlendingAction( doc.timeline, null );
+//
+//		final AbstractButton button = actionBlending.getButton();
+////		root.menuFactory.addGlobalKeyCommand( new DoClickAction( toggle, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 )));
+//GUIUtil.createKeyAction( button, KeyStroke.getKeyStroke( KeyEvent.VK_CAPS_LOCK, 0 ));
+//		add( actionBlending.getComboBox() );
+//      this.addToggleButton( toggle, 1 );
 	}
 }

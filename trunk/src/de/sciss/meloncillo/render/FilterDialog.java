@@ -261,7 +261,7 @@ implements RenderConsumer
 													  null, null, "Filter" );
 //		consc.bs		= new BlendSpan[ source.numTrns ];
 		consc.as		= new AudioStake[ source.numTrns ];
-		consc.bc		= root.getBlending();
+		consc.bc		= root.getBlending();	// XXX THREAD XXX
 //		if( consc.bc != null ) consc.srcBuf = new float[ 2 ][ 4096 ];
 		context.setOption( KEY_CONSC, consc );
 
