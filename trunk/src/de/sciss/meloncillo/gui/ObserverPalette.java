@@ -299,6 +299,11 @@ implements	ParamField.Listener, TimelineListener, DynamicListening, DocumentList
 		return new Point2D.Float( 0.95f, 0.8f );
 	}
 
+	protected boolean alwaysPackSize()
+	{
+		return false;
+	}
+
 	public void dispose()
 	{
 		AbstractApplication.getApplication().removeComponent( Main.COMP_OBSERVER );

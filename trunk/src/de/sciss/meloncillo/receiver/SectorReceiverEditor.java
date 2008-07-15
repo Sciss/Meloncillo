@@ -91,14 +91,14 @@ extends TableLookupReceiverEditor
 		final double			sin			= Math.sin( angle );
 		final double			cos			= Math.cos( angle );
 		
-		shpLine.setLine( cp.getX() + innerRadius * cos, cp.getY() + innerRadius * sin,
-						 cp.getX() + outerRadius * cos, cp.getY() + outerRadius * sin );
+		shpLine.setLine( cp.getX() + innerRadius * cos, cp.getY() - innerRadius * sin,
+						 cp.getX() + outerRadius * cos, cp.getY() - outerRadius * sin );
 		return shpLine;
 	}
 
 	protected Shape getDistanceShape( double dist )
 	{
-		final Point2D	cp			= ((SectorReceiver) rcv).getCenterPoint();
+		final Point2D cp = ((SectorReceiver) rcv).getCenterPoint();
 
 		shpEllipse.setFrameFromCenter( cp.getX(), cp.getY(), cp.getX() + dist, cp.getY() + dist );
 //		shpEllipse.setFrame( cp.getX() - dist, cp.getY() - dist, 2 * dist, 2 * dist );

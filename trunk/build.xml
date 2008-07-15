@@ -12,7 +12,7 @@
 	<property name="resources.dir"	value="resources"/>
 	<property name="main-class"		value="de.sciss.meloncillo.Main"/>
 	<property name="lib.dir"		value="libraries"/>
-	<property name="libraries"		value="${lib.dir}/MRJAdapter.jar:${lib.dir}/NetUtil.jar:${lib.dir}/jatha.jar"/>
+	<property name="libraries"		value="${lib.dir}/MRJAdapter.jar:${lib.dir}/Normalizer.jar:${lib.dir}/NetUtil.jar:${lib.dir}/jatha.jar"/>
 	<property name="version"		value="0.75"/>
 	<property name="debug"			value="true"/>
 

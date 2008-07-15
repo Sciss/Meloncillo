@@ -32,10 +32,15 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.*;
-import java.awt.geom.*;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Area;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
-import de.sciss.meloncillo.util.*;
+import de.sciss.meloncillo.util.MapManager;
 import de.sciss.util.NumberSpace;
 
 /**
@@ -48,7 +53,7 @@ import de.sciss.util.NumberSpace;
  *	predecessor <code>SigmaReceiver</code>.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 15-Jul-08
  *
  *	@todo		cloning buggy (X, Y anchor points not independant copies??)
  */
@@ -169,7 +174,7 @@ extends TableLookupReceiver
 		anchorRadius	= (innerRadius + outerRadius) / 2;
 		anchorAngle		= angleStart + angleExtent / 2;
 		cx				= anchor.getX() - Math.cos( anchorAngle ) * anchorRadius;
-		cy				= anchor.getY() + Math.sin( anchorAngle ) * anchorRadius;
+		cy				= anchor.getY() - Math.sin( anchorAngle ) * anchorRadius; // !! -
 		distNorm		= distanceTable.length / (outerRadius - innerRadius);
 		rotNorm			= rotationTable.length / angleExtent;
 		minRadSqr		= innerRadius * innerRadius;
@@ -180,18 +185,22 @@ extends TableLookupReceiver
 		
 //System.err.println( "rotOff "+rotOff+"; rotNorm "+rotNorm+"; angleExtent "+angleExtent );
 
-//System.err.println( "angleStartDeg "+angleStartDeg+"; angleStart "+angleStart+"; anchorAngle "+anchorAngle+"; cx "+
-//	cx+"; cy "+cy );
+//System.err.println( "angleStartDeg "+angleStartDeg+"; angleStart "+angleStart+"; anchorAngle "+anchorAngle+"; cx "+ cx+"; cy "+cy );
 
-		outerArc.setArcByCenter( cx, cy, outerRadius, angleStartDeg, angleExtentDeg, Arc2D.PIE );
+//		outerArc.setArcByCenter( cx, cy, outerRadius, angleStartDeg, angleExtentDeg, Arc2D.PIE );
+		// XXX DON'T TOUCH, POISONOUS CODE
+		outerArc.setArcByCenter( cx, cy, outerRadius, 360 - (angleStartDeg + angleExtentDeg), angleExtentDeg, Arc2D.PIE );
 		outline.reset();
 		outline.add( new Area( outerArc ));
 		outline.subtract( new Area( new Ellipse2D.Double( cx - innerRadius, cy - innerRadius, innerRadius * 2, innerRadius * 2 )));
-		bounds			= outline.getBounds2D();
-		minx			= bounds.getMinX();
-		maxx			= bounds.getMaxX();
-		miny			= bounds.getMinY();
-		maxy			= bounds.getMaxY();
+		bounds	= outline.getBounds2D();
+
+//System.out.println( "bounds : " + bounds );	
+		
+		minx	= bounds.getMinX();
+		maxx	= bounds.getMaxX();
+		miny	= bounds.getMinY();
+		maxy	= bounds.getMaxY();
 		outline.transform( AffineTransform.getTranslateInstance( -anchor.getX(), -anchor.getY() ));
 	}
 
@@ -219,7 +228,8 @@ extends TableLookupReceiver
 
 		final double anchorAngle	= angleStart + angleExtent / 2;
 		final double cx				= anchor.getX() - Math.cos( anchorAngle ) * anchorRadius;
-		final double cy				= anchor.getY() + Math.sin( anchorAngle ) * anchorRadius;
+//		final double cy				= anchor.getY() + Math.sin( anchorAngle ) * anchorRadius;
+		final double cy				= anchor.getY() - Math.sin( anchorAngle ) * anchorRadius;
 
 		return new Point2D.Double( cx, cy );
 	}
@@ -272,7 +282,8 @@ extends TableLookupReceiver
 			}
 			dx		= x - cx;
 			dxs		= dx * dx;
-			dy		= cy - y;
+//			dy		= cy - y;
+			dy		= y - cy;
 			dys		= dy * dy;
 			ds		= dxs + dys;
 			if( (ds > maxRadSqr) || (ds < minRadSqr) ) {
@@ -292,6 +303,11 @@ extends TableLookupReceiver
 				distIdx2 = 0;
 				wdist    = 0.0;
 			}
+			
+//if( true ) {
+//	sense[ off ] = 1f;
+//	continue;
+//}
 
 			theta	= Math.atan2( dy, dx ) + rotOff;
 			if( theta > PI2 ) theta -= PI2;
@@ -300,6 +316,7 @@ extends TableLookupReceiver
 				continue;
 			}
 			theta	= (angleExtent - theta) * rotNorm;
+			
 //			theta	= ((Math.atan2( dy, dx ) + rotOff) * rotNorm);
 //System.err.println( "atan( "+dy+", "+dx+" ) = "+Math.atan2( dy, dx )+" --> theta = "+theta);
 //			if( theta < 0.0 ) theta += PI2;

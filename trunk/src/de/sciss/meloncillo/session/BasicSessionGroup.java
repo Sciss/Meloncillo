@@ -30,15 +30,21 @@
 
 package de.sciss.meloncillo.session;
 
-import java.io.*;
-import java.util.*;
-import org.w3c.dom.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import de.sciss.gui.PathField;
 import de.sciss.meloncillo.receiver.Receiver;
 import de.sciss.meloncillo.transmitter.Transmitter;
-import de.sciss.meloncillo.util.*;
+import de.sciss.meloncillo.util.MapManager;
 
-import de.sciss.gui.*;
 
 /**
  *  @author		Hanns Holger Rutz
@@ -173,7 +179,7 @@ implements SessionGroup
 		Session				doc			= (Session) options.get( Session.OPTIONS_KEY_SESSION );
 		SessionCollection	sc, sc2;
 		SessionObject		so;
-		ArrayList			soList		= new ArrayList();
+		List				soList		= new ArrayList();
 		int					i, j;
 
 		nl = node.getChildNodes();

@@ -132,7 +132,7 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener, TransportLi
 	 *	@param	root	Application root
 	 *	@param	doc		Session document
 	 */
-    public RealtimeTransport( Session doc )
+    public RealtimeTransport( Object NOTUSEDANYMORE, Session doc )
     {
         super( "Transport" );
         

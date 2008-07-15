@@ -289,7 +289,7 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 		final SessionCollectionView.Filter trnsFilter = new SessionCollectionView.Filter() {
 			public boolean select( SessionObject so )
 			{
-				System.out.println( "checking " + so + " -> " + (so instanceof Transmitter) );
+//				System.out.println( "checking " + so + " -> " + (so instanceof Transmitter) );
 				return( so instanceof Transmitter );
 			}
 		};

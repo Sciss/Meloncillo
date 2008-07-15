@@ -297,7 +297,7 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 	private void produce( Span blockSpan, boolean even, long patience )
 	{
 
-System.out.println( "produce: blockSpan = " + blockSpan + "; even = " + even + "; patience = " + patience );
+//System.out.println( "produce: blockSpan = " + blockSpan + "; even = " + even + "; patience = " + patience );
 
 		int trnsIdx, rcvIdx, offStart, offStop;
 		

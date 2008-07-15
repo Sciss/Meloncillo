@@ -31,10 +31,14 @@
 
 package de.sciss.meloncillo.receiver;
 
-import java.awt.*;
-import java.awt.geom.*;
+import java.awt.Shape;
+import java.awt.geom.Dimension2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
-import de.sciss.meloncillo.util.*;
+import de.sciss.meloncillo.util.Dimension2DDouble;
+import de.sciss.meloncillo.util.MapManager;
 import de.sciss.util.NumberSpace;
 
 /**
@@ -52,7 +56,7 @@ import de.sciss.util.NumberSpace;
  *  the receiver to the clipboard.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 15-Jul-08
  */
 public class SigmaReceiver
 extends TableLookupReceiver

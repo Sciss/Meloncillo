@@ -92,7 +92,7 @@ implements SessionCollection, EventManager.Processor
 							c.remove( i );	// we are allowed to modify c
 						}
 					}
-					System.out.println( " View (" + SessionCollectionView.this + ") : ACTION_ADDED " + c.size() );
+//					System.out.println( " View (" + SessionCollectionView.this + ") : ACTION_ADDED " + c.size() );
 					if( !c.isEmpty() ) {
 						collObjects.addAll( c );
 						dispatchCollectionChange( e.getSource(), c, e.getModificationType() );
@@ -107,7 +107,7 @@ implements SessionCollection, EventManager.Processor
 							c.remove( i );	// we are allowed to modify c
 						}
 					}
-					System.out.println( " View (" + SessionCollectionView.this + ") : ACTION_REMOVED " + c.size() );
+//					System.out.println( " View (" + SessionCollectionView.this + ") : ACTION_REMOVED " + c.size() );
 					if( !c.isEmpty() ) {
 						collObjects.removeAll( c );
 						dispatchCollectionChange( e.getSource(), c, e.getModificationType() );
@@ -273,7 +273,7 @@ implements SessionCollection, EventManager.Processor
 	 */
 	public void addListener( SessionCollection.Listener listener ) // , Set keySet, int mode )
 	{
-		System.out.println( " View (" + this + ") : addListener " + listener );
+//		System.out.println( " View (" + this + ") : addListener " + listener );
 		
 		if( !EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
 		
@@ -293,7 +293,7 @@ implements SessionCollection, EventManager.Processor
 	 */
 	public void removeListener( SessionCollection.Listener listener )
 	{
-		System.out.println( " View (" + this + ") : removeListener " + listener );
+//		System.out.println( " View (" + this + ") : removeListener " + listener );
 		
 		if( !EventQueue.isDispatchThread() ) throw new IllegalMonitorStateException();
 

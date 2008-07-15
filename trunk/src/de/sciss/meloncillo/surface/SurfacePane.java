@@ -854,8 +854,8 @@ implements  VirtualSurface, TimelineListener, TransportListener,
 				g2.drawImage( userImg, 0, 0, diam, diam, this );
 			}
 		}
-		g2.scale( diamH, diamH );		// virtual space has dimension 1.0 x 1.0
-		g2.translate( 1.0, 1.0 );
+		g2.scale( diamH, -diamH );		// virtual space has dimension 1.0 x 1.0
+		g2.translate( 1.0, -1.0 );
 		g2.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON );
 //		g2.setRenderingHint( RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC );
 //		g2.setRenderingHint( RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY );
@@ -866,7 +866,7 @@ implements  VirtualSurface, TimelineListener, TransportListener,
 		for( int i = 0; i < collReceiverShapes.size(); i++ ) {
 			rcvShp = (ReceiverShape) collReceiverShapes.get( i );
 			if( rcvShp.selected ) {
-				g2.translate( rcvShp.loc.getX(), -rcvShp.loc.getY() );
+				g2.translate( rcvShp.loc.getX(), rcvShp.loc.getY() );
 				g2.setColor( colrSelection );
 				g2.fill( rcvShp.outline );
 				g2.setTransform( trnsRecent );  // undo translation
@@ -877,11 +877,14 @@ implements  VirtualSurface, TimelineListener, TransportListener,
 		for( int i = 0; i < collReceiverShapes.size(); i++ ) {
 			rcvShp = (ReceiverShape) collReceiverShapes.get( i );
 			g2.setColor( rcvShp.selected ? colrTextSelection : colrReceiver );
-			g2.translate( rcvShp.loc.getX(), -rcvShp.loc.getY() );
+			g2.translate( rcvShp.loc.getX(), rcvShp.loc.getY() );
 			g2.draw( rcvShp.outline );
 			g2.fill( shpCrossHair );
 			g2.scale( 5.0e-3f, 5.0e-3f );   // the scaling is necessary because we cannot get font size < 1
-			if( rcvShp.name != null ) g2.drawString( rcvShp.name, 1.0f, -1.0f );
+			if( rcvShp.name != null ) {
+				g2.scale( 1.0, -1.0 );
+				g2.drawString( rcvShp.name, 1.0f, 1.0f );
+			}
 			g2.setTransform( trnsRecent );  // undo translation and scaling
 		}
 
