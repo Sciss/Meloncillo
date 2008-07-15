@@ -702,7 +702,7 @@ implements  VirtualSurface, TimelineListener, TransportListener,
 		Class			c;
 
 		try {
-			doc.bird.waitExclusive( Session.DOOR_RCV | Session.DOOR_GRP );
+//			doc.bird.waitExclusive( Session.DOOR_RCV | Session.DOOR_GRP );
 			// we get a list of known receivers from the main class
 			// and create a new instance of the first receiver class
 			// in the list; in the future when there are more types
@@ -753,9 +753,9 @@ implements  VirtualSurface, TimelineListener, TransportListener,
 		catch( ClassNotFoundException e4 ) {
 			System.err.println( e4.getLocalizedMessage() );
 		}
-		finally {
-			doc.bird.releaseExclusive( Session.DOOR_RCV | Session.DOOR_GRP );
-		}
+//		finally {
+//			doc.bird.releaseExclusive( Session.DOOR_RCV | Session.DOOR_GRP );
+//		}
 		
 		return rcv;
 	}

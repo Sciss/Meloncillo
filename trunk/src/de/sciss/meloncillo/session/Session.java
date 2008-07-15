@@ -303,18 +303,18 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 		activeReceivers		= new SessionCollectionUnionView( receivers, SessionCollectionUnionView.RECEIVERS, true, selectedGroups );
 		activeTransmitters	= new SessionCollectionUnionView( transmitters, SessionCollectionUnionView.TRANSMITTERS, true, selectedGroups );
 		
-activeTransmitters.addListener( new SessionCollection.Listener() {
-	public void sessionCollectionChanged( SessionCollection.Event e ) {
-		System.out.println( e.getModificationType() == SessionCollection.Event.ACTION_ADDED ? "ADDED:" : "REMOVED:" );
-		final List coll = e.getCollection();
-		for( int i = 0; i < coll.size(); i++ ) {
-			System.out.println( "  #" + (i+1) + " -> " + coll.get( i ));
-		}
-	}
-	
-	public void sessionObjectChanged( SessionCollection.Event e ) {}
-	public void sessionObjectMapChanged( SessionCollection.Event e ) {}
-});
+//activeTransmitters.addListener( new SessionCollection.Listener() {
+//	public void sessionCollectionChanged( SessionCollection.Event e ) {
+//		System.out.println( e.getModificationType() == SessionCollection.Event.ACTION_ADDED ? "ADDED:" : "REMOVED:" );
+//		final List coll = e.getCollection();
+//		for( int i = 0; i < coll.size(); i++ ) {
+//			System.out.println( "  #" + (i+1) + " -> " + coll.get( i ));
+//		}
+//	}
+//	
+//	public void sessionObjectChanged( SessionCollection.Event e ) {}
+//	public void sessionObjectMapChanged( SessionCollection.Event e ) {}
+//});
 
 		actionLoad			= new ActionLoad();
 		actionCut			= new ActionCut();

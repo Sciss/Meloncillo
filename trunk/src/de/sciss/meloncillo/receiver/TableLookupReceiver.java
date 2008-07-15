@@ -193,6 +193,26 @@ implements Transferable
 	{
 		return rotationTable;
 	}
+	
+	// SwingOSC support
+	public void setDistanceTable( Object[] distanceTable )
+	{
+		final float[] f = new float[ distanceTable.length ];
+		for( int i = 0; i < f.length; i++ ) {
+			f[ i ] = ((Number) distanceTable[ i ]).floatValue();
+		}
+		setDistanceTable( f );
+	}
+
+	// SwingOSC support
+	public void setRotationTable( Object[] rotationTable )
+	{
+		final float[] f = new float[ rotationTable.length ];
+		for( int i = 0; i < f.length; i++ ) {
+			f[ i ] = ((Number) rotationTable[ i ]).floatValue();
+		}
+		setRotationTable( f );
+	}
 
 	/**
 	 *  Sets the table describing the

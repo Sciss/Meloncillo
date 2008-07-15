@@ -326,6 +326,12 @@ implements PreferenceChangeListener, TimelineListener, ProgressComponent
 		"Dark is the light / Alabaster is white",
 		"RIBBLE RIBBLE RIBBLE RIBBLE RIBBLE RIBBLE RIBBLE RIBBLE  pipimlico"
 	};
+	
+	// no arg entry point for SwingOSC!
+	public static void main()
+	{
+		main( new String[ 0 ]);
+	}
 
 	/**
 	 *  java VM starting method. does some

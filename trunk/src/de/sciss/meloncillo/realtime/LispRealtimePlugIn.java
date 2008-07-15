@@ -448,7 +448,14 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener,
 				success = true;
 //			} // synchronized( this )
 		}
-		finally {
+//		finally {
+//			if( !success ) {
+//				realtimeDisable( context, transport );
+//			}
+//		}
+		catch( Exception e1) {
+			System.out.println( "In LispRealtimePlugIn : realtimeEnable :" );
+			e1.printStackTrace();
 			if( !success ) {
 				realtimeDisable( context, transport );
 			}
@@ -501,9 +508,14 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener,
 				success = executeLisp( "CLEANUP" );
 //			} // synchronized( this )
 		}
-		finally {
-			plugInCleanUp( context );
+//		finally {
+//			plugInCleanUp( context );
+//		}
+		catch( Exception e1 ) {
+			System.out.println( "In LispRealtimePlugIn : realtimeDisable :" );
+			e1.printStackTrace();
 		}
+		plugInCleanUp( context );
 		
 		return success;
 	}

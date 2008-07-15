@@ -1200,7 +1200,7 @@ dt = null;
 		newNumWaveTracks	= doc.getActiveTransmitters().size(); // EEE doc.getDisplayDescr().channels;
 		oldNumWaveTracks	= collChannelHeaders.size();
 		
-		System.out.println( "oldNumWaveTracks = " + oldNumWaveTracks + "; newNumWaveTracks = " + newNumWaveTracks );
+//		System.out.println( "oldNumWaveTracks = " + oldNumWaveTracks + "; newNumWaveTracks = " + newNumWaveTracks );
 
 //		meters				= channelMeters;
 //		collChannelMeters	= new ArrayList( meters.length );
@@ -1214,7 +1214,7 @@ dt = null;
 			t			= chanHead.getTrack();
 
 			if( !doc.getActiveTransmitters().contains( t )) {
-System.out.println( "removing " + t );
+//System.out.println( "removing " + t );
 				chanHead	= (TrackRowHeader) collChannelHeaders.remove( ch );
 //				chanMeter	= (PeakMeter) collChannelMeters.remove( ch );
 				chanRuler	= (Axis) collChannelRulers.remove( ch );
@@ -1231,7 +1231,7 @@ System.out.println( "removing " + t );
 		}
 		// next look for newly added transmitters and create editors for them
 
-		System.out.println( "now oldNumWaveTracks = " + oldNumWaveTracks + "; collChannelHeaders.size = " + collChannelHeaders.size() );
+//		System.out.println( "now oldNumWaveTracks = " + oldNumWaveTracks + "; collChannelHeaders.size = " + collChannelHeaders.size() );
 		
 // EEE
 newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
