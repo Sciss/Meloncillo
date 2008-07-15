@@ -63,7 +63,7 @@ extends PlugInContext
 	 */
 	public RealtimeContext( PlugInHost host, List collReceivers,
 							List collTransmitters, Span time,
-							int sourceRate )
+							double sourceRate )
 	{
 		super( host, collReceivers, collTransmitters, time, sourceRate );
 	}

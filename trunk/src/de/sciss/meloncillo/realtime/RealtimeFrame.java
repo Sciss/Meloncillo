@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
@@ -50,10 +51,14 @@ import javax.swing.JToggleButton;
 import de.sciss.app.AbstractApplication;
 import de.sciss.gui.AbstractWindowHandler;
 import de.sciss.gui.GUIUtil;
+import de.sciss.gui.ProgressComponent;
+import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.gui.GraphicsUtil;
 import de.sciss.meloncillo.plugin.AbstractPlugInFrame;
+import de.sciss.meloncillo.plugin.PlugInHost;
 import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  Analogon to the AbstractRenderDialog,
@@ -61,13 +66,14 @@ import de.sciss.meloncillo.session.Session;
  *  of BounceDialog.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 15-Jul-08
  *
  *	@todo	before hibernation, focus should be pulled by some component
  */
 public class RealtimeFrame
 extends AbstractPlugInFrame
 // implements TransportListener
+implements PlugInHost
 {
 	private static final List			collProducerTypes   = new ArrayList();
 	private final TransportPalette		transportPalette;
@@ -79,7 +85,9 @@ extends AbstractPlugInFrame
 	private RealtimeContext				context				= null;
 
 	private boolean realtimeRunning = false;
-
+	
+//	private final RealtimeTransport		rt_transport;
+	
 	public RealtimeFrame( Main root, Session doc )
 	{
 		super( root, doc, AbstractApplication.getApplication().getResourceString( "frameRealtime" ), 0 );
@@ -98,7 +106,8 @@ extends AbstractPlugInFrame
 		// listeners
 //		transport.addTransportListener( this );
 //		HelpGlassPane.setHelp( this.getRootPane(), "RealtimeDialog" );	// EEE
-		
+//		rt_transport	= new RealtimeTransport( doc );
+
 		init();
 		AbstractApplication.getApplication().addComponent( Main.COMP_REALTIME, this );
 	}
@@ -117,7 +126,7 @@ extends AbstractPlugInFrame
 
 	protected void checkReContext()
 	{
-		if( context != null && !isRealtimeContextValid( context )) {
+		if( (context != null) && !isRealtimeContextValid( context )) {
 			boolean success = false;
 			try {
 				success = reContext();
@@ -133,8 +142,7 @@ extends AbstractPlugInFrame
 		JComponent	view;
 
 		context = createRealtimeContext();
-//System.err.println( "reContext(). context = "+context+"; plugIn = "+plugIn );
-		if( context != null && plugIn != null ) {
+		if( (context != null) && (plugIn != null) ) {
 			view	= plugIn.getSettingsView( context );
 			if( view != null ) AbstractWindowHandler.setDeepFont( view );
 			ggSettingsPane.setViewportView( view );
@@ -148,9 +156,33 @@ extends AbstractPlugInFrame
 
 	private RealtimeContext createRealtimeContext()
 	{
-		// EEE XXX
-		return null;
-//		return transport.getContext();
+//		return rt_transport.getContext();
+		final RealtimeContext rt_context =
+			new RealtimeContext( this, doc.getReceivers().getAll(),
+			                     doc.getTransmitters().getAll(),
+			                     new Span( 0, doc.timeline.getLength() ),
+			                     doc.timeline.getRate() );
+		rt_context.setSourceBlockSize( calcSenseBufSize() );
+		return rt_context;
+	}
+	
+	private int calcSenseBufSize()
+	{
+		int optimum, above, below;
+		final Preferences plugInPrefs = AbstractApplication.getApplication()
+			.getUserPrefs().node( PrefsUtil.NODE_PLUGINS );
+
+		optimum = Math.max( 16, (int) (((double) plugInPrefs.getInt( PrefsUtil.KEY_RTSENSEBUFSIZE, 0 )
+										/ 1000.0) * doc.timeline.getRate() + 0.5) );
+		// muss 2er potenz sein
+		for( above = 2; above < optimum; above <<= 1 ) ;
+		below	= above >> 1;
+	
+		if( (double) above / optimum <= (double) optimum / below ) {
+			return above;
+		} else {
+			return below;
+		}
 	}
 
 	private boolean isRealtimeContextValid( RealtimeContext context )
@@ -262,24 +294,18 @@ extends AbstractPlugInFrame
 		return success;
 	}
 
-// ---------------- TransportListener interface ---------------- 
+// ---------------- PlugInHost interface ---------------- 
 
-/*
-	public void transportStop( long pos )
+	public boolean isRunning()
 	{
+		return realtimeRunning;
 	}
 	
-	public void transportPosition( long pos )
+	public void showMessage( int type, String text )
 	{
+		((ProgressComponent) AbstractApplication.getApplication().getComponent( Main.COMP_MAIN )).showMessage( type, text );
 	}
 	
-	public void transportPlay( long pos )
-	{
-	}
-	
-	public void transportQuit() {}
-*/
-
 // ---------------- actions ---------------- 
 
 	private class actionRealtimeClass extends AbstractAction

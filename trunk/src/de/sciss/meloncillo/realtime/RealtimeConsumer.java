@@ -103,7 +103,7 @@ public interface RealtimeConsumer
 	 *						thread. Any non-thread-safe swing methods should thus be deferred.
 	 */
 	public void realtimeTick( RealtimeContext context, RealtimeProducer.Source source, long currentPos );
-
+	
 	/**
 	 *  Invoked by the RealtimeHost, when a timeline movement is made
 	 *  manually by dragging the timeline and transport is stopped.

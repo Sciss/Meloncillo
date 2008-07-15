@@ -31,6 +31,7 @@
 
 package de.sciss.meloncillo.realtime;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,13 +63,12 @@ import de.sciss.meloncillo.transmitter.Transmitter;
  *	method is called.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 20-Jun-08
+ *  @version	0.75, 15-Jul-08
  *
  *	@see	Transport
  *	@see	RealtimeProducer#RealtimeProducer( Main, Session, RealtimeHost )
  */
 public class RealtimeProducer
-implements LaterInvocationManager.Listener
 {
 	/**
 	 *	Request type: stream data generation
@@ -97,7 +97,6 @@ implements LaterInvocationManager.Listener
 	 */
 	public RealtimeProducer.Source source;
 	
-	private final LaterInvocationManager lim	= new LaterInvocationManager( this );
 	private final List	collInfos			= new ArrayList();  // synced because always in event thread
 	private final List	collReplacements	= new ArrayList();  // synced because always in event thread
 	
@@ -124,9 +123,9 @@ implements LaterInvocationManager.Listener
 	/**
 	 *	Requests are fulfilled here
 	 */
-	public void laterInvocation( Object o )
+	public void process( Request r )
 	{
-		Request r			= (Request) o;
+//		Request r			= (Request) o;
 		long	now			= System.currentTimeMillis();
 		long	patience	= (now - r.deadline) >> 1;
 		
@@ -171,7 +170,7 @@ implements LaterInvocationManager.Listener
 			break;
 		}
 		
-		host.notifyConsumed( r );
+		if( host != null ) host.notifyConsumed( r );
 	}
 	
 	/**
@@ -297,7 +296,9 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 	
 	private void produce( Span blockSpan, boolean even, long patience )
 	{
-/* EEE
+
+System.out.println( "produce: blockSpan = " + blockSpan + "; even = " + even + "; patience = " + patience );
+
 		int trnsIdx, rcvIdx, offStart, offStop;
 		
 		if( even ) {
@@ -310,18 +311,20 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 			source.secondHalf	= blockSpan;
 		}
 		
-		if( !doc.bird.attemptShared( source.doors, patience )) {	// XXX MTE can't be shared
-			System.err.println( "busy!" );
-			return;
-		}
+//		if( !doc.bird.attemptShared( source.doors, patience )) {	// XXX MTE can't be shared
+//			System.err.println( "busy!" );
+//			return;
+//		}
 		try {
 			for( trnsIdx = 0; trnsIdx < source.numTrns; trnsIdx++ ) {
 				if( !source.trnsRequest[ trnsIdx ]) continue;
 				
 				// --- read transmitter trajectory data ---
 				if( source.trajRplc[ trnsIdx ] == -1 ) {
-					source.transmitters[ trnsIdx ].getAudioTrail().read(
-						blockSpan, source.trajBlockBuf[ trnsIdx ], offStart );
+//					source.transmitters[ trnsIdx ].getAudioTrail().read(
+//					                            						blockSpan, source.trajBlockBuf[ trnsIdx ], offStart );
+					source.transmitters[ trnsIdx ].getAudioTrail().readFrames(
+						source.trajBlockBuf[ trnsIdx ], offStart, blockSpan );
 				} else {
 					TrajectoryReplacement	tr;
 					long					truncStart, truncStop, delta;
@@ -332,22 +335,29 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 					truncStop	= Math.min( blockSpan.getStop(), tr.span.getStop() );
 					
 					if( truncStart >= truncStop ) {	// no intersection
-						source.transmitters[ trnsIdx ].getAudioTrail().read(
-							blockSpan, source.trajBlockBuf[ trnsIdx ], offStart );
+//						source.transmitters[ trnsIdx ].getAudioTrail().read(
+//						                        							blockSpan, source.trajBlockBuf[ trnsIdx ], offStart );
+						source.transmitters[ trnsIdx ].getAudioTrail().readFrames(
+							source.trajBlockBuf[ trnsIdx ], offStart, blockSpan );
 					} else {						// ok, we have to split it up
 						delta = truncStart - blockSpan.getStart();
 						if( delta > 0 ) {	// beginning not replaced
 							subSpan = new Span( blockSpan.getStart(), truncStart );
-							source.transmitters[ trnsIdx ].getAudioTrail().read(
-								subSpan, source.trajBlockBuf[ trnsIdx ], offStart );
+//							source.transmitters[ trnsIdx ].getAudioTrail().read(
+//							                    								subSpan, source.trajBlockBuf[ trnsIdx ], offStart );
+							source.transmitters[ trnsIdx ].getAudioTrail().readFrames(
+								source.trajBlockBuf[ trnsIdx ], offStart, subSpan );
 						}
 						subSpan = new Span( truncStart, truncStop );
 						tr.tg.read( subSpan, source.trajBlockBuf[ trnsIdx ], (int) (offStart + delta) );
 						delta = blockSpan.getStop() - truncStop;
 						if( delta > 0 ) {
 							subSpan = new Span( truncStop, blockSpan.getStop() );
-							source.transmitters[ trnsIdx ].getAudioTrail().read( subSpan,
-								source.trajBlockBuf[ trnsIdx ], (int) (offStart + truncStop - blockSpan.getStart()) );
+//							source.transmitters[ trnsIdx ].getAudioTrail().read( subSpan,
+//							                     								source.trajBlockBuf[ trnsIdx ], (int) (offStart + truncStop - blockSpan.getStart()) );
+							source.transmitters[ trnsIdx ].getAudioTrail().readFrames(
+								source.trajBlockBuf[ trnsIdx ], (int) (offStart + truncStop - blockSpan.getStart()),
+								subSpan );
 						}
 					}
 				}
@@ -365,10 +375,9 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 		catch( IOException e1 ) {
 			System.err.println( e1 );
 		}
-		finally {
-			doc.bird.releaseShared( source.doors );
-		}
-*/
+//		finally {
+//			doc.bird.releaseShared( source.doors );
+//		}
 	}
 	
 	/**
@@ -393,7 +402,8 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 		r.blockSpan = blockSpan;
 		r.even		= even;
 		
-		lim.queue( r );
+//		lim.queue( r );
+		process( r );
 	}
 
 	/**
@@ -490,7 +500,8 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 		Request r   = new Request( TYPE_ADDCONFIG );
 		r.requests	= new ArrayList( 1 );
 		r.requests.add( request );
-		lim.queue( r );
+//		lim.queue( r );
+		process( r );
 	}
 
 	/**
@@ -505,21 +516,24 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 	{
 		Request r   = new Request( TYPE_ADDCONFIG );
 		r.requests	= requests;
-		lim.queue( r );
+//		lim.queue( r );
+		process( r );
 	}
 
 	public void requestAddTrajectoryReplacement( TrajectoryReplacement tr )
 	{
 		Request r   = new Request( TYPE_ADDREPLACEMENT );
 		r.obj		= tr;
-		lim.queue( r );
+//		lim.queue( r );
+		process( r );
 	}
 
 	public void requestRemoveTrajectoryReplacement( TrajectoryReplacement tr )
 	{
 		Request r   = new Request( TYPE_REMOVEREPLACEMENT );
 		r.obj		= tr;
-		lim.queue( r );
+//		lim.queue( r );
+		process( r );
 	}
 	
 	/**
@@ -551,7 +565,8 @@ trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 		Request r   = new Request( TYPE_REMOVECONFIG );
 		r.requests	= new ArrayList( 1 );
 		r.requests.add( request );
-		lim.queue( r );
+//		lim.queue( r );
+		process( r );
 	}
 
 	/**

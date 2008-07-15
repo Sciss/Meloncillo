@@ -46,7 +46,10 @@ import org.jatha.dynatype.LispNumber;
 import org.jatha.dynatype.LispValue;
 
 import de.sciss.app.AbstractApplication;
+import de.sciss.app.BasicEvent;
+import de.sciss.app.EventManager;
 import de.sciss.io.IOUtil;
+import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.lisp.AdvancedJatha;
 import de.sciss.meloncillo.plugin.LispPlugIn;
@@ -79,7 +82,8 @@ import de.sciss.net.OSCReceiver;
  */
 public class LispRealtimePlugIn
 extends LispPlugIn
-implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
+implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener,
+		   EventManager.Processor
 {
 	private RealtimeInfo	rt_info		= null;
 	private boolean			isPlaying   = false;
@@ -91,6 +95,13 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	private static final int BT_CONST		= 2;
 	private static final int BT_VAR			= 3;
 	private static final int BT_VAR_BUFOFF	= 0;
+	
+	private static final boolean	VERBOSEOSC	= false;
+	
+	private final EventManager	elm = new EventManager( this );
+	
+	private RealtimeProducer		rt_producer = null;
+	private RealtimeConsumerRequest	rt_request	= null;
 	
 	/**
 	 *	Empty constructor called 
@@ -107,6 +118,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	{
 		super.init( doc );
 		tp = (TransportPalette) AbstractApplication.getApplication().getComponent( Main.COMP_TRANSPORT );
+		rt_producer = new RealtimeProducer( doc, null );
 	}
 	
 	/**
@@ -297,7 +309,9 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 		boolean				success		= false;
 
 		try {
-			synchronized( this ) {
+//			synchronized( this ) {
+			 	rt_producer.changeContext( context );
+			
 				rt_info					= new RealtimeInfo( this, context );
 				rt_info.sourceRate		= context.getSourceRate();
 				rt_info.senseBufSizeH	= context.getSourceBlockSize() >> 1;
@@ -318,7 +332,8 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 //				rt_info.trigDur			= (double) rt_info.streamSenseBufSize / senseRate;
 				rt_info.streamBufStart	= new long[] { -1, -1, -1 };
 				rt_info.streamBufCreation= new long[3];
-				rt_info.bufSendThread   = new BufferSenderThread();
+// BBB
+//				rt_info.bufSendThread   = new BufferSenderThread();
 				prefsHash.setf_gethash( jatha.makeString( "SENSERATE" ), jatha.makeReal( senseRate ));
 				prefsHash.setf_gethash( jatha.makeString( "SENSEBUFSIZE" ),
 										jatha.makeInteger( rt_info.streamSenseBufSize << 1 ));
@@ -419,14 +434,19 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 				}
 // EEE
 //				transport.addRealtimeConsumer( this );
+				rt_request = createRequest( context );
+				final RealtimeConsumerRequest request = rt_request;
+				rt_producer.requestAddConsumerRequest( request );
+
 				transport.addTransportListener( this );
-				rt_info.bufSendThread.isRunning = true;
-				rt_info.bufSendThread.start();
+// BBB
+//				rt_info.bufSendThread.isRunning = true;
+//				rt_info.bufSendThread.start();
 				if( wasRunning ) {
 					transport.play( 1.0 );
 				}
 				success = true;
-			} // synchronized( this )
+//			} // synchronized( this )
 		}
 		finally {
 			if( !success ) {
@@ -457,16 +477,21 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 		boolean success = false;
 	
 		try {
-			synchronized( this ) {
+//			synchronized( this ) {
 				transport.removeTransportListener( this );
 // EEE
 //				transport.removeRealtimeConsumer( this );
+				if( rt_request != null ) {
+					rt_producer.requestRemoveConsumerRequest( rt_request );
+					rt_request = null;
+				}
 				if( isPlaying ) {
 					transportStop( transport, 0 );
 				}
 				if( rt_info != null ) {
-					rt_info.bufSendThread.isRunning = false;
-					rt_info.bufSendThread.interrupt();
+// BBB
+//					rt_info.bufSendThread.isRunning = false;
+//					rt_info.bufSendThread.interrupt();
 					if( rt_info.syncOSC != null ) rt_info.syncOSC.removeOSCListener( this );
 					rt_info.syncOSC			= null;
 					rt_info.streamSenseBuf  = null;
@@ -474,7 +499,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 					rt_info					= null;
 				}
 				success = executeLisp( "CLEANUP" );
-			} // synchronized( this )
+//			} // synchronized( this )
 		}
 		finally {
 			plugInCleanUp( context );
@@ -494,21 +519,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	 */
 	public void messageReceived( OSCMessage msg, SocketAddress sender, long time )
 	{
-//System.err.println( "got OSC: " + msg.getName() );
-        if( msg.getName().equals( "/tr" ) && msg.getArgCount() >= 3 ) {
-			Object o = msg.getArg( 2 );
-			if( o instanceof Number ) {
-				RealtimeInfo	myInfo		= rt_info;
-				int				myTrigger   = ((Number) o).intValue();
-
-				if( myInfo == null ) return;
-				
-//				remoteFrame = myInfo.startFrame + myTrigger * myInfo.senseBufSizeH;
-
-				myInfo.trigToServe  = myTrigger;
-//System.err.println( " tr: "+myTrigger+ " = "+remoteFrame );
-			}
-		}
+		elm.dispatchEvent( new OSCEvent( sender, 0, time, msg ));
 	}
 
 // ---------------- RealtimeConsumer interface ---------------- 
@@ -559,19 +570,20 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 			// check if we can serve the request
 			for( i = 0; i < 3; i++ ) {
 				if( myInfo.streamBufStart[ i ] == remoteFrame ) {
-					synchronized( myInfo.bufSendThread ) {
-						if( myInfo.bufSendThread.bufferToSend != -1 ) {
-							try {
-								myInfo.bufSendThread.wait();	// wait for the bufSendThread to be finished
-							}
-							catch( InterruptedException e1 ) {}
-						}
-						myInfo.bufSendThread.even			= (myTrigger & 1) == 0;
-						myInfo.bufSendThread.bufferToSend   = i;
-						myInfo.bufSendThread.notifyAll();
-						myInfo.trigServed = myTrigger;
-						return;
-					}
+// BBB
+//					synchronized( myInfo.bufSendThread ) {
+//						if( myInfo.bufSendThread.bufferToSend != -1 ) {
+//							try {
+//								myInfo.bufSendThread.wait();	// wait for the bufSendThread to be finished
+//							}
+//							catch( InterruptedException e1 ) {}
+//						}
+//						myInfo.bufSendThread.even			= (myTrigger & 1) == 0;
+//						myInfo.bufSendThread.bufferToSend   = i;
+//						myInfo.bufSendThread.notifyAll();
+//						myInfo.trigServed = myTrigger;
+//						return;
+//					}
 				}
 			}
 		}
@@ -586,7 +598,8 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	 */
 	public void realtimeBlock( RealtimeContext context, RealtimeProducer.Source source, boolean even )
 	{
-//		if( !isPlaying || rt_info == null ) return;
+System.out.println( "lisp realtimeBlock : even = " + even + "; span = " + (even ? source.firstHalf : source.secondHalf) );
+		
 		RealtimeInfo myInfo = rt_info;
 
 		if( myInfo == null ) return;
@@ -643,7 +656,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	 */
 	public void transportStop( Transport t, long pos )
 	{
-		synchronized( this ) {
+//		synchronized( this ) {
             isPlaying = false;
 			if( rt_info != null && rt_info.syncOSC != null ) {
                 try {
@@ -659,7 +672,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 			catch( IOException e2 ) {
 				System.err.println( e2.getLocalizedMessage() );
 			}
-		} // synchronized( this )
+//		} // synchronized( this )
 	}
 	
 	// syncs on 'this'
@@ -670,7 +683,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	{
 		boolean success = false;
 
-		synchronized( this ) {
+//		synchronized( this ) {
 			try {
 				success				= executeLisp( "POSITION", lispPosition( pos ));
 				rt_info.startFrame  = pos;
@@ -682,7 +695,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 			finally {
 				if( !success ) transportStop( t, pos );
 			}
-		} // synchronized( this )
+//		} // synchronized( this )
 	}
 
 	public void transportReadjust( Transport t, long pos, double rate )
@@ -702,7 +715,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 	{
 		boolean success = false;
 		
-		synchronized( this ) {
+//		synchronized( this ) {
 			if( rt_info == null ) return;
 			try {
 				success				= executeLisp( "PLAY", lispPosition( pos ));
@@ -719,7 +732,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 			finally {
 				if( !success ) transportStop( t, pos );
 			}
-		} // synchronized( this )
+//		} // synchronized( this )
 	}
 	
 	public void transportQuit( Transport t ) { /* ignore */ }
@@ -730,76 +743,188 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 		return( jatha.makeList( jatha.makeReal( (double) pos / rt_info.sourceRate )));
 	}
 
-// -------- internal classes --------
-
-	private class BufferSenderThread
-	extends Thread
-	{
-		private boolean isRunning;
-		private int		bufferToSend	= -1;
-		private boolean even;
+// -------- EventManager.Processor --------
 	
-		private BufferSenderThread()
-		{
-			super( "BufferSender" );
-			setDaemon( true );
+	public void processEvent( BasicEvent e )
+	{
+		final OSCMessage msg = ((OSCEvent) e).msg;
+		if( VERBOSEOSC ) System.err.println( "got OSC: " + msg.getName() );
+        if( !(msg.getName().equals( "/tr" ) && (msg.getArgCount() >= 3)) ) return;
+		if( rt_info == null ) return;
+
+		final int		myTrigger	= ((Number) msg.getArg( 2 )).intValue();
+		final long		remoteFrame = rt_info.startFrame + myTrigger * rt_info.senseBufSizeH;
+		final boolean	even		= (myTrigger & 1) == 0;
+		
+		rt_info.trigToServe  = myTrigger;
+		if( VERBOSEOSC ) {
+			System.err.println( " tr: "+myTrigger+ " = "+remoteFrame );
 		}
 		
-		public void run()
-		{
-			// copying the reference is more performative and
-			// equally safe compared to synchronization
-			RealtimeInfo myInfo  = rt_info;
-			if( myInfo == null ) return;
-			
-			int		trnsIdx, rcvIdx, myBufToSend;
-			boolean myEven;
+		rt_producer.produceNow( new Span( remoteFrame, remoteFrame + rt_info.senseBufSizeH ), even );
+//		rt_producer.produceNow( new Span( rt_pos + rt_producer.source.bufSizeH,
+//										  rt_pos + rt_producer.source.bufSize ),
+//									   (frameCount & rt_producer.source.bufSizeH) != 0 );
 
-			synchronized( this ) {
-				myEven		= even;
-				myBufToSend = bufferToSend;
-			}
-						
-			try {
-				while( isRunning ) {
-					if( myBufToSend >= 0 ) {
-						// ok go and process the buffer templates
-						try {
-							for( trnsIdx = 0; trnsIdx < myInfo.numTrns; trnsIdx++ ) {
-								if( myInfo.trajRequest[ trnsIdx ]) {
-									processBufferTemplate( myInfo.btTrajTargets[ trnsIdx ],
-														   myInfo.streamTrajBuf[ trnsIdx ][ myBufToSend ],
-														   myEven ? 0 : myInfo.streamTrajBufSize,
-														   myInfo.streamTrajBufSize );
-								}
-								for( rcvIdx = 0; rcvIdx < myInfo.numRcv; rcvIdx++ ) {
-									if( myInfo.senseRequest[ trnsIdx ][ rcvIdx ]) {
-										processBufferTemplate( myInfo.btSenseTargets[ trnsIdx ][ rcvIdx ],
-															   myInfo.streamSenseBuf[ trnsIdx ][ rcvIdx ][ myBufToSend ],
-															   myEven ? 0 : myInfo.streamSenseBufSize,
-															   myInfo.streamSenseBufSize );
-									}
-								}
-							}
-//System.err.println( " sent: "+myInfo.streamBufStart[ myBufToSend ]);
-						}
-						catch( Exception e1 ) {
-							System.err.println( "[@"+getName()+"]" + e1.getLocalizedMessage() );
-						}
-					} // if( bufferToSend >= 0 )
-					
-					synchronized( this ) {
-						bufferToSend = -1;
-						this.notifyAll();
-						this.wait();
-						myEven		= even;
-						myBufToSend = bufferToSend;
-					}
-				} // while( isRunning )
-			}
-			catch( InterruptedException e2 ) {}
+		final long						frameStart;
+		final int						bufOff;
+		final RealtimeProducer.Source	source	= rt_producer.source;
+//		final float[][]					convBuf1;
+		float[]							convBuf1, convBuf2, convBuf3;
+		
+		if( even ) {
+			bufOff		= 0;
+			frameStart	= source.firstHalf.getStart();
+		} else {
+			bufOff		= source.bufSizeH;
+			frameStart	= source.secondHalf.getStart();
 		}
+
+		for( int trnsIdx = 0; trnsIdx < rt_info.numTrns; trnsIdx++ ) {
+			if( rt_info.trajRequest[ trnsIdx ]) {
+//				processBufferTemplate( myInfo.btTrajTargets[ trnsIdx ], source.trajBlockBuf[ trnsIdx ],
+//									   myInfo.streamBuf, bufOff, myInfo.frameStep, myInfo.streamSenseBufSize );
+				convBuf1 = rt_info.streamTrajBuf[ trnsIdx ][ rt_info.streamBufCopyIdx ];
+				convBuf2 = source.trajBlockBuf[ trnsIdx ][0];
+				convBuf3 = source.trajBlockBuf[ trnsIdx ][1];
+				for( int i = 0, j = bufOff; i < rt_info.streamTrajBufSize; j += rt_info.frameStep ) {
+					convBuf1[ i++ ] = convBuf2[ j ];	// x
+					convBuf1[ i++ ] = convBuf3[ j ];	// y
+				}
+			}
+			for( int rcvIdx = 0; rcvIdx < rt_info.numRcv; rcvIdx++ ) {
+				if( rt_info.senseRequest[ trnsIdx ][ rcvIdx ]) {
+					convBuf1 = rt_info.streamSenseBuf[ trnsIdx ][ rcvIdx ][ rt_info.streamBufCopyIdx ];
+					convBuf2 = source.senseBlockBuf[ trnsIdx ][ rcvIdx ];
+					for( int i = 0, j = bufOff; i < rt_info.streamSenseBufSize; i++, j += rt_info.frameStep ) {
+						convBuf1[ i ] = convBuf2[ j ];
+					}
+				}
+			}
+		}
+		
+		rt_info.streamBufStart[ rt_info.streamBufCopyIdx ] = frameStart;
+//		rt_info.streamBufCreation[ rt_info.streamBufCopyIdx ] = System.currentTimeMillis() - rt_info.startTime;
+//		rt_info.streamBufCopyIdx = (rt_info.streamBufCopyIdx + 1) % 3;
+		
+		assert rt_info.streamBufStart[ 0 ] == remoteFrame : rt_info.streamBufStart[ 0 ];
+		final int myBufToSend = 0;
+
+		rt_info.trigServed = myTrigger;
+
+		// ok go and process the buffer templates
+		try {
+			for( int trnsIdx = 0; trnsIdx < rt_info.numTrns; trnsIdx++ ) {
+				if( rt_info.trajRequest[ trnsIdx ]) {
+					processBufferTemplate( rt_info.btTrajTargets[ trnsIdx ],
+					                       rt_info.streamTrajBuf[ trnsIdx ][ myBufToSend ],
+										   even ? 0 : rt_info.streamTrajBufSize,
+										   rt_info.streamTrajBufSize );
+				}
+				for( int rcvIdx = 0; rcvIdx < rt_info.numRcv; rcvIdx++ ) {
+					if( rt_info.senseRequest[ trnsIdx ][ rcvIdx ]) {
+						processBufferTemplate( rt_info.btSenseTargets[ trnsIdx ][ rcvIdx ],
+						                       rt_info.streamSenseBuf[ trnsIdx ][ rcvIdx ][ myBufToSend ],
+											   even ? 0 : rt_info.streamSenseBufSize,
+											   rt_info.streamSenseBufSize );
+					}
+				}
+			}
+		}
+		catch( IOException e1 ) {
+			System.err.println( "[@"+getName()+"]" + e1.getLocalizedMessage() );
+		}
+			
+//		// check if we can serve the request
+//		for( int i = 0; i < 3; i++ ) {
+//			if( rt_info.streamBufStart[ i ] == remoteFrame ) {
+//				synchronized( rt_info.bufSendThread ) {
+//					if( rt_info.bufSendThread.bufferToSend != -1 ) {
+//						try {
+//							rt_info.bufSendThread.wait();	// wait for the bufSendThread to be finished
+//						}
+//						catch( InterruptedException e1 ) {}
+//					}
+//					rt_info.bufSendThread.even			= (myTrigger & 1) == 0;
+//					rt_info.bufSendThread.bufferToSend   = i;
+//					rt_info.bufSendThread.notifyAll();
+//					rt_info.trigServed = myTrigger;
+//					return;
+//				}
+//			}
+//		}
 	}
+
+// -------- internal classes --------
+//
+//	private class BufferSenderThread
+//	extends Thread
+//	{
+//		private boolean isRunning;
+//		private int		bufferToSend	= -1;
+//		private boolean even;
+//	
+//		private BufferSenderThread()
+//		{
+//			super( "BufferSender" );
+//			setDaemon( true );
+//		}
+//		
+//		public void run()
+//		{
+//			// copying the reference is more performative and
+//			// equally safe compared to synchronization
+//			final RealtimeInfo myInfo  = rt_info;
+//			if( myInfo == null ) return;
+//			
+//			int		trnsIdx, rcvIdx, myBufToSend;
+//			boolean myEven;
+//
+//			synchronized( this ) {
+//				myEven		= even;
+//				myBufToSend = bufferToSend;
+//			}
+//						
+//			try {
+//				while( isRunning ) {
+//					if( myBufToSend >= 0 ) {
+//						// ok go and process the buffer templates
+//						try {
+//							for( trnsIdx = 0; trnsIdx < myInfo.numTrns; trnsIdx++ ) {
+//								if( myInfo.trajRequest[ trnsIdx ]) {
+//									processBufferTemplate( myInfo.btTrajTargets[ trnsIdx ],
+//														   myInfo.streamTrajBuf[ trnsIdx ][ myBufToSend ],
+//														   myEven ? 0 : myInfo.streamTrajBufSize,
+//														   myInfo.streamTrajBufSize );
+//								}
+//								for( rcvIdx = 0; rcvIdx < myInfo.numRcv; rcvIdx++ ) {
+//									if( myInfo.senseRequest[ trnsIdx ][ rcvIdx ]) {
+//										processBufferTemplate( myInfo.btSenseTargets[ trnsIdx ][ rcvIdx ],
+//															   myInfo.streamSenseBuf[ trnsIdx ][ rcvIdx ][ myBufToSend ],
+//															   myEven ? 0 : myInfo.streamSenseBufSize,
+//															   myInfo.streamSenseBufSize );
+//									}
+//								}
+//							}
+////System.err.println( " sent: "+myInfo.streamBufStart[ myBufToSend ]);
+//						}
+//						catch( Exception e1 ) {
+//							System.err.println( "[@"+getName()+"]" + e1.getLocalizedMessage() );
+//						}
+//					} // if( bufferToSend >= 0 )
+//					
+//					synchronized( this ) {
+//						bufferToSend = -1;
+//						this.notifyAll();
+//						this.wait();
+//						myEven		= even;
+//						myBufToSend = bufferToSend;
+//					}
+//				} // while( isRunning )
+//			}
+//			catch( InterruptedException e2 ) {}
+//		}
+//	}
 
 	private class BufferTemplate
 	{
@@ -812,7 +937,24 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 		private int[]			offset;
 	}
 	
-	private class RealtimeInfo
+	private static class OSCEvent
+	extends BasicEvent
+	{
+		private final OSCMessage msg;
+		
+		private OSCEvent( Object source, int id, long when, OSCMessage msg )
+		{
+			super( source, id, when );
+			this.msg = msg;
+		}
+		
+		public boolean incorporate( BasicEvent e )
+		{
+			return false;
+		}
+	}
+	
+	private static class RealtimeInfo
 	extends RealtimeConsumerRequest
 	{
 		private BufferTemplate[]		btTrajTargets;
@@ -831,7 +973,8 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener
 		private int						streamBufCopyIdx;
 		private int						senseBufSizeH;
 		private int						trigToServe, trigServed;
-		private BufferSenderThread		bufSendThread;
+// BBB
+//		private BufferSenderThread		bufSendThread;
 
 		private RealtimeInfo( RealtimeConsumer massa, RealtimeContext context )
 		{
