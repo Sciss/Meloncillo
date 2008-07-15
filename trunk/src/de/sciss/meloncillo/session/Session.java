@@ -1073,7 +1073,9 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 				if( context != null ) context.setException( new IllegalStateException( AbstractApplication.getApplication().getResourceString( "errAudioWillLooseSync" )));
 				return false;
 			}
-			if( (ti.trail instanceof AudioTrail) && ti.selected ) {
+			if( ((ti.trail instanceof AudioTrail) ||
+			     (ti.trail instanceof Transmitter)) && ti.selected ) {
+				
 				hasSelectedAudio.set( true );
 			}
 		}
@@ -1437,19 +1439,28 @@ System.out.println( "F" );
 			Track.Info						ti;
 			Trail							srcTrail;
 			AudioTrail						audioTrail;
+			Transmitter						trns;
 			boolean[]						trackMap;
-			boolean							isAudio, pasteAudio;
+			boolean							isAudio, isTrns, pasteAudio;
+
+System.out.println( "paste to:" );
+Track.debugDump( tis );
 
 			for( int i = 0; i < tis.size(); i++ ) {
 				ti		= (Track.Info) tis.get( i );
 				if( ti.selected ) {	// ----------------- selected tracks -----------------
 					try {
 						ti.trail.editBegin( edit );
-						isAudio	= ti.trail instanceof AudioTrail;
-						srcTrail = tl.getSubTrail( ti.trail.getClass() );
+// EEE
+//						isAudio	= ti.track instanceof AudioTrack;
+isAudio = false;
+						isTrns		= ti.tracks.get( 0 ) instanceof Transmitter;
+						srcTrail	= tl.getSubTrail( ti.trail.getClass(), ti.trackIndex );
 					
 						if( isAudio ) {
 							pasteAudio = (srcTrail != null) && (((AudioTrail) srcTrail).getChannelNum() > 0);
+						} else if( isTrns ) {
+							pasteAudio = (srcTrail != null);
 						} else {
 							pasteAudio = false;
 						}
@@ -1457,20 +1468,17 @@ System.out.println( "F" );
 						if( mode == EDIT_INSERT ) {
 							ti.trail.editInsert( this, insertSpan, edit );
 							if( cutTimeline ) ti.trail.editRemove( this, cutTimelineSpan, edit );
-//							} else if( (mode == EDIT_OVERWRITE) && (pasteAudio || !isAudio) ) { // Audio needs to be cleared even in Mix mode!
-						} else if( pasteAudio || ((mode == EDIT_OVERWRITE) && !isAudio) ) { // Audio needs to be cleared even in Mix mode!
+						} else if( pasteAudio || ((mode == EDIT_OVERWRITE) && !(isAudio || isTrns)) ) { // Audio needs to be cleared even in Mix mode!
 							ti.trail.editClear( this, insertSpan, edit );
 						}
 						
 						if( pasteAudio ) {
-							audioTrail			= (AudioTrail) ti.trail;
-							trackMap	= tl.getTrackMap( ti.trail.getClass() );
+							audioTrail	= (AudioTrail) ti.trail;
+							trackMap	= tl.getChannelMap( srcTrail );
 							
-//System.err.println( "clipboard tm : " );
-//for( int x = 0; x < trackMap.length; x++ ) { System.err.println( "  " + trackMap[ x ]); }
-							int[] trackMap2 = new int[ audioTrail.getChannelNum() ];
+							final int[] trackMap2 = new int[ audioTrail.getChannelNum() ];
 							for( int j = 0, k = 0; j < trackMap2.length; j++ ) {
-								if( ti.trackMap[ j ]) {	// target track selected
+								if( ti.channelMap[ j ]) {	// target track selected
 									for( ; (k < trackMap.length) && !trackMap[ k ] ; k++ ) ;
 									if( k < trackMap.length ) {	// source track exiting
 										trackMap2[ j ] = k++;
@@ -1486,7 +1494,7 @@ System.out.println( "F" );
 							}
 							if( !audioTrail.copyRangeFrom( (AudioTrail) srcTrail, copySpan, insertPos, mode, this, edit, trackMap2, bcPre, bcPost )) return CANCELLED;
 
-						} else if( (ti.numTracks == 1) && (tl.getTrackNum( ti.trail.getClass() ) == 1) ) {
+						} else if( (ti.tracks.size() == 1) && (tl.getTrackNum( ti.trail.getClass() ) == 1) ) {
 							ti.trail.editAddAll( this, srcTrail.getCuttedRange(
 								copySpan, true, srcTrail.getDefaultTouchMode(), delta ), edit );
 						}
@@ -1701,7 +1709,7 @@ System.out.println( "F" );
 									ti.trail.editInsert( this, new Span( span.start - left, span.start + right ), edit );
 								}
 								audioTrail = (AudioTrail) ti.trail;
-								audioTrail.clearRange( span, EDIT_INSERT, this, edit, ti.trackMap, bc );
+								audioTrail.clearRange( span, EDIT_INSERT, this, edit, ti.channelMap, bc );
 							} else {
 								ti.trail.editRemove( this, span, edit );
 							}
@@ -1709,7 +1717,7 @@ System.out.println( "F" );
 							ti.trail.editClear( this, span, edit );
 							if( isAudio ) {
 								audioTrail = (AudioTrail) ti.trail;
-								audioTrail.clearRange( span, EDIT_OVERWRITE, this, edit, ti.trackMap, bc );
+								audioTrail.clearRange( span, EDIT_OVERWRITE, this, edit, ti.channelMap, bc );
 							}
 						}
 					} else if( cutTimeline ) {

@@ -2085,10 +2085,13 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		}
 	}
 
+	/*
 	private class ActionCopy
 	extends MenuAction
 	{
-		protected ActionCopy() { /* empty */ }
+		protected ActionCopy() {
+			// empty
+		}
 
 		public void actionPerformed( ActionEvent e )
 		{
@@ -2096,7 +2099,6 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		}
 	}
 
-/*
 	private class ActionCut
 	extends MenuAction
 	{
@@ -2111,9 +2113,7 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 			if( editCopy() ) actionClear.perform();
 		}
 	}
-*/
 
-/*
 	private class ActionDelete
 	extends MenuAction
 	implements ProcessingThread.Client
