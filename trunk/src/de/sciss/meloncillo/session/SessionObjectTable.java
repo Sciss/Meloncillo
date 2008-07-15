@@ -117,6 +117,7 @@ implements DynamicListening
 		setRowSelectionAllowed( false );
 		TableColumn	tc;
 		tc		= getColumnModel().getColumn( 0 );
+		tc.setPreferredWidth( 92 );
 		tc.setMaxWidth( 92 ); // XXX
 		tc		= getColumnModel().getColumn( 1 );
 		tc.setCellRenderer( new Renderer() );

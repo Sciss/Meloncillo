@@ -88,7 +88,7 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener,
 	private RealtimeInfo	rt_info		= null;
 	private boolean			isPlaying   = false;
 	
-	private TransportPalette	tp;
+//	private TransportPalette	tp;
 	
 	private static final int BT_SEND		= 0;
 	private static final int BT_STREAM		= 1;
@@ -117,8 +117,8 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener,
 	public void init( Session doc )
 	{
 		super.init( doc );
-		tp = (TransportPalette) AbstractApplication.getApplication().getComponent( Main.COMP_TRANSPORT );
-		rt_producer = new RealtimeProducer( doc, null );
+//		tp = (TransportPalette) AbstractApplication.getApplication().getComponent( Main.COMP_TRANSPORT );
+		rt_producer = doc.getRealtimeProducer(); // new RealtimeProducer( doc, null );
 	}
 	
 	/**
@@ -564,7 +564,8 @@ implements RealtimePlugIn, RealtimeConsumer, TransportListener, OSCListener,
 		if( myTrigger != myInfo.trigServed ) {
 			if( myTrigger - myInfo.trigServed > 1 ) {
 //				System.err.println( " miss? "+(myInfo.trigServed+1)+" ... "+(myTrigger-1) );
-				tp.blink();
+// EEE
+//				tp.blink();
 			}
 			remoteFrame = myInfo.startFrame + myTrigger * myInfo.senseBufSizeH;
 			// check if we can serve the request

@@ -2,13 +2,12 @@
  *	Meloncillo Patches for SuperCollider
  *	Amplitude-Matrix-Mixer realtime preview
  *
- *	last modifications: 21-apr-05
+ *	last modifications: 15-jul-08
  */
 
 s = Server( "cilloScServer", NetAddr( "127.0.0.1", 57110 ));
-p = "/Volumes/BiancoSound/Users/Rutz/Meloncillo/plug-ins/sc/";
-p = "/Volumes/Claude/Developer/Meloncillo/plug-ins/sc/";
 p = "/Applications/Meloncillo/plug-ins/sc/";
+p = "/Users/rutz/Documents/workspace/Meloncillo/plug-ins/sc/";
 s = Server.local;
 s.boot;
 s.quit;
@@ -371,9 +370,12 @@ SynthDef( "cillo-testtone", {
 	toneFreq	 = 221 * pow( 2, i_freq/3 );
 	pulseFreq = pow( i_freq + 1, 0.25 );
 	
+//	Out.ar( bus: i_aOutBus, channelsArray:
+//	   SinOsc.ar( toneFreq, mul: LFPulse.kr( freq: pulseFreq, iphase: 0, mul: i_gain * 0.2 ) *
+//	   	LFSaw.kr( freq: 1, iphase: 1 )));
 	Out.ar( bus: i_aOutBus, channelsArray:
-	   SinOsc.ar( toneFreq, mul: LFPulse.kr( freq: pulseFreq, iphase: 0, mul: i_gain * 0.2 ) *
-	   	LFSaw.kr( freq: 1, iphase: 1 )));
+	   SinOsc.ar( toneFreq, add: WhiteNoise.ar( 0.25 )) * LFPulse.kr( freq: pulseFreq, iphase: 0, mul: i_gain * 0.2 ) *
+	   	LFSaw.kr( freq: 1, iphase: 1 ));
 }).writeDefFile( p );
 
 // ------------------------- ignore the stuff below -------------------------

@@ -1260,7 +1260,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 		final Rectangle	screenClip  = new Rectangle( (int) ((virtualClip.getX() + 1) * diamH) - 1, (int) ((virtualClip.getMaxY() - 1) * -diamH) - 1,
 		               	                             (int) (virtualClip.getWidth() * diamH) + 4, (int) (virtualClip.getHeight() * diamH) + 4 );
 		
-		System.out.println( "v = " + virtualClip + " -> s " + screenClip );
+//		System.out.println( "v = " + virtualClip + " -> s " + screenClip );
 		
 		return screenClip;
 	}
@@ -2343,6 +2343,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 			if( trajRplc != null ) {
 // EEE
 //				transport.removeTrajectoryReplacement( trajRplc );
+				doc.getRealtimeProducer().requestRemoveTrajectoryReplacement( trajRplc );
 				trajRplc = null;
 			}
 			cursorInfo[2]	= EMPTY_STR;
@@ -2507,8 +2508,8 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 				renderThread = null;
 			}
 		
-			long			when;
-			java.util.List	collTrns;
+			long	when;
+			List	collTrns;
 			
 			e.getComponent().requestFocus();
 
@@ -2528,6 +2529,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 										this, new Span( 0, doc.timeline.getLength() ), collTrns );
 // EEE
 //						transport.addTrajectoryReplacement( trajRplc );
+						doc.getRealtimeProducer().requestAddTrajectoryReplacement( trajRplc );
 						calcCursorInfo();
 //					} finally {
 //						doc.bird.releaseShared( Session.DOOR_TIMETRNSRCV | Session.DOOR_GRP );
@@ -2537,8 +2539,12 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 
 			// check auto-step-mode
 			weStartedTheTransport = !(transport.isRunning() || previewOnly);
+			if( transport.isRunning() ) {
+				rt_pos	= transport.getCurrentFrame();
+			} else {
+				rt_pos	= doc.timeline.getPosition();
+			}
 			if( weStartedTheTransport ) {
-				rt_pos		= doc.timeline.getPosition();
 				transport.play( 1.0 );
 			}
 			

@@ -96,6 +96,7 @@ import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
 import de.sciss.meloncillo.io.MarkerTrail;
 import de.sciss.meloncillo.io.XMLRepresentation;
+import de.sciss.meloncillo.realtime.RealtimeProducer;
 import de.sciss.meloncillo.realtime.Transport;
 import de.sciss.meloncillo.timeline.MarkerTrack;
 import de.sciss.meloncillo.timeline.Timeline;
@@ -246,6 +247,7 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 	private File					file			 = null;
 	
 	private final Transport			transport;
+	private final RealtimeProducer	rt_producer;
 	protected ProcessingThread		pt				= null;
 	
 	public final MarkerTrail		markers;
@@ -278,6 +280,7 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 		super();
 
         transport	= new Transport( this );
+        rt_producer = new RealtimeProducer( this, null );
 //		actionSave	= new ActionSave();
 
 		markerTrack			= new MarkerTrack( this );
@@ -329,6 +332,11 @@ activeTransmitters.addListener( new SessionCollection.Listener() {
 	public Transport getTransport()
 	{
 		return transport;
+	}
+	
+	public RealtimeProducer getRealtimeProducer()
+	{
+		return rt_producer;
 	}
 	
 	public void setFile( File f )
