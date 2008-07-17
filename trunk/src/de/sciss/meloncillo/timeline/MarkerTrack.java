@@ -31,24 +31,13 @@
 
 package de.sciss.meloncillo.timeline;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.List;
 import javax.swing.tree.TreeNode;
 
-import de.sciss.meloncillo.edit.BasicCompoundEdit;
 import de.sciss.meloncillo.io.MarkerTrail;
-//import de.sciss.meloncillo.net.OSCRoot;
-//import de.sciss.meloncillo.net.OSCRouter;
-//import de.sciss.meloncillo.net.OSCRouterWrapper;
-//import de.sciss.meloncillo.net.RoutedOSCMessage;
 import de.sciss.meloncillo.session.Session;
 
 import de.sciss.app.AbstractApplication;
-import de.sciss.io.Marker;
-import de.sciss.io.Span;
-import de.sciss.timebased.MarkerStake;
 import de.sciss.timebased.Stake;
 import de.sciss.timebased.Trail;
 
@@ -66,7 +55,7 @@ extends Track
 //	private static final String		OSC_MARKERS			= "markers";
 //	
 //	private final OSCRouterWrapper	osc;
-	private final Session			doc;
+//	private final Session			doc;
 
 	public MarkerTrack( Session doc )
 	{
@@ -77,7 +66,7 @@ extends Track
 	
 		setName( AbstractApplication.getApplication().getResourceString( "labelMarkers" ));
 
-		this.doc	= doc;
+//		this.doc	= doc;
 //		osc			= new OSCRouterWrapper( doc, this );
 	}
 	
@@ -91,10 +80,10 @@ extends Track
 		return null;	// XXX
 	}
 
-	private String getResourceString( String key )
-	{
-		return AbstractApplication.getApplication().getResourceString( key );
-	}
+//	private String getResourceString( String key )
+//	{
+//		return AbstractApplication.getApplication().getResourceString( key );
+//	}
 
 // ---------------- TreeNode interface ---------------- 
 

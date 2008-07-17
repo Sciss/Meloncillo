@@ -52,17 +52,14 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -74,42 +71,28 @@ import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 
 import javax.swing.AbstractAction;
-import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.InputMap;
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import javax.swing.KeyStroke;
-import javax.swing.SpringLayout;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
-import javax.swing.TransferHandler;
 import javax.swing.WindowConstants;
-import javax.swing.event.MouseInputAdapter;
 import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
 
 import de.sciss.app.AbstractApplication;
-import de.sciss.app.AbstractCompoundEdit;
-import de.sciss.app.AbstractWindow;
-import de.sciss.app.Application;
 import de.sciss.app.DynamicListening;
 import de.sciss.app.DynamicPrefChangeManager;
 import de.sciss.app.GraphicsHandler;
-import de.sciss.app.LaterInvocationManager;
 import de.sciss.common.BasicApplication;
 import de.sciss.common.BasicMenuFactory;
-import de.sciss.common.BasicWindowHandler;
-import de.sciss.common.ProcessingThread;
-import de.sciss.common.ShowWindowAction;
 import de.sciss.gui.AbstractWindowHandler;
 import de.sciss.gui.ComponentBoundsRestrictor;
 import de.sciss.gui.ComponentHost;
@@ -118,8 +101,6 @@ import de.sciss.gui.GUIUtil;
 import de.sciss.gui.GradientPanel;
 import de.sciss.gui.MenuAction;
 import de.sciss.gui.MenuRoot;
-import de.sciss.gui.ModificationButton;
-import de.sciss.gui.ProgressComponent;
 import de.sciss.gui.StretchedGridLayout;
 import de.sciss.gui.TopPainter;
 import de.sciss.gui.TreeExpanderButton;
@@ -132,32 +113,21 @@ import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.gui.AbstractTool;
 import de.sciss.meloncillo.gui.Axis;
 import de.sciss.meloncillo.gui.GraphicsUtil;
-import de.sciss.meloncillo.gui.MainFrame;
-import de.sciss.meloncillo.gui.MenuFactory;
 import de.sciss.meloncillo.gui.ObserverPalette;
 import de.sciss.meloncillo.gui.ToolAction;
 import de.sciss.meloncillo.gui.ToolActionEvent;
 import de.sciss.meloncillo.gui.ToolActionListener;
 import de.sciss.meloncillo.gui.WaveformView;
-import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.DecimatedTrail;
 import de.sciss.meloncillo.io.DecimatedWaveTrail;
 import de.sciss.meloncillo.io.DecimationInfo;
-import de.sciss.meloncillo.io.TrackList;
-import de.sciss.meloncillo.realtime.RealtimeConsumer;
-import de.sciss.meloncillo.realtime.RealtimeConsumerRequest;
-import de.sciss.meloncillo.realtime.RealtimeContext;
-import de.sciss.meloncillo.realtime.RealtimeProducer;
 import de.sciss.meloncillo.realtime.Transport;
 import de.sciss.meloncillo.realtime.TransportListener;
 import de.sciss.meloncillo.session.DocumentFrame;
 import de.sciss.meloncillo.session.Session;
 import de.sciss.meloncillo.session.SessionCollection;
-import de.sciss.meloncillo.session.SessionObject;
 import de.sciss.meloncillo.transmitter.Transmitter;
-import de.sciss.meloncillo.transmitter.TransmitterEditor;
 import de.sciss.meloncillo.util.PrefsUtil;
-import de.sciss.meloncillo.util.TransferableCollection;
 import de.sciss.timebased.Trail;
 
 /**
@@ -260,8 +230,8 @@ implements  TimelineListener, ToolActionListener,
 	private final	TimelinePointerTool		pointerTool;
 
 	// --- actions ---
-	private final static String				plugInPackage			= "de.sciss.eisenkraut.render.";
-	private final static String				fscapePackage			= "de.sciss.fscape.render.";
+//	private final static String				plugInPackage			= "de.sciss.eisenkraut.render.";
+//	private final static String				fscapePackage			= "de.sciss.fscape.render.";
 
 //	private final ActionRevealFile			actionRevealFile;
 //	private final ActionSelectAll			actionSelectAll;
@@ -280,7 +250,7 @@ implements  TimelineListener, ToolActionListener,
 //	private final AbstractWindow.Adapter	winListener;
 
 	private final JLabel					lbWriteProtected;
-	private boolean							writeProtected			= false;
+//	private boolean							writeProtected			= false;
 	protected boolean						wpHaveWarned			= false;
 	
 //	private final ShowWindowAction			actionShowWindow;
@@ -296,7 +266,7 @@ implements  TimelineListener, ToolActionListener,
 	protected boolean				csrInfoIsInt;
 	protected static final double TWENTYDIVLOG10 = 20 / Math.log( 10 );
 
-	private final Color colrClear				= new Color( 0xA0, 0xA0, 0xA0, 0x00 );
+//	private final Color colrClear				= new Color( 0xA0, 0xA0, 0xA0, 0x00 );
 	
 	// --------- former viewport ---------
 	// --- painting ---
@@ -326,8 +296,8 @@ implements  TimelineListener, ToolActionListener,
 	protected boolean	waveExpanded			= true;	// XXX should keep that in some prefs
 	protected boolean	viewMarkers;
 	protected boolean	markVisible;
-	private boolean		chanMeters				= false;
-	private boolean		forceMeters				= false;
+//	private boolean		chanMeters				= false;
+//	private boolean		forceMeters				= false;
 	
 	protected final TimelineToolBar			timeTB;
 //	private final TransportToolBar			transTB;
@@ -338,7 +308,7 @@ implements  TimelineListener, ToolActionListener,
 //	private final ProgressPanel				pProgress;
 //	private final CrossfadePanel			pOverlay;
 
-	private final boolean					internalFrames;
+//	private final boolean					internalFrames;
 
 	protected final BasicApplication		app;
 //	private final SuperColliderClient		superCollider;
@@ -351,8 +321,8 @@ implements  TimelineListener, ToolActionListener,
 	
 	protected final ComponentBoundsRestrictor cbr;
 	
-	private static Point					lastLeftTop		= new Point();
-	private static final String				KEY_TRACKSIZE	= "tracksize";
+//	private static Point					lastLeftTop		= new Point();
+//	private static final String				KEY_TRACKSIZE	= "tracksize";
 	
 	private int								verticalScale;
 	
@@ -399,7 +369,7 @@ implements  TimelineListener, ToolActionListener,
 		final Container					cp			= getContentPane();
 		final InputMap					imap		= getInputMap( JComponent.WHEN_IN_FOCUSED_WINDOW );
 		final ActionMap					amap		= getActionMap();
-		final AbstractButton			ggAudioInfo, ggRevealFile;
+//		final AbstractButton			ggAudioInfo, ggRevealFile;
 		final int						myMeta		= BasicMenuFactory.MENU_SHORTCUT == InputEvent.CTRL_MASK ?
 			InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK : BasicMenuFactory.MENU_SHORTCUT;	// META on Mac, CTRL+SHIFT on PC
 		final TopPainter				trackPainter;
@@ -408,7 +378,7 @@ implements  TimelineListener, ToolActionListener,
 		final Trail.Listener			waveTrailListener;
 		Box								box;
 
-		internalFrames		= app.getWindowHandler().usesInternalFrames();
+//		internalFrames		= app.getWindowHandler().usesInternalFrames();
 
 		timeTB		= new TimelineToolBar( doc );
 //		transTB		= new TransportToolBar( doc );
@@ -1582,12 +1552,12 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 //		}
 //	}
 
-	private void setRowHeight( JComponent comp, int height )
-	{
-		comp.setMinimumSize(   new Dimension( comp.getMinimumSize().width,   height ));
-		comp.setMaximumSize(   new Dimension( comp.getMaximumSize().width,   height ));
-		comp.setPreferredSize( new Dimension( comp.getPreferredSize().width, height ));
-	}
+//	private void setRowHeight( JComponent comp, int height )
+//	{
+//		comp.setMinimumSize(   new Dimension( comp.getMinimumSize().width,   height ));
+//		comp.setMaximumSize(   new Dimension( comp.getMaximumSize().width,   height ));
+//		comp.setPreferredSize( new Dimension( comp.getPreferredSize().width, height ));
+//	}
 
 	protected void updateVerticalRuler()
 	{
@@ -1680,8 +1650,8 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 	// sync: attemptShared DOOR_TRNS
 	public void toolChanged( ToolActionEvent e )
 	{
-		Transmitter			trns;
-		TransmitterEditor	trnsEdit;
+//		Transmitter			trns;
+//		TransmitterEditor	trnsEdit;
 	
 		if( activeTool != null ) {
 			activeTool.toolDismissed( waveView );
@@ -1779,57 +1749,6 @@ newLp:	for( int ch = 0; ch < newNumWaveTracks; ch++ ) {
 	public void transportQuit( Transport t )
 	{
 		playTimer.stop();
-	}
-
-// ---------------- EditMenuListener interface ---------------- 
-
-	/*
-	 *  Copies the selected timespan of the selected
-	 *  transmitters to the clipboard. Uses a
-	 *  <code>TransferableCollection</code> whose
-	 *  elements are <code>TrackList</code>s.
-	 *
-	 *  @see	de.sciss.meloncillo.io.MultirateTrackEditor#getTrackList( Span )
-	 *  @see	de.sciss.meloncillo.io.TrackList
-	 *  @see	de.sciss.meloncillo.util.TransferableCollection
-	 */
-	private boolean editCopy()
-	{
-		return false;
-/* EEE
-		Span							span;
-		List							collAffectedTransmitters;
-		final List						v		= new ArrayList();
-		AudioTrail						at;
-		boolean							success = false;
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
-
-		try {
-			doc.bird.waitShared( Session.DOOR_TIMETRNSMTE );
-			span = doc.timeline.getSelectionSpan();
-			if( span.isEmpty() ) return false;
-
-			collAffectedTransmitters = doc.selectedTransmitters.getAll();
-			if( collAffectedTransmitters.isEmpty() ) return false;
-
-			for( int i = 0; i < collAffectedTransmitters.size(); i++ ) {
-				at = ((Transmitter) collAffectedTransmitters.get( i )).getAudioTrail();
-				v.add( at.getTrackList( span ));
-			}
-			if( !v.isEmpty() ) {
-				app.getClipboard().setContents( new TransferableCollection( v ), this );
-			}
-			success = true;
-		}
-		catch( IllegalStateException e1 ) {
-			System.err.println( app.getResourceString( "errClipboard" ));
-		}
-		finally {
-			doc.bird.releaseShared( Session.DOOR_TIMETRNSMTE );
-		}
-
-		return success;
-*/
 	}
 
 // ---------------- DocumentFrame abstract methods ----------------
@@ -2758,11 +2677,11 @@ clipboardLoop:			for( j = 0; j < coll.size(); j++ ) {
 		
 			final String				chName	= ""; // EEE doc.audioTracks.get( ch ).getName();
 			final double				seconds	= pos / timelineRate;
-			final AudioTrail 			at;
-			final DecimatedWaveTrail	dt;
-			final float[][]				data;
-			final float[]				frame;
-			float						f1;
+//			final AudioTrail 			at;
+//			final DecimatedWaveTrail	dt;
+//			final float[][]				data;
+//			final float[]				frame;
+//			float						f1;
 			
 			argsCsr[3]		= chName;
 			argsCsr[0]		= new Long( pos );

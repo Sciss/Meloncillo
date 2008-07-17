@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.sciss.app.LaterInvocationManager;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.receiver.Receiver;
 import de.sciss.meloncillo.session.Session;
@@ -100,11 +99,11 @@ public class RealtimeProducer
 	private final List	collInfos			= new ArrayList();  // synced because always in event thread
 	private final List	collReplacements	= new ArrayList();  // synced because always in event thread
 	
-	private final Session		doc;
-	private final RealtimeHost	host;
+//	private final Session		doc;
+//	private final RealtimeHost	host;
 	
-	private final float[][] offhandTempBuf  = new float[2][1];
-	private final float[]	offhandTempBuf2 = new float[1];
+//	private final float[][] offhandTempBuf  = new float[2][1];
+//	private final float[]	offhandTempBuf2 = new float[1];
 	
 	/**
 	 *	Creates a new RealtimeProducer. This is only
@@ -114,10 +113,10 @@ public class RealtimeProducer
 	 *	@param	doc		Session document
 	 *	@param	host	usually the Transport
 	 */
-	public RealtimeProducer( Session doc, RealtimeHost host )
+	public RealtimeProducer( /* Session doc, RealtimeHost host */ )
 	{
-		this.doc	= doc;
-		this.host   = host;
+//		this.doc	= doc;
+//		this.host   = host;
 	}
 	
 	/**
@@ -170,7 +169,7 @@ public class RealtimeProducer
 			break;
 		}
 		
-		if( host != null ) host.notifyConsumed( r );
+//		if( host != null ) host.notifyConsumed( r );
 	}
 	
 	/**
@@ -276,14 +275,15 @@ public class RealtimeProducer
 	// sync: call in event thread
 	private void reConfigReplacements( Source s )
 	{
-		int	trnsIdx, i;
+		if( s == null ) return;
+		
 		TrajectoryReplacement tr;
 		Transmitter trns;
 
 		// reset requests
-trnsLp:	for( trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
+trnsLp:	for( int trnsIdx = 0; trnsIdx < s.numTrns; trnsIdx++ ) {
 			trns = s.transmitters[ trnsIdx ];
-			for( i = 0; i < collReplacements.size(); i++ ) {
+			for( int i = 0; i < collReplacements.size(); i++ ) {
 				tr = (TrajectoryReplacement) collReplacements.get( i );
 				if( tr.collTransmitters.contains( trns )) {
 					s.trajRplc[ trnsIdx ] = i;

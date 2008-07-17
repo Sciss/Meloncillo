@@ -177,7 +177,7 @@ implements SessionGroup
 		NodeList			nl, nl2;
 		String				val;
 		Session				doc			= (Session) options.get( Session.OPTIONS_KEY_SESSION );
-		SessionCollection	sc, sc2;
+		SessionCollection	sc;
 		SessionObject		so;
 		List				soList		= new ArrayList();
 		int					i, j;
@@ -191,10 +191,10 @@ implements SessionGroup
 			val		= child.getAttribute( XML_ATTR_NAME );
 			if( val.equals( SessionGroup.XML_VALUE_RECEIVERS )) {
 				sc	= doc.getReceivers();
-				sc2	= this.receivers;
+//				sc2	= this.receivers;
 			} else if( val.equals( SessionGroup.XML_VALUE_TRANSMITTERS )) {
 				sc	= doc.getTransmitters();
-				sc2	= this.transmitters;
+//				sc2	= this.transmitters;
 			} else {
 				System.err.println( "Warning: unknown session group type: '"+val+"'" );
 				continue;

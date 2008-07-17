@@ -45,12 +45,10 @@ import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.List;
 
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
-import javax.swing.RootPaneContainer;
 import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
 
@@ -63,7 +61,6 @@ import de.sciss.app.AbstractCompoundEdit;
 import de.sciss.app.AbstractWindow;
 import de.sciss.app.Application;
 import de.sciss.app.DocumentListener;
-import de.sciss.app.DynamicAncestorAdapter;
 import de.sciss.app.DynamicListening;
 import de.sciss.common.AppWindow;
 import de.sciss.gui.AbstractWindowHandler;

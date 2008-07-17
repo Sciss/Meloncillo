@@ -52,7 +52,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.prefs.BackingStoreException;
 
-import javax.swing.Action;
 import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -83,7 +82,6 @@ import de.sciss.gui.ParamField;
 import de.sciss.gui.PathField;
 import de.sciss.gui.ProgressComponent;
 import de.sciss.gui.SpringPanel;
-import de.sciss.io.AudioFileDescr;
 import de.sciss.io.IOUtil;
 import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
@@ -280,7 +278,7 @@ implements SessionGroup, FilenameFilter, EntityResolver, de.sciss.app.Document
 		super();
 
         transport	= new Transport( this );
-        rt_producer = new RealtimeProducer( this, null );
+        rt_producer = new RealtimeProducer();
 //		actionSave	= new ActionSave();
 
 		markerTrack			= new MarkerTrack( this );
@@ -1447,12 +1445,12 @@ System.out.println( "F" );
 			Track.Info						ti;
 			Trail							srcTrail;
 			AudioTrail						audioTrail;
-			Transmitter						trns;
+//			Transmitter						trns;
 			boolean[]						trackMap;
 			boolean							isAudio, isTrns, pasteAudio;
 
-System.out.println( "paste to:" );
-Track.debugDump( tis );
+//System.out.println( "paste to:" );
+//Track.debugDump( tis );
 
 			for( int i = 0; i < tis.size(); i++ ) {
 				ti		= (Track.Info) tis.get( i );

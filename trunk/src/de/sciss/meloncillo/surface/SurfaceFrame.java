@@ -78,8 +78,6 @@ import de.sciss.meloncillo.session.BasicSessionCollection;
 import de.sciss.meloncillo.session.DocumentFrame;
 import de.sciss.meloncillo.session.GroupableSessionObject;
 import de.sciss.meloncillo.session.Session;
-import de.sciss.meloncillo.session.SessionCollection;
-import de.sciss.meloncillo.session.SessionGroup;
 import de.sciss.meloncillo.session.SessionGroupTable;
 import de.sciss.meloncillo.util.PrefsUtil;
 import de.sciss.meloncillo.util.TransferableCollection;
@@ -281,8 +279,7 @@ implements ClipboardOwner, PreferenceChangeListener
 		boolean							retry;
 		AbstractCompoundEdit			edit;
 		Object[]						args;
-		SessionGroup					group;
-		final de.sciss.app.Application	app		= AbstractApplication.getApplication();
+		final Application				app		= AbstractApplication.getApplication();
 	
 		try {
 			t = app.getClipboard().getContents( this );

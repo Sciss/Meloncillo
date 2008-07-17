@@ -39,7 +39,6 @@ import de.sciss.app.BasicUndoableEdit;
 import de.sciss.app.PerformableEdit;
 
 import de.sciss.meloncillo.session.MutableSessionCollection;
-import de.sciss.meloncillo.session.SessionCollection;
 
 /**
  *  An <code>UndoableEdit</code> that

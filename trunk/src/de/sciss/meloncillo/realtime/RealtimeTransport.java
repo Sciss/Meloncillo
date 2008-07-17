@@ -40,7 +40,6 @@
 package de.sciss.meloncillo.realtime;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 import java.util.prefs.Preferences;
@@ -93,7 +92,7 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener, TransportLi
 
 	// low level threading
     private boolean threadRunning   = false;
-    private	boolean looping			= false;
+//    private	boolean looping			= false;
 	private int		rt_command		= CMD_IGNORE;
 	
     private final Session   doc;
@@ -114,8 +113,8 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener, TransportLi
 	private long						rt_pos;
 	private int							rt_senseBufSize;
 	
-	private final RealtimeContext		fakeContext = new RealtimeContext( this, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-																	   new Span(), 1000 );
+//	private final RealtimeContext		fakeContext = new RealtimeContext( this, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+//																	   new Span(), 1000 );
 	
 	private final Preferences			plugInPrefs;
 	
@@ -138,7 +137,7 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener, TransportLi
         
         this.doc    = doc;
 		
-		rt_producer		= new RealtimeProducer( doc, this );
+		rt_producer		= new RealtimeProducer();
 		rt_context		= null;
        	
 		timelineLen		= doc.timeline.getLength();
@@ -576,20 +575,20 @@ implements RealtimeHost, TimelineListener, PreferenceChangeListener, TransportLi
 //		}
 //	}
 	
-	private void destroyContext()
-	{
-		int i;
-	
-		synchronized( sync ) {
-			if( isRunning() ) stopAndWait();
-			
-			rt_producer.changeContext( fakeContext );
-			rt_context = null;
-			for( i = 0; i < rt_requests.length; i++ ) {
-				rt_requests[ i ] = null;
-			}
-		}
-	}
+//	private void destroyContext()
+//	{
+//		int i;
+//	
+//		synchronized( sync ) {
+//			if( isRunning() ) stopAndWait();
+//			
+//			rt_producer.changeContext( fakeContext );
+//			rt_context = null;
+//			for( i = 0; i < rt_requests.length; i++ ) {
+//				rt_requests[ i ] = null;
+//			}
+//		}
+//	}
 
 	/**
 	 *	Returns the current realtime context.

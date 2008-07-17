@@ -73,8 +73,8 @@ extends AppWindow
 implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 {
 	private final Session		doc;
-	private final Transport		transport;
-	private final MeterFrame	meterFrame				= this;
+//	private final Transport		transport;
+//	private final MeterFrame	meterFrame				= this;
 	
 	private final MeterPane		meterPane;
 	private final Border		trnsBorder, rcvBorder;
@@ -108,7 +108,7 @@ implements  DynamicListening, RealtimeConsumer, SessionCollection.Listener
 		super( PALETTE );
 
 		this.doc	= doc;
-		transport   = doc.getTransport();
+//		transport   = doc.getTransport();
 
 		final Container		cp		= getContentPane();
 		final Application	app		= AbstractApplication.getApplication();

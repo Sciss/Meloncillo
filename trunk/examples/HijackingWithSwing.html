@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title></title>
+<meta name="Generator" content="Cocoa HTML Writer">
+<meta name="CocoaVersion" content="824.48">
+<style type="text/css">
+p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Monaco; color: #ad1d13}
+p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Monaco; color: #ad1d13; min-height: 19.0px}
+p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Monaco; min-height: 19.0px}
+p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Monaco; color: #606060}
+p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Monaco}
+p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Monaco; color: #2b6f11}
+span.s1 {color: #000000}
+span.s2 {color: #0019ba}
+span.s3 {color: #606060}
+span.s4 {color: #ad1d13}
+span.s5 {color: #2b6f11}
+span.Apple-tab-span {white-space:pre}
+</style>
+</head>
+<body>
+<p class="p1">// SuperCollider language examples for Spatial Technologies 16-Jul-08</p>
+<p class="p2"><br></p>
+<p class="p1">// Prerequisites: SuperCollider 3.2+, SwingOSC 0.60+</p>
+<p class="p3"><br></p>
+<p class="p1">// ---&gt; Note: reboot with LaunchSwingWithAll.command</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s1">~cilloC = </span><span class="s2">JavaObject</span><span class="s1">.getClass( </span>"de.sciss.meloncillo.Main"<span class="s1"> );</span></p>
+<p class="p5">~cilloC.main;</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s1">~absApplC = </span><span class="s2">JavaObject</span><span class="s1">.getClass( </span>"de.sciss.app.AbstractApplication"<span class="s1"> );</span></p>
+<p class="p5">~app = ~absApplC.getApplication__;</p>
+<p class="p5">~docH = ~app.getDocumentHandler__;</p>
+<p class="p1">// NOTE: we assume "TwelveWithSoundFile2.llo" has been loaded!</p>
+<p class="p5">~doc = ~docH.getActiveDocument__;</p>
+<p class="p5">~doc.print;</p>
+<p class="p3"><br></p>
+<p class="p5">~collRcv = ~doc.getMutableReceivers__;</p>
+<p class="p5">~rcv = ~collRcv.get__( 0 );</p>
+<p class="p5">~rcvMap = ~rcv.getMap__;</p>
+<p class="p5">~rcvMap.debugDump;</p>
+<p class="p5">~rcvMap.destroy; ~rcv.destroy;</p>
+<p class="p3"><br></p>
+<p class="p1">// let's adjust the audio busses</p>
+<p class="p3"><br></p>
+<p class="p5">~chanMap = [ 1, 2, 3, 4, 5, 6, 7, 8, 19, 20, 21, 22 ];</p>
+<p class="p5">~chanMap = [ 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16 ];</p>
+<p class="p5">~chanMap = (1..12);</p>
+<p class="p1"><span class="s1">~notify = </span><span class="s2">JavaObject</span><span class="s1">( </span><span class="s3">"java.lang.Object"</span><span class="s1"> ); </span>// an arbitrary object serving as the "source" of the modification</p>
+<p class="p3"><br></p>
+<p class="p5">(</p>
+<p class="p5">~chanMap.do({ <span class="s2">arg</span> chan, idx;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv = ~collRcv.get__( idx );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap = ~rcv.getMap__;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap.putValue( ~notify, <span class="s3">"lisp-AUDIOBUS"</span>, chan );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv.destroy; ~rcvMap.destroy;</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p3"><br></p>
+<p class="p1">// now programmatically change the receiver bounds</p>
+<p class="p5">(</p>
+<p class="p5">12.do({ <span class="s2">arg</span> idx;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv = ~collRcv.get__( idx );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap = ~rcv.getMap__;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap.putValue( ~notify, <span class="s3">"innerdiam"</span>, 0.0 );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap.putValue( ~notify, <span class="s3">"outerdiam"</span>, 2.0 );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv.destroy; ~rcvMap.destroy;</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p3"><br></p>
+<p class="p1">// we would like to have a greater "spread" (less divergence)</p>
+<p class="p5">(</p>
+<p class="p5">12.do({ <span class="s2">arg</span> idx;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv = ~collRcv.get__( idx );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap = ~rcv.getMap__;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap.putValue( ~notify, <span class="s3">"anglestart"</span>, -60.0 + (idx * 30.0) );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcvMap.putValue( ~notify, <span class="s3">"anglextent"</span>, 120.0 ); <span class="s4">// wooops, typo</span></p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv.destroy; ~rcvMap.destroy;</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p3"><br></p>
+<p class="p1">// correct anchor</p>
+<p class="p5">(</p>
+<p class="p5">12.do({ <span class="s2">arg</span> idx; <span class="s2">var</span> x, y;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv = ~collRcv.get__( idx );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>x = cos( idx.neg/6*pi + 0.5pi ) * 0.5;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>y = sin( idx.neg/6*pi + 0.5pi ) * 0.5;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv.setAnchor( <span class="s2">JavaObject</span>( <span class="s3">"java.awt.geom.Point2D$Float"</span>, <span class="s2">nil</span>, x, y ));</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv.destroy;</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p3"><br></p>
+<p class="p1">// In the Meloncillo GUI : create a sigma receiver at (0,0) with size (1,1)</p>
+<p class="p1">// named "LPF" with plug-in function "LPF Insert".</p>
+<p class="p1">// Distance table should decline linearly.</p>
+<p class="p1">// --&gt; "TwelveWithLPF.llo"</p>
+<p class="p3"><br></p>
+<p class="p1">// Can we programmatically change the receivers sensitivity tables? Yes!</p>
+<p class="p3"><br></p>
+<p class="p5">~distance = <span class="s2">Array</span>.fill( 1024, { <span class="s2">arg</span> i; sin( i * 2pi / 1024 - 0.5pi ).linlin( -1, 1, 0, 1 )});</p>
+<p class="p5">~distance.plot;</p>
+<p class="p5">~distance = <span class="s2">Array</span>.fill( 1024, { <span class="s2">arg</span> i; if( i &lt; 512, 1.0, { sin( i * 2pi / 1024 - 0.5pi ).linlin( -1, 1, 0, 1 )})});</p>
+<p class="p5">~distance.plot;</p>
+<p class="p3"><br></p>
+<p class="p5">(</p>
+<p class="p5">12.do({ <span class="s2">arg</span> idx;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv = ~collRcv.get__( idx );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv.setDistanceTable( ~distance );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~rcv.destroy;</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p3"><br></p>
+<p class="p1">// Now let's add a Doppler effect</p>
+<p class="p3"><br></p>
+<p class="p1">//~dlyRcv = JavaObject( "de.sciss.meloncillo.receiver.SectorReceiver" );</p>
+<p class="p1">//~dlyRcv.setAnchor( JavaObject( "java.awt.geom.Point2D$Float", nil, 0.0, -0.5 ));</p>
+<p class="p1">//~dlyRcv.setName( "Dly" );</p>
+<p class="p1">////~collRcv.getMap__.copyContexts( ~notify, 0x40, 0, ~dlyRcv.getMap__ );</p>
+<p class="p1">//~collRcv.add( ~notify, ~dlyRcv );</p>
+<p class="p3"><br></p>
+<p class="p1">// What magnitude is the delay?</p>
+<p class="p1">// Assume the surface is 20 by 20 meters</p>
+<p class="p1">// --&gt; with c = 340 m/s, the delay from</p>
+<p class="p1">// the center is 10.0 m / (340 m/s) = 29.41 milliseconds</p>
+<p class="p3"><br></p>
+<p class="p1">// (create SectorReceiver in the GUI!)</p>
+<p class="p5">~dlyRcv = ~collRcv.get__( 13 );</p>
+<p class="p5">~rcvMap = ~dlyRcv.getMap__;</p>
+<p class="p5">~rcvMap.putValue( ~notify, <span class="s3">"lisp-OUTPROC"</span>, <span class="s3">"delay"</span> );</p>
+<p class="p5">~rcvMap.putValue( ~notify, <span class="s3">"lisp-DELAY"</span>, 29.41 );</p>
+<p class="p5">~dlyRcv.setAnchor( <span class="s2">JavaObject</span>( <span class="s3">"java.awt.geom.Point2D$Float"</span>, <span class="s2">nil</span>, 0.0, 0.0 ));</p>
+<p class="p5">~rcvMap.putValue( ~notify, <span class="s3">"width"</span>, 2.0 );</p>
+<p class="p5">~rcvMap.putValue( ~notify, <span class="s3">"height"</span>, 2.0 );</p>
+<p class="p5">~dlyRcv.setName( <span class="s3">"Dly"</span> );</p>
+<p class="p3"><br></p>
+<p class="p1">// Finally adding a second soundfile transmitter (TwelveWithTwoSounds)</p>
+<p class="p3"><br></p>
+<p class="p1">// ...</p>
+<p class="p3"><br></p>
+<p class="p1">// Can we use custom synthdefs without the pain of LISP?</p>
+<p class="p1">// ---&gt; [SC] Berlin July 2008 plug-in</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s1">~path = </span>"/Users/rutz/Desktop/SpatialTech/sc/myfilters.scsyndef"<span class="s1">;</span></p>
+<p class="p5">(</p>
+<p class="p1">// distortion insert using the MantissaMask ugen</p>
+<p class="p5">~myfilterDef1 = <span class="s2">SynthDef</span>( <span class="s3">"myfilter1"</span>, {</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">arg</span> i_aBus, i_kInBuf, i_kPhasorBus;</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">var</span> input, sense, filtered;</p>
+<p class="p3"><span class="Apple-tab-span">	</span></p>
+<p class="p5"><span class="Apple-tab-span">	</span>sense<span class="Apple-tab-span">	</span>= <span class="s2">BufRd</span>.kr( 1, i_kInBuf, <span class="s2">In</span>.kr( bus: i_kPhasorBus ));</p>
+<p class="p5"><span class="Apple-tab-span">	</span>input<span class="Apple-tab-span">	</span>= <span class="s2">In</span>.ar( i_aBus );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>filtered<span class="Apple-tab-span">	</span>= <span class="s2">MantissaMask</span>.ar( input, 2 );</p>
+<p class="p3"><span class="Apple-tab-span">	</span></p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">XOut</span>.ar( i_aBus, sense, filtered );</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p5">(</p>
+<p class="p1">// just send the weighted signal to bus 127</p>
+<p class="p5">~myfilterDef2 = <span class="s2">SynthDef</span>( <span class="s3">"myfilter2"</span>, {</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">arg</span> i_aBus, i_kInBuf, i_kPhasorBus;</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">var</span> input, sense, filtered;</p>
+<p class="p3"><span class="Apple-tab-span">	</span></p>
+<p class="p5"><span class="Apple-tab-span">	</span>sense<span class="Apple-tab-span">	</span>= <span class="s2">BufRd</span>.kr( 1, i_kInBuf, <span class="s2">In</span>.kr( bus: i_kPhasorBus ));</p>
+<p class="p5"><span class="Apple-tab-span">	</span>input<span class="Apple-tab-span">	</span>= <span class="s2">In</span>.ar( i_aBus );</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">Out</span>.ar( 127, input * sense );</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p5">~chanMap = [ 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16 ];</p>
+<p class="p5">~chanMap = (1..12);</p>
+<p class="p5">(</p>
+<p class="p1">// this one corresponds to myfilter2 : the global reverb</p>
+<p class="p5">~myfilterDef3 = <span class="s2">SynthDef</span>( <span class="s3">"myreverb12"</span>, {</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">var</span> input, sense, filtered;</p>
+<p class="p3"><span class="Apple-tab-span">	</span></p>
+<p class="p5"><span class="Apple-tab-span">	</span>input<span class="Apple-tab-span">	</span>= <span class="s2">In</span>.ar( 127 ); <span class="s4">// * 0.25;</span></p>
+<p class="p5"><span class="Apple-tab-span">	</span>~chanMap.do({ <span class="s2">arg</span> chan, idx;</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span><span class="s2">Out</span>.ar( chan, <span class="s2">FreeVerb</span>.ar( input, 1.0, idx.linlin( 0, 11, 0.3, 0.6 ), idx.linlin( 0, 11, 0.6, 0.3 )))</p>
+<p class="p5"><span class="Apple-tab-span">	</span>});</p>
+<p class="p5">});</p>
+<p class="p5">)</p>
+<p class="p5">~file = <span class="s2">File</span>( ~path, <span class="s3">"w"</span> ); [ ~myfilterDef1, ~myfilterDef2, ~myfilterDef3 ].writeDef( ~file ); ~file.close;</p>
+<p class="p3"><br></p>
+<p class="p1">// Do we need to bounce the source soundfiles always? Can't we just hook up</p>
+<p class="p1">// our multitracker (ProTools, Ardour, ...) ?</p>
+<p class="p3"><br></p>
+<p class="p1">// ---&gt; Note: reboot with LaunchSwingWithAll.command</p>
+<p class="p3"><br></p>
+<p class="p5">~bosqueServer = <span class="s2">Server</span>( <span class="s5">\bosque</span>, <span class="s2">NetAddr</span>( <span class="s3">"127.0.0.1"</span>, 56110 ));</p>
+<p class="p5">~bosqueServer.makeWindow;</p>
+<p class="p3"><br></p>
+<p class="p1">// (</p>
+<p class="p1">//Bosque.soundCard<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>= "Built-in Audio";</p>
+<p class="p5"><span class="s2">Bosque</span>.soundCard<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>= <span class="s3">"Jack Router"</span>;</p>
+<p class="p5"><span class="s2">Bosque</span>.numInputBusChannels<span class="Apple-tab-span">	</span>= 8;</p>
+<p class="p5"><span class="s2">Bosque</span>.numOutputBusChannels<span class="Apple-tab-span">	</span>= 8;</p>
+<p class="p5"><span class="s2">Bosque</span>.workDir<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>= <span class="s3">"~/Bosque/"</span>.standardizePath; <span class="s4">// ! waveform cache goes here !</span></p>
+<p class="p1"><span class="s2">Bosque</span><span class="s1">.masterBusNumChannels<span class="Apple-tab-span">	</span>= 8;<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span></span>// the size of the master bus</p>
+<p class="p5"><span class="s2">Bosque</span>.masterChanMap<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>= [ 0, 1, 2, 3, 4, 5, 6, 7 ];<span class="Apple-converted-space">  </span><span class="s4">// define the master channel indices</span></p>
+<p class="p1">// location of the timebased library</p>
+<p class="p1"><span class="s2">Bosque</span><span class="s1">.timeBasedJar<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>= </span><span class="s2">nil</span><span class="s1">; </span>// "file:///Users/rutz/Documents/workspace/TimeBased/TimeBased.jar";</p>
+<p class="p1">// Bosque.createSynthDefs;</p>
+<p class="p1">// )</p>
+<p class="p3"><br></p>
+<p class="p1">// ----- launch the app -----</p>
+<p class="p5"><span class="s2">Server</span>.default = ~bosqueServer; <span class="s2">Bosque</span>.launch; <span class="s2">Server</span>.default = <span class="s2">Server</span>.local;</p>
+<p class="p3"><br></p>
+<p class="p5">~cilloTransport = ~doc.getTransport__;</p>
+<p class="p5">~cilloTimeline<span class="Apple-converted-space">  </span>= <span class="s2">JavaObject</span>.getField( ~doc, <span class="s5">\timeline</span> );</p>
+<p class="p5">(</p>
+<p class="p5">~transpListener = <span class="s2">UpdateListener</span>.newFor( <span class="s2">Bosque</span>.default.session.transport, { <span class="s2">arg</span> upd, trnsp, what, frame, rate;</p>
+<p class="p5"><span class="Apple-tab-span">	</span>switch( what,</p>
+<p class="p6"><span class="s1"><span class="Apple-tab-span">	</span></span>\play<span class="s1">, {</span></p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>~cilloTimeline.setPosition( ~notify, (frame / 44.1).asInteger );</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>~cilloTransport.play( rate );</p>
+<p class="p5"><span class="Apple-tab-span">	</span>},</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s5">\stop</span>, { ~cilloTransport.stop }</p>
+<p class="p5"><span class="Apple-tab-span">	</span>);</p>
+<p class="p5">});</p>
+<p class="p5">~timelineListener = <span class="s2">UpdateListener</span>.newFor( <span class="s2">Bosque</span>.default.session.timeline, { <span class="s2">arg</span> upd, trnsp, frame;</p>
+<p class="p1"><span class="s1"><span class="Apple-tab-span">	</span></span>// note: the bosque session has timebase 44100, cillo has 1000</p>
+<p class="p5"><span class="Apple-tab-span">	</span>~cilloTimeline.setPosition( ~notify, (frame / 44.1).asInteger );</p>
+<p class="p6"><span class="s1">}, </span>\position<span class="s1"> );</span></p>
+<p class="p5">)</p>
+<p class="p3"><br></p>
+<p class="p1">// ~transpListener.remove; ~timelineListener.remove;</p>
+<p class="p3"><br></p>
+<p class="p5"><span class="s2">Server</span>.local.options.device = <span class="s3">"Jack Router"</span>;</p>
+<p class="p1"><span class="s2">Server</span><span class="s1">.local.options.numInputBusChannels = 28;<span class="Apple-tab-span">	</span></span>// !!! must be matched with cillo prefs !!!</p>
+<p class="p1"><span class="s2">Server</span><span class="s1">.local.options.numOutputBusChannels = 28;<span class="Apple-tab-span">	</span></span>// !!! must be matched with cillo prefs !!!</p>
+<p class="p1"><span class="s2">Server</span><span class="s1">.program = </span><span class="s3">"cd \"</span><span class="s1">/</span><span class="s2">Applications</span><span class="s1">/</span><span class="s2">SuperCollider</span><span class="s1">\</span><span class="s3">"; ./scsynth2"</span><span class="s1">; </span>// !!! cannot use jack with same scsynth again !!!</p>
+<p class="p5"><span class="s2">Server</span>.local.reboot;</p>
+<p class="p3"><br></p>
+</body>
+</html>

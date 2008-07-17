@@ -32,23 +32,37 @@
 
 package de.sciss.meloncillo.plugin;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import java.util.prefs.*;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.Font;
+import java.awt.LayoutManager;
+import java.util.Map;
+import java.util.prefs.PreferenceChangeEvent;
+import java.util.prefs.PreferenceChangeListener;
+import java.util.prefs.Preferences;
 
-import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.SpringLayout;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.math.*;
-import de.sciss.meloncillo.session.*;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.app.Application;
+import de.sciss.app.DynamicPrefChangeManager;
 import de.sciss.common.AppWindow;
-import de.sciss.gui.*;
+import de.sciss.gui.AbstractWindowHandler;
+import de.sciss.gui.GUIUtil;
+import de.sciss.gui.PrefCheckBox;
+import de.sciss.gui.PrefComboBox;
+import de.sciss.gui.StringItem;
+import de.sciss.meloncillo.Main;
+import de.sciss.meloncillo.gui.GraphicsUtil;
+import de.sciss.meloncillo.math.BandLimitedResampling;
+import de.sciss.meloncillo.math.LinearInterpolation;
+import de.sciss.meloncillo.math.NearestNeighbour;
+import de.sciss.meloncillo.session.Session;
+import de.sciss.meloncillo.util.PrefsUtil;
 
 /**
  *  A basic superclass for all plug-in related
@@ -100,7 +114,7 @@ implements PreferenceChangeListener
 //	private final FocusTraversalPolicy	focusAlive;
 //	private final FocusTraversalPolicy	focusFrozen;
 
-	private JComponent			ggSettingsMenu;
+//	private JComponent			ggSettingsMenu;
 	private JPanel				topPanel;
 	private JComponent			bottomPanel;
 	private PrefComboBox		ggPlugIn, ggResampling;
@@ -272,49 +286,18 @@ implements PreferenceChangeListener
 // EEE
 	}
 
-	private void settingsStoreSession()
-	{
-		// XXX
-//		((XMLRepresentation) prod.toXML();
-	}
-
-	private void settingsRecallSession()
-	{
-		// XXX
-//		((XMLRepresentation) prod.fromXML();
-//		PrefsUtil.fromXML( Main.prefs.node( PrefsUtil.NODE_SESSION ), domDoc, (Element) nl.item( 0 ));
-	}
-
-	private void createSettingsMenu()
-	{
-		JMenuItem						mi;
-		Action							a;
-		JPopupMenu						popSettings;
-		final de.sciss.app.Application	app = AbstractApplication.getApplication();
-
-		popSettings		= new JPopupMenu();
-		a				= new MenuAction( app.getResourceString( "menuSettingsStoreSession" )) {
-			public void actionPerformed( ActionEvent e )
-			{
-				settingsStoreSession();
-			}		
-		};
-		mi				= new JMenuItem( a );
-		popSettings.add( mi );
-		a				= new MenuAction( app.getResourceString( "menuSettingsRecallSession" )) {
-			public void actionPerformed( ActionEvent e )
-			{
-				settingsRecallSession();
-			}		
-		};
-		mi				= new JMenuItem( a );
-		popSettings.add( mi );
-
-		ggSettingsMenu	= new JLabel( app.getResourceString( "menuSettings" ));
-		ggSettingsMenu.setBorder( new CompoundBorder( new EtchedBorder(), new EmptyBorder( 0, 16, 1, 16 )));
-// XXX
-//		ggSettingsMenu.addMouseListener( new MenuPopupListener( popSettings ));
-	}
+//	private void settingsStoreSession()
+//	{
+//		// XXX
+////		((XMLRepresentation) prod.toXML();
+//	}
+//
+//	private void settingsRecallSession()
+//	{
+//		// XXX
+////		((XMLRepresentation) prod.fromXML();
+////		PrefsUtil.fromXML( Main.prefs.node( PrefsUtil.NODE_SESSION ), domDoc, (Element) nl.item( 0 ));
+//	}
 
 	/**
 	 *	Subclasses provide a panel shown at the frame's

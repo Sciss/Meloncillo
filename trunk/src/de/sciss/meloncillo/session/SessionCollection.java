@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import de.sciss.app.BasicEvent;
-import de.sciss.app.EventManager;
 import de.sciss.meloncillo.util.MapManager;
 
 public interface SessionCollection

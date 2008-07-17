@@ -29,19 +29,23 @@
 
 package de.sciss.meloncillo.session;
 
-import java.awt.*;
-import java.util.*;
+import java.awt.Component;
+import java.awt.Point;
+import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.table.*;
+import javax.swing.AbstractCellEditor;
+import javax.swing.JTable;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
 
-import de.sciss.meloncillo.edit.*;
-import de.sciss.meloncillo.gui.*;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
+import de.sciss.app.AbstractApplication;
+import de.sciss.meloncillo.edit.EditAddSessionObjects;
+import de.sciss.meloncillo.edit.EditRemoveSessionObjects;
+import de.sciss.meloncillo.gui.GraphicsUtil;
 
 /**
  *  @author		Hanns Holger Rutz
@@ -172,8 +176,7 @@ extends JTable
 			{
 				if( e.getSource() == SessionGroupTable.this ) return;
 
-				int i;
-				java.util.List coll;
+				List coll;
 				Point p;
 			
 				switch( e.getModificationType() ) {
@@ -184,7 +187,7 @@ extends JTable
 //					}
 //					try	{
 						coll = calcRowSpans( e.getCollection() );
-						for( i = 0; i < coll.size(); i++ ) {
+						for( int i = 0; i < coll.size(); i++ ) {
 							p = (Point) coll.get( i );
 							model.fireTableRowsUpdated( p.x, p.y );
 						}

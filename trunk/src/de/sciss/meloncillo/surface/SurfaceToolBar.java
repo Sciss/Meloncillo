@@ -31,19 +31,15 @@
 
 package de.sciss.meloncillo.surface;
 
-import java.awt.event.*;
-import java.util.prefs.Preferences;
+import java.awt.event.KeyEvent;
 
-import javax.swing.*;
+import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 
-import de.sciss.meloncillo.*;
-import de.sciss.meloncillo.gui.*;
+import de.sciss.gui.GUIUtil;
+import de.sciss.meloncillo.gui.ToolAction;
+import de.sciss.meloncillo.gui.ToolBar;
 import de.sciss.meloncillo.session.Session;
-import de.sciss.meloncillo.timeline.Timeline;
-import de.sciss.meloncillo.util.*;
-
-import de.sciss.app.*;
-import de.sciss.gui.*;
 
 /**
  *	A palette of tools for editing
@@ -69,7 +65,7 @@ extends ToolBar
 		super( ToolBar.HORIZONTAL );
 
 		ToolAction			toolAction;
-		BlendingAction		actionBlending;
+//		BlendingAction		actionBlending;
 		JToggleButton		toggle;
 
 		toolAction		= new ToolAction( ToolAction.POINTER );

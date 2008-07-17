@@ -126,7 +126,6 @@ import de.sciss.meloncillo.gui.VirtualSurface;
 import de.sciss.meloncillo.io.AudioStake;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.BlendContext;
-import de.sciss.meloncillo.io.DecimatedTrail;
 import de.sciss.meloncillo.io.DecimatedWaveTrail;
 import de.sciss.meloncillo.io.DecimationInfo;
 import de.sciss.meloncillo.math.MathUtil;
@@ -146,10 +145,8 @@ import de.sciss.meloncillo.session.SessionGroup;
 import de.sciss.meloncillo.session.SessionObject;
 import de.sciss.meloncillo.timeline.TimelineEvent;
 import de.sciss.meloncillo.timeline.TimelineListener;
-import de.sciss.meloncillo.timeline.TimelineScroll;
 import de.sciss.meloncillo.transmitter.TrajectoryGenerator;
 import de.sciss.meloncillo.transmitter.Transmitter;
-import de.sciss.meloncillo.util.Dimension2DDouble;
 import de.sciss.meloncillo.util.MapManager;
 import de.sciss.meloncillo.util.PointInTime;
 import de.sciss.meloncillo.util.PrefsUtil;
@@ -186,11 +183,11 @@ implements  VirtualSurface, TimelineListener, TransportListener,
 	private final Session	doc;
 	private final Transport transport;
 	
-	private double	timelineRate;
+//	private double	timelineRate;
 	private long	timelinePos;
 	private long	timelineLen;
 	private final Timer						playTimer;
-	private double							playRate		= 1.0;
+//	private double							playRate		= 1.0;
 
     // --- shapes and paints ---
         
@@ -316,7 +313,7 @@ implements  VirtualSurface, TimelineListener, TransportListener,
 		transport   = doc.getTransport();
 		
 		timelinePos		= doc.timeline.getPosition();
-		timelineRate	= doc.timeline.getRate();
+//		timelineRate	= doc.timeline.getRate();
 		timelineLen		= doc.timeline.getLength();
 		
 		setPreferredSize( new Dimension( 480, 640 ));
@@ -1628,7 +1625,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 
 	public void timelineChanged( TimelineEvent e )
 	{
-		timelineRate	= doc.timeline.getRate();
+//		timelineRate	= doc.timeline.getRate();
 		timelineLen		= doc.timeline.getLength();
 //		playTimer.setDelay( Math.min( (int) (1000 / (vpScale * timelineRate * playRate)), 33 ));
 	}
@@ -1639,7 +1636,7 @@ trns.getAudioTrail().readFrames( frames, 0, new Span( info.span.start, info.span
 
 	public void transportPlay( Transport t, long pos, double rate )
 	{
-		playRate = rate;
+//		playRate = rate;
 //		playTimer.setDelay( Math.min( (int) (1000 / (vpScale * timelineRate * playRate)), 33 ));
 		playTimer.restart();
 	}

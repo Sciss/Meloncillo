@@ -32,7 +32,6 @@ package de.sciss.meloncillo.transmitter;
 import de.sciss.meloncillo.io.AudioTrail;
 import de.sciss.meloncillo.io.DecimatedWaveTrail;
 import de.sciss.meloncillo.session.GroupableSessionObject;
-import de.sciss.meloncillo.session.SessionObject;
 
 /**
  *	A transmitter is one of the two main

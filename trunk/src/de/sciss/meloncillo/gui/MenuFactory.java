@@ -47,7 +47,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.prefs.Preferences;
@@ -58,19 +57,12 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.SpringLayout;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 import de.sciss.util.Flag;
 import de.sciss.util.NumberSpace;
 
 import de.sciss.app.AbstractApplication;
 import de.sciss.app.AbstractCompoundEdit;
-import de.sciss.app.PerformableEdit;
 import de.sciss.common.AppWindow;
 import de.sciss.common.BasicMenuFactory;
 import de.sciss.common.BasicWindowHandler;
@@ -89,11 +81,8 @@ import de.sciss.io.Span;
 import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.debug.HRIRPrepareDialog;
 import de.sciss.meloncillo.edit.BasicCompoundEdit;
-import de.sciss.meloncillo.edit.CompoundSessionObjEdit;
 import de.sciss.meloncillo.edit.EditAddSessionObjects;
-import de.sciss.meloncillo.edit.EditInsertTimeSpan;
 import de.sciss.meloncillo.edit.EditRemoveSessionObjects;
-import de.sciss.meloncillo.edit.EditSetSessionObjects;
 import de.sciss.meloncillo.edit.TimelineVisualEdit;
 import de.sciss.meloncillo.io.AudioStake;
 import de.sciss.meloncillo.io.AudioTrail;
@@ -162,11 +151,11 @@ extends BasicMenuFactory
 	
 	private ActionOpen		actionOpen;
 	
-	private Action	actionInsTimeSpan, actionNewReceivers, actionNewTransmitters, actionNewGroup,
+	private Action	actionNewReceivers, actionNewTransmitters, actionNewGroup,
 					actionRemoveTransmitters, actionRemoveGroups, actionFilter,
 					actionBounce, actionSelectionBackwards,
 					actionShowSurface, actionShowTimeline, actionShowTransport,
-					actionShowObserver, actionShowMeter, actionShowRealtime;
+					actionShowMeter, actionShowRealtime;
 	
 	private Action  actionDebugDumpUndo,
 					actionDebugDumpPrefs, actionJathaDiddler,
@@ -354,8 +343,8 @@ extends BasicMenuFactory
 //												KeyStroke.getKeyStroke( KeyEvent.VK_Q, MENU_SHORTCUT ));
 
 		// --- timeline menu ---
-		actionInsTimeSpan   = new ActionInsTimeSpan( app.getResourceString( "menuInsTimeSpan" ),
-									KeyStroke.getKeyStroke( KeyEvent.VK_E, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
+//		actionInsTimeSpan   = new ActionInsTimeSpan( app.getResourceString( "menuInsTimeSpan" ),
+//									KeyStroke.getKeyStroke( KeyEvent.VK_E, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
 		actionSelectionForward = new ActionSelectionForward( app.getResourceString( "menuSelectionForward" ),
 												KeyStroke.getKeyStroke( KeyEvent.VK_CLOSE_BRACKET, MENU_SHORTCUT + KeyEvent.SHIFT_MASK ));
 		actionSelectionBackwards = new ActionSelectionBackwards( app.getResourceString( "menuSelectionBackwards" ),
@@ -1229,7 +1218,7 @@ extends BasicMenuFactory
 		{
 			List					collSelection;
 			AbstractCompoundEdit	edit;
-			SessionGroup			g;
+//			SessionGroup			g;
 
 //			try {
 //				doc.bird.waitExclusive( doors );
@@ -1271,207 +1260,207 @@ extends BasicMenuFactory
 		}
 	}
 
-	// action for Insert-Time-Span menu item
-	private class ActionInsTimeSpan
-	extends MenuAction
-	implements ProcessingThread.Client
-	{
-		private double defaultValue = 1.0;
-		private String text;
-	
-		private ActionInsTimeSpan( String text, KeyStroke shortcut )
-		{
-			super( text, shortcut );
-			
-			this.text = text;
-		}
-
-		/**
-		 *  Insert time span into all tracks.
-		 *  Queries the amount of time from the user
-		 *  and starts a ProcessingThread that will
-		 *  update the trajectory files.
-		 */
-		public void actionPerformed( ActionEvent e )
-		{
-			String	result;
-			double	length		= 0.0;
-			long	start, stop;
-
-			result  = JOptionPane.showInputDialog( null,
-				AbstractApplication.getApplication().getResourceString( "inputDlgInsTimeSpan" ),
-				String.valueOf( defaultValue ));  // XXX localized number?
-				
-			if( result == null ) return;
-			try {
-				length = Double.parseDouble( result );
-			}
-			catch( NumberFormatException e1 ) {
-				System.err.println( e1.getLocalizedMessage() );
-			}
-			
-			try {
-				doc.bird.waitShared( Session.DOOR_TIME );
-				start   = doc.timeline.getPosition();
-				stop    = start + (long) (doc.timeline.getRate() * length + 0.5);
-				if( stop <= start ) return;
-				defaultValue = length;
-			}
-			finally {
-				doc.bird.releaseShared( Session.DOOR_TIME );
-			}
-
-			final Main root = (Main) AbstractApplication.getApplication();
-//			new ProcessingThread( this, root, root, doc, text, new Span( start, stop ), Session.DOOR_TIMETRNSMTE );
-			final ProcessingThread pt;
-			pt = new ProcessingThread( this, root, text );
-			pt.putClientArg( "span", new Span( start, stop ));
-			pt.start();
-		}
-
-		/**
-		 *  Insert new data into the trajectory files.
-		 *  If the timeline was empty, the tractories of
-		 *  the selected transmitters are placed in a circle.
-		 *  Otherwise the preceeding and succeeding frame
-		 *  is linearly interpolated.
-		 *  
-		 *  @synchronization	waitExclusive on DOOR_TIMETRNSMTE
-		 */
-		public int processRun( ProcessingThread context )
-		throws IOException
-		{
-			Transmitter						trns;
-			AudioTrail						at;
-			float[][]						frameBuf	= new float[2][4096];
-			float[][]						interpBuf   = null;
-			float[]							chBuf;
-			int								i, j, ch, len, interpType;
-			float							f1, f2, interpWeight;
-			double							d1;
-			Span							visibleSpan, interpSpan;
-			Span							span		= (Span) context.getClientArg( "span" );
-//			TrackSpan						ts;
-			long							start, interpOff, interpLen;
-			long							progress	= 0;
-			long							progressLen;
-			boolean							success		= false;
-			CompoundSessionObjEdit			edit;
-			AudioStake						as;
-
-			if( span.getStart() > doc.timeline.getLength() ) return DONE;
-			
-			interpWeight= 1.0f / (float) (span.getLength() + 1); // +1 because the linear interpolation excludes the neighbouring samples
-			visibleSpan = doc.timeline.getVisibleSpan();
-			// try to linearly interpolate between sample just before the timeline position
-			// and the old sample at the timeline position; if there are no samples for
-			// interpolation (this happens at the session start or session en), then
-			// just repeat the nearest neighbour.
-			interpSpan  = new Span( Math.max( 0, span.getStart() - 1 ),
-									Math.min( doc.timeline.getLength(), span.getStart() + 1 ));
-			interpLen   = span.getLength();
-			interpType  = (int) Math.min( 2, interpSpan.getLength() );
-			if( interpType > 1 ) {
-				interpBuf   = new float[2][(int) Math.min( interpLen, 4096 )];
-			}
-			progressLen = Math.max( 1, interpLen ) * doc.getTransmitters().size();
-
-			edit = new CompoundSessionObjEdit( this, doc.getTransmitters().getAll(), Transmitter.OWNER_TRAJ,
-											   null, null, getValue( NAME ).toString() );
-			try {
-				for( i = 0; i < doc.getTransmitters().size(); i++ ) {
-					trns	= (Transmitter) doc.getTransmitters().get( i );
-					at		= trns.getAudioTrail();
-
-					switch( interpType ) {
-					case 1: // only one neighbouring sample -> repeat it
-					case 0: // session is empty -> fill with angular positions
-						if( interpType == 0 ) {
-							d1		= ((double) i / (double) doc.getTransmitters().size() - 0.25) * Math.PI * 2;
-							f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
-							f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
-						} else {
-							at.readFrames( frameBuf, 0, interpSpan );
-//							at.read( interpSpan, frameBuf, 0 );
-							f1		= frameBuf[0][0];
-							f2		= frameBuf[1][0];
-						}
-						for( j = 0; j < 4096; j++ ) {
-							frameBuf[0][j] = f1;
-							frameBuf[1][j] = f2;
-						}
-						at			= trns.getAudioTrail();
-//						at.copyRangeFrom( srcTrail, copySpan, insertPos, mode, source, ce, trackMap, bcPre, bcPost )
-//						ts			= at.beginInsert( span, edit );
-						as			= at.alloc( span );
-						for( start = span.getStart(); start < span.getStop(); start += len ) {
-							len		= (int) Math.min( 4096, span.getStop() - start );
-//							at.continueWrite( ts, frameBuf, 0, len );
-							as.writeFrames( frameBuf, 0, new Span( start, start + len ));
-						}
-//						at.finishWrite( ts, edit );
-						at.editInsert( this, span, edit );
-						at.editAdd( this, as, edit );
-						progress++;
-						context.setProgression( (float) progress / (float) progressLen );
-						break;
-
-					case 2:	// two neighbouring samples -> interpolation
-//						at.read( interpSpan, frameBuf, 0 );
-						at.readFrames( frameBuf, 0, interpSpan );
-//						ts = at.beginInsert( span, edit );
-						as = at.alloc( span );
-						for( start = span.getStart(), interpOff = 1; start < span.getStop();
-							 start += len, interpOff += len ) {
-							 
-							len = (int) Math.min( 4096, span.getStop() - start );
-							for( ch = 0; ch < 2; ch++ ) {
-								f1		= frameBuf[ch][0];
-								f2		= (frameBuf[ch][1] - f1) * interpWeight;
-								chBuf   = interpBuf[ch];
-								for( j = 0; j < len; j++ ) {
-									chBuf[j] = (float) (interpOff + j) * f2 + f1;
-								}
-							}
-//							at.continueWrite( ts, interpBuf, 0, len );
-							as.writeFrames( interpBuf, 0, new Span( start, start + len ));
-							progress += len;
-							context.setProgression( (float) progress / (float) progressLen );
-						}
-//						at.finishWrite( ts, edit );
-						at.editInsert( this, span, edit );
-						at.editAdd( this, as, edit );
-						break;
-					
-					default:
-						assert false : interpType;
-					} // switch( interpType )
-				} // for( i = 0; i < doc.transmitterCollection.size(); )
-
-				edit.addPerform( new EditInsertTimeSpan( this, doc, span ));
-				if( visibleSpan.isEmpty() ) {
-					edit.addPerform( TimelineVisualEdit.scroll( this, doc, span ));
-				} else if( visibleSpan.contains( span.getStart() )) {
-					edit.addPerform( TimelineVisualEdit.scroll( this, doc,
-						new Span( visibleSpan.getStart(), visibleSpan.getStop() + span.getLength() )));
-				}
-				
-				edit.perform();
-				edit.end(); // fires doc.tc.modified()
-				doc.getUndoManager().addEdit( edit );
-				success = true;
-			}
-			catch( IOException e1 ) {
-				edit.cancel();
-				context.setException( e1 );
-			}
-			
-			return success ? DONE : FAILED;
-		} // run()
-
-		public void processFinished( ProcessingThread context ) {}
-		public void processCancel( ProcessingThread context ) {}
-	} // class actionInsTimeSpanClass
+//	// action for Insert-Time-Span menu item
+//	private class ActionInsTimeSpan
+//	extends MenuAction
+//	implements ProcessingThread.Client
+//	{
+//		private double defaultValue = 1.0;
+//		private String text;
+//	
+//		private ActionInsTimeSpan( String text, KeyStroke shortcut )
+//		{
+//			super( text, shortcut );
+//			
+//			this.text = text;
+//		}
+//
+//		/**
+//		 *  Insert time span into all tracks.
+//		 *  Queries the amount of time from the user
+//		 *  and starts a ProcessingThread that will
+//		 *  update the trajectory files.
+//		 */
+//		public void actionPerformed( ActionEvent e )
+//		{
+//			String	result;
+//			double	length		= 0.0;
+//			long	start, stop;
+//
+//			result  = JOptionPane.showInputDialog( null,
+//				AbstractApplication.getApplication().getResourceString( "inputDlgInsTimeSpan" ),
+//				String.valueOf( defaultValue ));  // XXX localized number?
+//				
+//			if( result == null ) return;
+//			try {
+//				length = Double.parseDouble( result );
+//			}
+//			catch( NumberFormatException e1 ) {
+//				System.err.println( e1.getLocalizedMessage() );
+//			}
+//			
+//			try {
+//				doc.bird.waitShared( Session.DOOR_TIME );
+//				start   = doc.timeline.getPosition();
+//				stop    = start + (long) (doc.timeline.getRate() * length + 0.5);
+//				if( stop <= start ) return;
+//				defaultValue = length;
+//			}
+//			finally {
+//				doc.bird.releaseShared( Session.DOOR_TIME );
+//			}
+//
+//			final Main root = (Main) AbstractApplication.getApplication();
+////			new ProcessingThread( this, root, root, doc, text, new Span( start, stop ), Session.DOOR_TIMETRNSMTE );
+//			final ProcessingThread pt;
+//			pt = new ProcessingThread( this, root, text );
+//			pt.putClientArg( "span", new Span( start, stop ));
+//			pt.start();
+//		}
+//
+//		/**
+//		 *  Insert new data into the trajectory files.
+//		 *  If the timeline was empty, the tractories of
+//		 *  the selected transmitters are placed in a circle.
+//		 *  Otherwise the preceeding and succeeding frame
+//		 *  is linearly interpolated.
+//		 *  
+//		 *  @synchronization	waitExclusive on DOOR_TIMETRNSMTE
+//		 */
+//		public int processRun( ProcessingThread context )
+//		throws IOException
+//		{
+//			Transmitter						trns;
+//			AudioTrail						at;
+//			float[][]						frameBuf	= new float[2][4096];
+//			float[][]						interpBuf   = null;
+//			float[]							chBuf;
+//			int								i, j, ch, len, interpType;
+//			float							f1, f2, interpWeight;
+//			double							d1;
+//			Span							visibleSpan, interpSpan;
+//			Span							span		= (Span) context.getClientArg( "span" );
+////			TrackSpan						ts;
+//			long							start, interpOff, interpLen;
+//			long							progress	= 0;
+//			long							progressLen;
+//			boolean							success		= false;
+//			CompoundSessionObjEdit			edit;
+//			AudioStake						as;
+//
+//			if( span.getStart() > doc.timeline.getLength() ) return DONE;
+//			
+//			interpWeight= 1.0f / (float) (span.getLength() + 1); // +1 because the linear interpolation excludes the neighbouring samples
+//			visibleSpan = doc.timeline.getVisibleSpan();
+//			// try to linearly interpolate between sample just before the timeline position
+//			// and the old sample at the timeline position; if there are no samples for
+//			// interpolation (this happens at the session start or session en), then
+//			// just repeat the nearest neighbour.
+//			interpSpan  = new Span( Math.max( 0, span.getStart() - 1 ),
+//									Math.min( doc.timeline.getLength(), span.getStart() + 1 ));
+//			interpLen   = span.getLength();
+//			interpType  = (int) Math.min( 2, interpSpan.getLength() );
+//			if( interpType > 1 ) {
+//				interpBuf   = new float[2][(int) Math.min( interpLen, 4096 )];
+//			}
+//			progressLen = Math.max( 1, interpLen ) * doc.getTransmitters().size();
+//
+//			edit = new CompoundSessionObjEdit( this, doc.getTransmitters().getAll(), Transmitter.OWNER_TRAJ,
+//											   null, null, getValue( NAME ).toString() );
+//			try {
+//				for( i = 0; i < doc.getTransmitters().size(); i++ ) {
+//					trns	= (Transmitter) doc.getTransmitters().get( i );
+//					at		= trns.getAudioTrail();
+//
+//					switch( interpType ) {
+//					case 1: // only one neighbouring sample -> repeat it
+//					case 0: // session is empty -> fill with angular positions
+//						if( interpType == 0 ) {
+//							d1		= ((double) i / (double) doc.getTransmitters().size() - 0.25) * Math.PI * 2;
+//							f1		= (float) (0.25 * (2.0 + Math.cos( d1 )));
+//							f2		= (float) (0.25 * (2.0 + Math.sin( d1 )));
+//						} else {
+//							at.readFrames( frameBuf, 0, interpSpan );
+////							at.read( interpSpan, frameBuf, 0 );
+//							f1		= frameBuf[0][0];
+//							f2		= frameBuf[1][0];
+//						}
+//						for( j = 0; j < 4096; j++ ) {
+//							frameBuf[0][j] = f1;
+//							frameBuf[1][j] = f2;
+//						}
+//						at			= trns.getAudioTrail();
+////						at.copyRangeFrom( srcTrail, copySpan, insertPos, mode, source, ce, trackMap, bcPre, bcPost )
+////						ts			= at.beginInsert( span, edit );
+//						as			= at.alloc( span );
+//						for( start = span.getStart(); start < span.getStop(); start += len ) {
+//							len		= (int) Math.min( 4096, span.getStop() - start );
+////							at.continueWrite( ts, frameBuf, 0, len );
+//							as.writeFrames( frameBuf, 0, new Span( start, start + len ));
+//						}
+////						at.finishWrite( ts, edit );
+//						at.editInsert( this, span, edit );
+//						at.editAdd( this, as, edit );
+//						progress++;
+//						context.setProgression( (float) progress / (float) progressLen );
+//						break;
+//
+//					case 2:	// two neighbouring samples -> interpolation
+////						at.read( interpSpan, frameBuf, 0 );
+//						at.readFrames( frameBuf, 0, interpSpan );
+////						ts = at.beginInsert( span, edit );
+//						as = at.alloc( span );
+//						for( start = span.getStart(), interpOff = 1; start < span.getStop();
+//							 start += len, interpOff += len ) {
+//							 
+//							len = (int) Math.min( 4096, span.getStop() - start );
+//							for( ch = 0; ch < 2; ch++ ) {
+//								f1		= frameBuf[ch][0];
+//								f2		= (frameBuf[ch][1] - f1) * interpWeight;
+//								chBuf   = interpBuf[ch];
+//								for( j = 0; j < len; j++ ) {
+//									chBuf[j] = (float) (interpOff + j) * f2 + f1;
+//								}
+//							}
+////							at.continueWrite( ts, interpBuf, 0, len );
+//							as.writeFrames( interpBuf, 0, new Span( start, start + len ));
+//							progress += len;
+//							context.setProgression( (float) progress / (float) progressLen );
+//						}
+////						at.finishWrite( ts, edit );
+//						at.editInsert( this, span, edit );
+//						at.editAdd( this, as, edit );
+//						break;
+//					
+//					default:
+//						assert false : interpType;
+//					} // switch( interpType )
+//				} // for( i = 0; i < doc.transmitterCollection.size(); )
+//
+//				edit.addPerform( new EditInsertTimeSpan( this, doc, span ));
+//				if( visibleSpan.isEmpty() ) {
+//					edit.addPerform( TimelineVisualEdit.scroll( this, doc, span ));
+//				} else if( visibleSpan.contains( span.getStart() )) {
+//					edit.addPerform( TimelineVisualEdit.scroll( this, doc,
+//						new Span( visibleSpan.getStart(), visibleSpan.getStop() + span.getLength() )));
+//				}
+//				
+//				edit.perform();
+//				edit.end(); // fires doc.tc.modified()
+//				doc.getUndoManager().addEdit( edit );
+//				success = true;
+//			}
+//			catch( IOException e1 ) {
+//				edit.cancel();
+//				context.setException( e1 );
+//			}
+//			
+//			return success ? DONE : FAILED;
+//		} // run()
+//
+//		public void processFinished( ProcessingThread context ) {}
+//		public void processCancel( ProcessingThread context ) {}
+//	} // class actionInsTimeSpanClass
 
 	/**
 	 *  Action to be attached to

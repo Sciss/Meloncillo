@@ -115,7 +115,7 @@ import de.sciss.util.Flag;
  *  forwarded to the <code>MainFrame</code>.
  *
  *  @author		Hanns Holger Rutz
- *  @version	0.75, 10-Jun-08
+ *  @version	0.75, 17-Jul-08
  */
 public class Main
 extends BasicApplication

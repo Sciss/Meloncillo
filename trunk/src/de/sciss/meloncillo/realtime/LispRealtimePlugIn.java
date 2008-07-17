@@ -50,7 +50,6 @@ import de.sciss.app.BasicEvent;
 import de.sciss.app.EventManager;
 import de.sciss.io.IOUtil;
 import de.sciss.io.Span;
-import de.sciss.meloncillo.Main;
 import de.sciss.meloncillo.lisp.AdvancedJatha;
 import de.sciss.meloncillo.plugin.LispPlugIn;
 import de.sciss.meloncillo.plugin.PlugInContext;

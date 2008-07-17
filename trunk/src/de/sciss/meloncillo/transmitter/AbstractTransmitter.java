@@ -35,7 +35,6 @@ import java.util.Map;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import de.sciss.meloncillo.session.AbstractSessionObject;
 import de.sciss.meloncillo.session.BasicSessionCollection;
 import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.timeline.Track;

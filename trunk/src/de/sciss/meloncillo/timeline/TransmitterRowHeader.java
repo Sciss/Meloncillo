@@ -39,11 +39,9 @@ import javax.swing.JPanel;
 import javax.swing.SpringLayout;
 import javax.swing.undo.UndoManager;
 
-//import de.sciss.meloncillo.gui.PanoramaButton;
 import de.sciss.meloncillo.session.FlagsPanel;
 import de.sciss.meloncillo.session.MutableSessionCollection;
 import de.sciss.meloncillo.session.SessionCollection;
-import de.sciss.meloncillo.transmitter.Transmitter;
 
 /**
  *	A row header in Swing's table 'ideology'
