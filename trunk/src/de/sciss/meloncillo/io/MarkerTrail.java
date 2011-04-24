@@ -74,7 +74,7 @@ extends BasicTrail
 //		}
 //	}
 
-	protected BasicTrail createEmptyCopy()
+	public BasicTrail createEmptyCopy()
 	{
 //		return new MarkerTrail( doc, false );	// don't re-create osc listener!!
 		return new MarkerTrail();

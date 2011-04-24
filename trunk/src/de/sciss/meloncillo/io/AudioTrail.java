@@ -175,7 +175,7 @@ extends BasicTrail
 		return new AudioTrail( channelMaps, afd.rate, new AudioFile[ 1 ]);
 	}
 
-	protected BasicTrail createEmptyCopy()
+	public BasicTrail createEmptyCopy()
 	{
 		return new AudioTrail( this.channelMaps, this.getRate(), new AudioFile[ 0 ]);
 	}

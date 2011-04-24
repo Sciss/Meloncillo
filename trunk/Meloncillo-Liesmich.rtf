@@ -1,0 +1,59 @@
+{\rtf1\mac\ansicpg10000\cocoartf102
+{\fonttbl\f0\fswiss\fcharset77 Helvetica-Bold;\f1\fswiss\fcharset77 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww9000\viewh9000\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\ql\qnatural
+
+\f0\b\fs28 \cf0 Meloncillo\
+
+\f1\b0\fs24 \
+
+\f0\b Benutzung der SuperCollider Plug-Ins:\
+
+\f1\b0 - Windows -> Realtime Plug-In \'9affnen\
+- dort : Lisp Source "[SC] Demo" w\'8ahlen, ggf. Doppler + Distortion deaktivieren\
+- Soundfile in das Feld neben "Transmitter = Sounds" laden\
+      Konvention : <soundfilename>-<nummer>.<ext>\
+		z.B.  klang-1.aif\
+		        string-2.wav\
+    wobei die Nummer mit dem Namen der Transmitter korrespondieren mu\'a7\
+    (z.B. klang-1.aif f\'9fr Transmitter T1, klang-2.aif f\'9fr Transmitter T2 usw.)\
+\
+\pard\tx565\tx1133\tx1700\tx2266\tx2832\tx3401\tx3967\tx4535\tx5102\tx5669\tx6235\tx6802\ql\qnatural
+\cf0 ACHTUNG : Jedes File sollte mono sein\
+\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\ql\qnatural
+\cf0 - SuperCollider starten:\
+	- Terminal \'9affnen\
+	- cd /Applications/SuperCollider_f\
+	- ./scsynth -o 8 -u 57110\
+- in Meloncillo Realtime anschalten = Ball-icon im Transport Fenster\
+- Achtung : L\'9aschen oder Hinzuf\'9fgen von Objekten wie Receiver, Transmitter\
+	nur bei deaktiviertem Realtime (Ball-Icon ausschalten)\
+\
+\pard\tx565\tx1133\tx1700\tx2266\tx2833\tx3401\tx3967\tx4535\tx5102\tx5669\tx6235\tx6802\ql\qnatural
+
+\f0\b \cf0 Benutzung der CSound Plug-Ins:\
+\pard\tx565\tx1133\tx1700\tx2266\tx2833\tx3401\tx3967\tx4535\tx5102\tx5669\tx6235\tx6802\ql\qnatural
+
+\f1\b0 \cf0 - funktioniert nur Offline, d.h. im Bounce-Modus\
+- File -> Bounce to Disk\
+- dort : Lisp Source "[CS] Binaural", ggf. Doppler + Reverb deaktivieren\
+- Soundfile in das Feld neben "Inputer Transmitter Sounds" laden\
+      Konvention : <soundfilename>-<nummer>.<ext>\
+		z.B.  klang-1.aif\
+		        string-2.wav\
+    wobei die Nummer mit dem Namen der Transmitter korrespondieren mu\'a7\
+    (z.B. klang-1.aif f\'9fr Transmitter T1, klang-2.aif f\'9fr Transmitter T2 usw.)\
+\
+ACHTUNG : CSound hat Probleme mit 24bit Files. Jedes File sollte mono sein\
+\
+- Ziel-Soundfile (Bounce-file) in "Output Receiver Sounds" eintragen\
+   und Format bestimmen\
+\
+- "Render" klicken\
+\
+ACHTUNG : CSound Version 4.23f12 funktioniert nicht auf MacOS wg.\
+falscher ASCII-Lineendings. Bitte Version 4.23f11 benutzen\
+\
+}

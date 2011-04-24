@@ -123,7 +123,7 @@ extends BasicTrail
 		super();
 	}
 
-	protected BasicTrail createEmptyCopy()
+	public BasicTrail createEmptyCopy()
 	{
 		throw new IllegalStateException( "Not allowed" );
 	}
