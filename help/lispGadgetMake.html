@@ -27,8 +27,8 @@ the contents to the GUI element, for example the text string of a textfield or t
 <P>example:</P>
 <PRE>
     (defun create-gui NIL (progn
-        (gadget-make NIL "LABEL" '(1 1 2 1) "Master Gain")
-        (gadget-make master-gain "NUMBER" '(3 1) 0.0 '("dB"))
+        (gadget-make NIL "LABEL" '(1 1 2 1) "Main Gain")
+        (gadget-make main-gain "NUMBER" '(3 1) 0.0 '("dB"))
         (gadget-make NIL "LABEL" '(1 2 2 1) "Output Sound File")
         (gadget-make output-file "PATH" '(3 2 3 1) "output.aif"
             '("Choose Output File" "OUTPUT"))

@@ -110,7 +110,7 @@ extends AbstractWindowHandler
 	private final FloatingPaletteHandler	fph;
 	private final boolean					internalFrames, floating;
 	protected final JDesktopPane			desktop;
-	private final MasterFrame				masterFrame;
+	private final MainFrame mainFrame;
 //	private final Window					hiddenTopWindow;
 	
 	private final List						collBorrowListeners		= new ArrayList();
@@ -138,23 +138,14 @@ extends AbstractWindowHandler
 		fph				= FloatingPaletteHandler.getInstance();
 
 		if( internalFrames ) {
-			masterFrame = new MasterFrame();
-			masterFrame.setTitle( root.getName() );
-//			masterFrame.setSize( 400, 400 ); // XXX
-//			masterFrame.setVisible( true );
+			mainFrame = new MainFrame();
+			mainFrame.setTitle( root.getName() );
 			desktop		= new JDesktopPane();
-			masterFrame.getContentPane().add( desktop );
-//			hiddenTopWindow = null;
+			mainFrame.getContentPane().add( desktop );
 		} else {
 			desktop		= null;
-			masterFrame	= null;
+			mainFrame = null;
 			fph.setListening( true );
-//			if( floating ) {
-//				hiddenTopWindow = new Frame();
-//				GUIUtil.setAlwaysOnTop( hiddenTopWindow, true );
-//			} else {
-//				hiddenTopWindow = null;
-//			}
 		}
 		
 		nScreen		= calcOuterBounds();
@@ -191,9 +182,9 @@ extends AbstractWindowHandler
 	// make sure the menuFactory is ready when calling this
 	public void init()
 	{
-		if( masterFrame != null ) {
-			masterFrame.setDefaultMenuBar( root.getMenuBarRoot().createBar( masterFrame ));
-			masterFrame.setVisible( true );
+		if( mainFrame != null ) {
+			mainFrame.setDefaultMenuBar( root.getMenuBarRoot().createBar(mainFrame));
+			mainFrame.setVisible( true );
 		}
 	}
 	
@@ -312,9 +303,9 @@ extends AbstractWindowHandler
 		return desktop;
 	}
 	
-	public AbstractWindow getMasterFrame()
+	public AbstractWindow getMainFrame()
 	{
-		return masterFrame;
+		return mainFrame;
 	}
 	
 //	public Window getHiddenTopWindow()
@@ -324,8 +315,8 @@ extends AbstractWindowHandler
 	
 	public Rectangle getWindowSpace()
 	{
-		if( masterFrame != null ) {
-			return new Rectangle( 0, 0, masterFrame.getWidth(), masterFrame.getHeight() );
+		if( mainFrame != null ) {
+			return new Rectangle( 0, 0, mainFrame.getWidth(), mainFrame.getHeight() );
 		} else {
 			return GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
 		}
@@ -532,13 +523,13 @@ extends AbstractWindowHandler
 	}
 
 	// -------------------- internal classes --------------------
-	private static class MasterFrame
+	private static class MainFrame
 	extends JFrame
 	implements AbstractWindow
 	{
 		private JMenuBar bar = null;
 		
-		protected MasterFrame()
+		protected MainFrame()
 		{
 			super();
 			

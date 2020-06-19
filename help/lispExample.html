@@ -7,9 +7,13 @@
 <body>
 <h1>Writing LISP Plug-Ins : A Plug-In Case Study</h1>
 <P>
-to learn how to write your own lisp plug-ins, it's best to look close at one example. we will discuss one plug-in that is installed both for realtime synthesis and bouncing to disk, the amplitude matrix for supercollider. before you continue, be sure you have read the plug-in's <A HREF="sc-amplitudematrix.html">user manual</A>.
+To learn how to write your own lisp plug-ins, it's best to look close at one example. we will discuss one plug-in
+that is installed both for realtime synthesis and bouncing to disk, the amplitude matrix for SuperCollider.
+Before you continue, be sure you have read the plug-in's <A HREF="sc-amplitudematrix.html">user manual</A>.
 </P>
-the plug-in installed four times, twice for realtime in the file <code>&quot;realtimelist.xml&quot;</code>:
+<p>
+The plug-in installed four times, twice for realtime in the file <code>&quot;realtimelist.xml&quot;</code>:
+</p>
 <PRE>
 	&lt;synthcontrol name="scrt-namplitudematrix"
 	    screenname="[SC] Amplitude Matrix"
@@ -20,7 +24,9 @@ the plug-in installed four times, twice for realtime in the file <code>&quot;rea
 	    file="scrt-iamplitudematrix.lisp"
 	    help="sc-amplitudematrix"/&gt;
 </PRE>
+<p>
 and twice for bouncing in the file <code>&quot;bouncelist.xml&quot;</code>:
+</p>
 <PRE>
 	&lt;synthcontrol name="scol-namplitudematrix"
 	    screenname="[SC] Amplitude Matrix"
@@ -31,10 +37,18 @@ and twice for bouncing in the file <code>&quot;bouncelist.xml&quot;</code>:
 	    file="scol-iamplitudematrix.lisp"
 	    help="sc-amplitudematrix"/&gt;
 </PRE>
-explanation of the xml attributes: <code>name</code> is a key string for storing preference settings. it is be possible to share the same key for offline and realtime plug-in, but here we use different keys. <code>screenname</code> is the string presented to the user in the plug-in frame's source code list. <code>help</code> is optional and refers to a user manual in the help folder. the suffix <code>&quot;.html&quot;</code> is omitted here. <code>file</code> specifies the name of the lisp source code file relative to the lisp folder.
-</P>
-<P>
-we see that the four entries share the same manual. the normal and inverse mode are distinguished by a preceding character <code>'n'</code> or <code>'i'</code>. the lisp files given above are really small. they just define a few variables and then load the main source code:
+<p>
+Explanation of the xml attributes: <code>name</code> is a key string for storing preference settings. It is be
+possible to share the same key for offline and realtime plug-in, but here we use different keys.
+<code>screenname</code> is the string presented to the user in the plug-in frame's source code list.
+<code>help</code> is optional and refers to a user manual in the help folder. the suffix <code>&quot;.html&quot;</code> is
+omitted here. <code>file</code> specifies the name of the lisp source code file relative to the lisp folder.
+</p>
+<p>
+We see that the four entries share the same manual. the normal and inverse mode are distinguished by a preceding
+character <code>'n'</code> or <code>'i'</code>. the lisp files given above are really small. they just define a
+few variables and then load the main source code:
+</p>
 <PRE>
 (setq normal NIL <I CLASS="red">... or ...</I> T)
 (setq prefs (gethash "PREFERENCES" cillo))
@@ -42,25 +56,42 @@ we see that the four entries share the same manual. the normal and inverse mode 
                                         <I CLASS="red">... or ...</I> "scol-amplitudematrix.lisp"
 ))
 </PRE>
-where &quot;rt&quot; is an abbrevation for realtime and &quot;ol&quot; for offline (bouncing). <code>load</code> is used to include either realtime or offline source code. the parent folder is found by looking at the <code>&quot;BASEDIRECTORY&quot;</code> preferences and using the special function <code>path-concat</code>. these two source code files themselves load one common main source file <code>&quot;sc-amplitudematrix.lisp&quot;</code>. the idea is to share as many code as possible to avoid extra work when modifying the plug-in. the files <code>&quot;scrt-amplitudematrix.lisp&quot;</code> and <code>&quot;scol-amplitudematrix.lisp&quot;</code> define only a few functions that change the main script's behaviour depending on the plug-in environment (realtime or bounce).
-</P>
+<p>
+Where &quot;rt&quot; is an abbreviation for realtime and &quot;ol&quot; for offline (bouncing). <code>load</code> is used to include
+either realtime or offline source code. the parent folder is found by looking at the <code>&quot;BASEDIRECTORY&quot;</code>
+preferences and using the special function <code>path-concat</code>. these two source code files themselves load
+one common main source file <code>&quot;sc-amplitudematrix.lisp&quot;</code>. the idea is to share as many code as possible
+to avoid extra work when modifying the plug-in. the files <code>&quot;scrt-amplitudematrix.lisp&quot;</code> and
+<code>&quot;scol-amplitudematrix.lisp&quot;</code> define only a few functions that change the main script's behaviour
+depending on the plug-in environment (realtime or bounce).
+</p>
 <H3>scrt-amplitudematrix.lisp</H3>
 <P>
-the source code starts with a variable initialization:
+The source code starts with a variable initialization:
+</P>
 <PRE>
 (setq realtime T)
 </PRE>
-this variable can be used in the main script to branch depending on realtime or offline mode.
+<p>
+This variable can be used in the main script to branch depending on realtime or offline mode.
+</p>
 <PRE>
 (defun my-bundle-send (timetag bundle)
     (not (null (osc-bundle-send-and-wait 'scosc timetag bundle "/synced" 3000)))
 )
 </PRE>
-in realtime mode, <code>my-bundle-send</code> will send the OSC bundle and wait for the asynchronous tasks to be completed. it assumes that the caller of this function has appended a <code>&quot;/sync&quot;</code> command at the end of the OSC bundle, and waits for the reply message <code>&quot;/synced&quot;</code>. it returns <code>T</code> if successful, <code>NIL</code> otherwise.
+<p>
+In realtime mode, <code>my-bundle-send</code> will send the OSC bundle and wait for the asynchronous tasks to be
+completed. it assumes that the caller of this function has appended a <code>&quot;/sync&quot;</code> command at the end of
+the OSC bundle, and waits for the reply message <code>&quot;/synced&quot;</code>. it returns <code>T</code> if successful,
+<code>NIL</code> otherwise.
+</p>
 <PRE>
 (load (path-concat (gethash "BASEDIRECTORY" prefs) "sc-amplitudematrix.lisp"))
 </PRE>
-this command loads the main source file.
+<p>
+This command loads the main source file.
+</p>
 <PRE>
 (defun cleanup NIL (progn
     (if (oboundp 'scsync) (progn
@@ -70,8 +101,8 @@ this command loads the main source file.
     (if (oboundp 'scsense) (byte-buffer-free 'scsense) NIL)
     (if (oboundp 'scosc) (progn
         (setq bundle (list
-            (list "/n_run" master-group 0)
-            (list "/g_freeAll" master-group)
+            (list "/n_run" main-group 0)
+            (list "/g_freeAll" main-group)
         ))
         (iter 'bufidx 0 buf-counter
             '(setq bundle (append bundle (list
@@ -86,17 +117,31 @@ this command loads the main source file.
     T   ; success
 ))
 </PRE>
-generally cleaning up is not so different in realtime or offline mode. however in offline we can ignore buffer freeing etc. in realtime mode we should release all allocated buffers and stop trigger notification. you can see that two OSC sockets were bound to the lisp symbols <code>scosc</code> (for communication from meloncillo to supercollider) and <code>scsync</code> (for trigger communication from supercollider to meloncillo). because <code>cleanup</code> will also be called when the plug-in initialization fails, we have to check if the socket was already created. this is done through the <code>oboundp</code> predicate. <code>iter</code> is a function we defined in the main source code file. it's therefore crucial to load the main source code before defining <code>cleanup</code>! <code>iter</code> will be described further below. finally, <code>cleanup</code> exits with return code <code>T</code> to indicate that cleaning up was successful.
-</P>
+<p>
+Generally cleaning up is not so different in realtime or offline mode. however in offline we can ignore buffer
+freeing etc. in realtime mode we should release all allocated buffers and stop trigger notification. you can see
+that two OSC sockets were bound to the lisp symbols <code>scosc</code> (for communication from Meloncillo to
+SuperCollider) and <code>scsync</code> (for trigger communication from SuperCollider to Meloncillo). Because
+<code>cleanup</code> will also be called when the plug-in initialization fails, we have to check if the socket was
+already created. this is done through the <code>oboundp</code> predicate. <code>iter</code> is a function we defined
+in the main source code file. it's therefore crucial to load the main source code before defining
+<code>cleanup</code>! <code>iter</code> will be described further below. finally, <code>cleanup</code> exits with
+return code <code>T</code> to indicate that cleaning up was successful.
+</p>
 <H3>scol-amplitudematrix.lisp</H3>
-<P>
-the source starts similar, only <code>realtime</code> is set to <code>NIL</code> here. we shall discuss only the main differences:
+<p>
+The source starts similar, only <code>realtime</code> is set to <code>NIL</code> here. we shall discuss only the
+main differences:
+</p>
 <PRE>
 (defun my-bundle-send (timetag bundle)
     (not (null (osc-bundle-send 'scosc timetag bundle)))
 )
 </PRE>
-since in bounce-to-disk mode, the OSC commands are written to a temporary harddisk file, we don't use the synchronous command <code>osc-bundle-send-and-wait</code> here.
+<p>
+Since in bounce-to-disk mode, the OSC commands are written to a temporary hard-disk file, we don't use the
+synchronous command <code>osc-bundle-send-and-wait</code> here.
+</p>
 <PRE>
 (defun parse-sc-output (textline)
     (if (and (&gt; (length textline) 14) (eql "nextOSCPacket "
@@ -114,7 +159,14 @@ since in bounce-to-disk mode, the OSC commands are written to a temporary harddi
     )
 )
 </PRE>
-this function will be used as a callback when executing <code>scsynth</code> in non-realtime mode. it is called for each new line printed to the console by supercollider. we filter out any lines that begin with the string <code>&quot;nextOSCPacket&quot;</code>. sc prints this text together with the current time offset of the OSC packet it is processing. by dividing the time offset by the total duration, we calculate the progression amount between <code>0.0</code> (bounce just started) and <code>1.0</code> (bounce finished). this value is passed to the special function <code>progression-set</code> which controls the progress bar in meloncillo's main frame.
+<p>
+This function will be used as a callback when executing <code>scsynth</code> in non-realtime mode. it is called for
+each new line printed to the console by SuperCollider. we filter out any lines that begin with the string
+<code>&quot;nextOSCPacket&quot;</code>. sc prints this text together with the current time offset of the OSC packet it is
+processing. by dividing the time offset by the total duration, we calculate the progression amount between
+<code>0.0</code> (bounce just started) and <code>1.0</code> (bounce finished). this value is passed to the special
+function <code>progression-set</code> which controls the progress bar in Meloncillo's main frame.
+</p>
 <PRE>
 (defun make-sense NIL
     (progn
@@ -134,7 +186,17 @@ this function will be used as a callback when executing <code>scsynth</code> in 
     )
 )
 </PRE>
-this function is necessary because in realtime mode, meloncillo will send the OSC messages itself because of a command list given in each <code>source-request</code> command. in bounce-to-disk mode, the stream data is just written to an audio file, we have to generate the correct OSC messages ourselves. this is done in <code>make-sense</code> which for each half stream buffer writes a <code>&quot;/b_read&quot;</code> command (corresponding to the <code>&quot;/b_setn&quot;</code> in realtime mode). <code>stream-bufidx</code> is a list of supercollider buffer indices, <code>stream-files</code> is a list of the corresponding sound file pathnames. the frame position inside these soundfiles is saved in <code>read-pos</code> which is automatically incremented by half of the buffer size (stored in the variable <code>sensebuf-size-h</code>) at the end of the function. <code>even-odd</code> is alternating between <code>T</code> and <code>NIL</code> to indicate which of the two buffer halfs is to be updated.
+<p>
+This function is necessary because in realtime mode, Meloncillo will send the OSC messages itself because of a
+command list given in each <code>source-request</code> command. in bounce-to-disk mode, the stream data is just
+written to an audio file, we have to generate the correct OSC messages ourselves. this is done in
+<code>make-sense</code> which for each half stream buffer writes a <code>&quot;/b_read&quot;</code> command (corresponding
+to the <code>&quot;/b_setn&quot;</code> in realtime mode). <code>stream-bufidx</code> is a list of SuperCollider buffer
+indices, <code>stream-files</code> is a list of the corresponding sound file path names. the frame position inside
+these sound files is saved in <code>read-pos</code> which is automatically incremented by half of the buffer size
+(stored in the variable <code>sensebuf-size-h</code>) at the end of the function. <code>even-odd</code> is
+alternating between <code>T</code> and <code>NIL</code> to indicate which of the two buffer halves is to be updated.
+</p>
 <PRE>
 (defun senseiter (incr-time stop-time cmd)
     (if (&lt; bundle-time stop-time)
@@ -148,7 +210,11 @@ this function is necessary because in realtime mode, meloncillo will send the OS
     )
 )
 </PRE>
-<code>make-sense</code> is repeatedly called within the body of the utility loop function <code>senseiter</code> which increments performance time by a given amount <code>incr-time</code> in each iteration. <code>senseiter</code> is called from the <code>render</code> function shown further below.
+<p>
+<code>make-sense</code> is repeatedly called within the body of the utility loop function <code>senseiter</code>
+which increments performance time by a given amount <code>incr-time</code> in each iteration. <code>senseiter</code>
+is called from the <code>render</code> function shown further below.
+</p>
 <PRE>
 (defun regexiter (groups input)
     (if (&gt; (length groups) 1)
@@ -160,10 +226,17 @@ this function is necessary because in realtime mode, meloncillo will send the OS
     )
 )
 </PRE>
-this is a utility function that extracts substrings by iteration over a list of index groups as returned by the <code>regex-match</code> function. this is used to make a list of terminal options from the string <code>app-options</code>. this string contains the text from the plug-in's GUI labelled &quot;SuperCollider Options&quot;, defined in the <code>create-gui</code> function which is discussed later. if <code>app-options</code> is <code>&quot;-D 0&quot;</code>, this function will return <code>'(&quot;-D&quot; &quot;0&quot;)</code>.
-</P>
-<P>
-next we will look at the <code>render</code> function which is called by meloncillo when all requested stream data has been written to the harddisk temp files:
+<p>
+This is a utility function that extracts substrings by iteration over a list of index groups as returned by the
+<code>regex-match</code> function. this is used to make a list of terminal options from the string
+<code>app-options</code>. this string contains the text from the plug-in's GUI labelled &quot;SuperCollider Options&quot;,
+defined in the <code>create-gui</code> function which is discussed later. if <code>app-options</code> is
+<code>&quot;-D 0&quot;</code>, this function will return <code>'(&quot;-D&quot; &quot;0&quot;)</code>.
+</p>
+<p>
+Next we will look at the <code>render</code> function which is called by Meloncillo when all requested stream data
+has been written to the hard-disk temp files:
+</p>
 <PRE>
 (defun render NIL (progn
     ; ---------------------------- START TIME ----------------------------
@@ -174,7 +247,11 @@ next we will look at the <code>render</code> function which is called by melonci
     (make-sense)    ; preload second buffer half
     (play (gethash "START" timeline))
 </PRE>
-these lines initialize some vital variables. they call <code>make-sense</code> twice to produce OSC messages for two initial buffer halfs processed at time offset <code>0.0</code>. the synthesizer objects are initialized by calling the <code>play</code> method that is normally used in realtime synthesis.
+<p>
+These lines initialize some vital variables. they call <code>make-sense</code> twice to produce OSC messages for
+two initial buffer halves processed at time offset <code>0.0</code>. The synthesizer objects are initialized by
+calling the <code>play</code> method that is normally used in realtime synthesis.
+</p>
 <PRE>
     ; ---------------------------- RENDER TIME ----------------------------
     (let ((half-bufdur (/ sensebuf-size-h sense-rate)))
@@ -182,7 +259,12 @@ these lines initialize some vital variables. they call <code>make-sense</code> t
         (senseiter half-bufdur duration '(make-sense))
     )
 </PRE>
-next the iterator function <code>senseiter</code>, which was described above, is called. it walks from the rendering start time to the stop time and calls <code>make-sense</code> successively, hence producing the <code>&quot;/b_read&quot;</code> messages for the sensitivity data. the OSC-bundle timetags are calculated such that a new half buffer is read just after the phasor has moved to the other buffer half.
+<p>
+Next the iterator function <code>senseiter</code>, which was described above, is called. it walks from the rendering
+start time to the stop time and calls <code>make-sense</code> successively, hence producing the
+<code>&quot;/b_read&quot;</code> messages for the sensitivity data. the OSC-bundle timetags are calculated such that a new
+half buffer is read just after the phasor has moved to the other buffer half.
+</p>
 <PRE>
     ; ---------------------------- STOP TIME ----------------------------
     (setq bundle-time duration)
@@ -191,7 +273,10 @@ next the iterator function <code>senseiter</code>, which was described above, is
         (list "/sync" 0)
     ))
 </PRE>
-a terminating dummy command is written to the OSC file to ensure <code>scsynth</code> is writing the output soundfile right until the end of the session.
+<p>
+A terminating dummy command is written to the OSC file to ensure <code>scsynth</code> is writing the output sound
+file right until the end of the session.
+</p>
 <PRE>
     ; ------------------------ SUPERCOLLIDER APP ------------------------
     (iter 'stream-idx 0 (length stream-files) 'T
@@ -201,7 +286,10 @@ a terminating dummy command is written to the OSC file to ensure <code>scsynth</
     )
     (file-close 'scosc) ; close osc file
 </PRE>
-before executing supercollider, all temporary files that contain the stream data are closed in this iteration. the OSC file itself is closed.
+<p>
+Before executing SuperCollider, all temporary files that contain the stream data are closed in this iteration. The
+OSC file itself is closed.
+</p>
 <PRE>
     (setq numoutputs 0)
     (cycle 'inobj collin 'T
@@ -213,7 +301,11 @@ before executing supercollider, all temporary files that contain the stream data
             (setq numoutputs (max numoutputs (gethash "AUDIOBUS" outobj))))
     )
 </PRE>
-these code lines walk through all output objects (i.e. receivers in normal mode and transmitters in inverse mode) as well as input objects with direct-out, and find the maximum channel index. this is used as the number of output channels in the bounced sound file. solo and mute settings are ignored here so that channel indices stay constant.
+<p>
+These code lines walk through all output objects (i.e. receivers in normal mode and transmitters in inverse mode)
+as well as input objects with direct-out, and find the maximum channel index. this is used as the number of output
+channels in the bounced sound file. solo and mute settings are ignored here so that channel indices stay constant.
+</p>
 <PRE>
     (setq app-path (gethash "SUPERCOLLIDERAPP" prefs))
     (let ((exec-args (append (append
@@ -232,7 +324,12 @@ these code lines walk through all output objects (i.e. receivers in normal mode 
     (eql return-code 1)
 ))
 </PRE>
-these last lines extract the preferences setting for the supercollider application path. they construct the terminal options for non-realtime mode and append user defined options using <code>regexiter</code> as described above. finally, <code>render</code> returns <code>T</code> which means success, if supercollider exited with code <code>1</code> (which for some reason is the normal return code of <code>scsynth</code>).
+<p>
+These last lines extract the preferences setting for the SuperCollider application path. they construct the terminal
+options for non-realtime mode and append user defined options using <code>regexiter</code> as described above.
+Finally, <code>render</code> returns <code>T</code> which means success, if SuperCollider exited with code
+<code>1</code> (which for some reason is the normal return code of <code>scsynth</code>).
+</p>
 <PRE>
 (defun cleanup NIL (progn
     (if (oboundp 'scsync) (progn
@@ -252,8 +349,10 @@ these last lines extract the preferences setting for the supercollider applicati
     T   ; success
 ))
 </PRE>
-the cleaning up is similar to realtime mode. the temporary stream data files are closed (in case <code>render</code> was not called or aborted), so they can be deleted by meloncillo.
-</P>
+<p>
+The cleaning up is similar to realtime mode. the temporary stream data files are closed (in case <code>render</code>
+was not called or aborted), so they can be deleted by Meloncillo.
+</p>
 <H3>sc-amplitudematrix.lisp</H3>
 <P>
 now we will look at the main source code file. it starts with more utility functions:
@@ -268,7 +367,11 @@ now we will look at the main source code file. it starts with more utility funct
     )
 )
 </PRE>
-this is a generic function to iterate from one integer index to another, assigning this index to the variable <code>itervar</code> and executing the command <code>cmd</code> in each iteration, unless <code>success</code> evaluates to <code>NIL</code> which aborts the function.
+<p>
+This is a generic function to iterate from one integer index to another, assigning this index to the variable
+<code>itervar</code> and executing the command <code>cmd</code> in each iteration, unless <code>success</code>
+evaluates to <code>NIL</code> which aborts the function.
+</p>
 <PRE>
 (defun cycle (itervar alist success cmd)
     (if (and (eval success) (not (null alist)))
@@ -280,18 +383,26 @@ this is a generic function to iterate from one integer index to another, assigni
     )
 )
 </PRE>
-<code>cycle</code> is similar, but it iterates over the elements of a list, starting at the first element and stopping after the last element.
+<p>
+<code>cycle</code> is similar, but it iterates over the elements of a list, starting at the first element and
+stopping after the last element.
+</p>
 <PRE>
 (defun align (val block) (* (floor (/ (+ val (1- block)) block)) block))
 </PRE>
-this function is used when constructing the byte buffer OSC messages. it increases the value <code>val</code> until it is an integer mulitple of <code>block</code>. OSC message parts are aligned to a four-byte boundary.
+<p>
+This function is used when constructing the byte buffer OSC messages. it increases the value <code>val</code> until
+it is an integer multiple of <code>block</code>. OSC message parts are aligned to a four-byte boundary.
+</p>
 <PRE>
 (defun concat-args (args)
     (if (null args) "" (concatenate 'STRING (car args) " "
         (concat-args (cdr args))))
 )
 </PRE>
-a recursive function that concatenates all string elements of a list. this is used for console print purposes.
+<p>
+A recursive function that concatenates all string elements of a list. this is used for console print purposes.
+</p>
 <PRE>
 (defun alloc-node NIL
     (let ((result node-counter))
@@ -300,7 +411,11 @@ a recursive function that concatenates all string elements of a list. this is us
     )
 )
 </PRE>
-supercollider addresses all nodes (synthesizers and groups) by a unique node index. to simplify the management of these indices, we use this utility function that returns the next free node index and increases a special counter, so that a new index is returned next time.
+<p>
+SuperCollider addresses all nodes (synthesizers and groups) by a unique node index. To simplify the management of
+these indices, we use this utility function that returns the next free node index and increases a special counter,
+so that a new index is returned next time.
+</p>
 <PRE>
 (defun alloc-buf NIL
     (let ((result buf-counter))
@@ -309,7 +424,9 @@ supercollider addresses all nodes (synthesizers and groups) by a unique node ind
     )
 )
 </PRE>
-again the same principle is applied to buffers in supercollider, which are also identified by a unique index.
+<p>
+Again the same principle is applied to buffers in SuperCollider, which are also identified by a unique index.
+</p>
 <PRE>
 (defun alloc-abus NIL
     (let ((result abus-counter))
@@ -318,7 +435,13 @@ again the same principle is applied to buffers in supercollider, which are also 
     )
 )
 </PRE>
-because the synthesizer structure is build up in modular way, data needs to be routed between those nodes. to do so, we use busses, which are allocated dynamically just as the node and buffer indices. the counter <code>abus-counter</code> needs to be initialized with a value that addresses internal busses. supercollider uses the first bus indices for audio hardware interface output channels, followed by interface input channels, followed by the internal busses.
+<p>
+Because the synthesizer structure is build up in modular way, data needs to be routed between those nodes.
+To do so, we use buses, which are allocated dynamically just as the node and buffer indices. The counter
+<code>abus-counter</code> needs to be initialized with a value that addresses internal buses. SuperCollider uses
+the first bus indices for audio hardware interface output channels, followed by interface input channels,
+followed by the internal buses.
+</p>
 <PRE>
 (defun request-sense (obj1 obj2 bufidx)
     (let ((trnsidx (- (length colltrns) (length (member
@@ -350,7 +473,16 @@ because the synthesizer structure is build up in modular way, data needs to be r
     )
 )
 </PRE>
-this function simplies the task of requesting stream data. because <code>source-request</code> needs to now the transmitter and receiver indices, this is a bit of work when working with the object lists of each group whose element indices may be different from the global indices. therefore, we pass the objects (the elements of the transmitter or receiver list of a group) to this function and it will calculate the appropriate indices. furthermore, it branches depending on realtime or bounce mode. in realtime, the byte-buffer <code>sensemsg</code> is used along with a command list to update, fill and send the buffer, in offline mode a temporary audio-file is created and memorized in the variables <code>stream-files</code> (pathname strings) and <code>stream-fileids</code> (handles).
+<p>
+This function simplifies the task of requesting stream data. Because <code>source-request</code> needs to now
+the transmitter and receiver indices, this is a bit of work when working with the object lists of each group
+whose element indices may be different from the global indices. Therefore, we pass the objects (the elements of
+the transmitter or receiver list of a group) to this function and it will calculate the appropriate indices.
+Furthermore, it branches depending on realtime or bounce mode. in realtime, the byte-buffer <code>sensemsg</code>
+is used along with a command list to update, fill and send the buffer, in offline mode a temporary audio-file is
+created and memorized in the variables <code>stream-files</code> (pathname strings) and <code>stream-fileids</code>
+(handles).
+</p>
 <PRE>
 (defun find-by-name (coll name) (progn
     (setq found-obj NIL)
@@ -361,14 +493,23 @@ this function simplies the task of requesting stream data. because <code>source-
     found-obj
 ))
 </PRE>
-input objects (transmitters in normal mode) can take different roles, as explained in the user-manual. one of these roles is to be slaved to a master object, which for example allows different trajectories to be associated with the same sound file. the <code>find-by-name</code> function is used to look up the master object of a slaved object by traversing all input objects and comparing the <code>&quot;NAME&quot;</code> entries.
+<p>
+Input objects (transmitters in normal mode) can take different roles, as explained in the user-manual. One of these
+roles is to be secondary to a primary object, which for example allows different trajectories to be associated with the
+same sound file. the <code>find-by-name</code> function is used to look up the primary object of a secondary object by
+traversing all input objects and comparing the <code>&quot;NAME&quot;</code> entries.
+</p>
 <PRE>
 (defun db-to-lin (db) (pow 10 (/ db 20)))
 </PRE>
-gains shown in the GUI are given in decibels. they are converted to linear ampitudes using this function before being passed to sc synthesizers.
-</P>
-<P>
-so far for the utility functions. next we will discuss the essential parts of a plug-in, starting with the preparation function:
+<p>
+Gains shown in the GUI are given in decibels. they are converted to linear amplitudes using this function before
+being passed to sc synthesizers.
+</p>
+<p>
+So far for the utility functions. Next we will discuss the essential parts of a plug-in, starting with the preparation
+function:
+</p>
 <PRE>
 (defun prepare NIL (progn
     (setq success T)
@@ -381,7 +522,15 @@ so far for the utility functions. next we will discuss the essential parts of a 
     (setq collrcv (gethash "RECEIVERS" cillo))
     (setq colltrns (gethash "TRANSMITTERS" cillo))
 </PRE>
-the variable <code>success</code> is used throughout the function to abort initialization whenever some error occurs in which case the value switches to <code>NIL</code>. the global object collections are extracted from the special symbol <code>cillo</code> using hashtable lookup. if the user did not create any groups, a fake list is created containing the <code>cillo</code> symbol itself as a kind of group. this works because both <code>cillo</code> and each group are hashtables containing the keys <code>&quot;TRANSMITTERS&quot;</code> and <code>&quot;RECEIVERS&quot;</code>. we only have to take care to create a dummy flag entry for <code>cillo</code> to make it behave just like a normal group.
+<p>
+The variable <code>success</code> is used throughout the function to abort initialization whenever some error
+occurs in which case the value switches to <code>NIL</code>. the global object collections are extracted from the
+special symbol <code>cillo</code> using hashtable lookup. if the user did not create any groups, a fake list is
+created containing the <code>cillo</code> symbol itself as a kind of group. this works because both
+<code>cillo</code> and each group are hash-tables containing the keys <code>&quot;TRANSMITTERS&quot;</code> and
+<code>&quot;RECEIVERS&quot;</code>. we only have to take care to create a dummy flag entry for <code>cillo</code> to make
+it behave just like a normal group.
+</p>
 <PRE>
     (setq timeline (gethash "TIMELINE" cillo))
     (setq duration (- (gethash "STOP" timeline) (gethash "START" timeline)))
@@ -390,13 +539,16 @@ the variable <code>success</code> is used throughout the function to abort initi
     (setq sense-rate (gethash "SENSERATE" prefs))
     (setq audio-rate (gethash "AUDIORATE" prefs))
     (setq diskbuf-size (gethash "DISKBUFSIZE" prefs))
-    (setq master-amp (db-to-lin master-gain))
+    (setq main-amp (db-to-lin main-gain))
 </PRE>
-these lines initialize some more variables by reading hashtable fields from the timeline and preferences. next, group nodes are defined and the variables for automatic buffer index and audio bus allocation are initialized:
+<p>
+These lines initialize some more variables by reading hashtable fields from the timeline and preferences. Next,
+group nodes are defined and the variables for automatic buffer index and audio bus allocation are initialized:
+</p>
 <PRE>
     ; nodes
     (setq node-counter 1978)
-    (setq master-group (alloc-node))
+    (setq main-group (alloc-node))
     (setq input-group (alloc-node))
     (setq insert-group (alloc-node))
     (setq mix-group (alloc-node))
@@ -413,10 +565,18 @@ these lines initialize some more variables by reading hashtable fields from the 
     (setq input-bus-off (+ live-bus-off (gethash "INPUTCHANNELS" prefs)))
     (setq abus-counter input-bus-off)
 </PRE>
-it is important that the synthesizer nodes in supercollider are created in a tree structure such that synthesizers needing input from other synthesizers are executed after these other synthesizers. we define a master group for easily turning everything on and off. in this master group (having the arbitrary number index of 1978) we have a group for input objects such as sound file players, followed by a group of insert objects such as doppler delays, followed by the volume matrix objects (mix group). the <code>phasor-node</code> is not a group but the node index of the global phasor synthesizer which is placed in the input group.
-</P>
-<P>
-in the last three lines you can see how we calculate the offset of the audio hardware interface input channels and the internal busses.
+<p>
+It is important that the synthesizer nodes in supercollider are created in a tree structure such that synthesizers
+needing input from other synthesizers are executed after these other synthesizers. we define a main group for
+easily turning everything on and off. in this main group (having the arbitrary number index of 1978) we have a
+group for input objects such as sound file players, followed by a group of insert objects such as doppler delays,
+followed by the volume matrix objects (mix group). the <code>phasor-node</code> is not a group but the node index
+of the global phasor synthesizer which is placed in the input group.
+</p>
+<p>
+In the last three lines you can see how we calculate the offset of the audio hardware interface input channels and
+the internal buses.
+</p>
 <PRE>
     (if realtime
         (let ((sc-socket (gethash "SUPERCOLLIDEROSC" prefs)))
@@ -439,10 +599,20 @@ in the last three lines you can see how we calculate the offset of the audio har
     )
     (if (not success) (println "FAILED! supercollider osc notification"))
 </PRE>
-the media for source requests are defined here which differ in realtime and offline mode. in realtime mode, the OSC socket for supercollider is extracted from the preferences, and a new datagram-channel is opened and bound to this socket. depending on the GUI setting of &quot;Dump OSC&quot;, a corresponding message is send. a second channel is opened for receiving trigger messages from the phasor node. this channel is communicated to meloncillo using the <code>target-request</code> function with the special target <code>&quot;SYNC&quot;</code>. for this separate channel, notification is turned on by sending the message <code>&quot;/notify&quot;</code> to supercollider. the function <code>osc-bundle-send-and-wait</code> is used here, therefore, if supercollider is not running or communication fails, we know about this immediately. in this case <code>success</code> is set to <code>NIL</code> and the rest of the <code>prepare</code> body is skipped.
-</P>
-<P>
-in offline mode, the temporary file lists are initialized and a file is opened to write OSC commands.
+<p>
+The media for source requests are defined here which differ in realtime and offline mode. In realtime mode, the OSC
+socket for SuperCollider is extracted from the preferences, and a new datagram-channel is opened and bound to this
+socket. depending on the GUI setting of &quot;Dump OSC&quot;, a corresponding message is send. a second channel is opened for
+receiving trigger messages from the phasor node. this channel is communicated to meloncillo using the
+<code>target-request</code> function with the special target <code>&quot;SYNC&quot;</code>. for this separate channel,
+notification is turned on by sending the message <code>&quot;/notify&quot;</code> to SuperCollider. the function
+<code>osc-bundle-send-and-wait</code> is used here, therefore, if SuperCollider is not running or communication
+fails, we know about this immediately. in this case <code>success</code> is set to <code>NIL</code> and the rest
+of the <code>prepare</code> body is skipped.
+</p>
+<p>
+In offline mode, the temporary file lists are initialized and a file is opened to write OSC commands.
+</p>
 <PRE>
     ; create message buffers
     (if success
@@ -459,7 +629,14 @@ in offline mode, the temporary file lists are initialized and a file is opened t
         )
     )
 </PRE>
-in this block, a byte buffer is allocated and filled with a preliminary <code>&quot;/b_setn&quot;</code> OSC message. calculation of the buffer size is a bit tricky as you can see. we use the utility function <code>align</code> to round up partial block size to integer multiples of four bytes as required by the OSC standard. the buffer number and offset for supercollider are initially left to zero and will be dynamically set later on. note how we can quickly write all the floating point type tags (<code>&quot;f&quot;</code>) by using the repetition feature of <code>byte-buffer-write</code>.
+<p>
+In this block, a byte buffer is allocated and filled with a preliminary <code>&quot;/b_setn&quot;</code> OSC message.
+Calculation of the buffer size is a bit tricky as you can see. we use the utility function <code>align</code> to
+round up partial block size to integer multiples of four bytes as required by the OSC standard. The buffer number
+and offset for SuperCollider are initially left to zero and will be dynamically set later on. note how we can quickly
+write all the floating point type tags (<code>&quot;f&quot;</code>) by using the repetition feature of
+<code>byte-buffer-write</code>.
+</p>
 <PRE>
     ; create groups
     (if success
@@ -470,12 +647,12 @@ in this block, a byte buffer is allocated and filled with a preliminary <code>&q
                         
                 (my-bundle-send 0.0 (list
                     (list
-                        "/g_new" master-group 1 0
-                                input-group   1 master-group
-                                insert-group  1 master-group
-                                mix-group     1 master-group
+                        "/g_new" main-group 1 0
+                                input-group   1 main-group
+                                insert-group  1 main-group
+                                mix-group     1 main-group
                     )
-                    (list "/n_run" master-group 0)
+                    (list "/n_run" main-group 0)
                     (list "/d_load" synthdefs)
                     (list "/sync" 6)
                 ))
@@ -483,7 +660,13 @@ in this block, a byte buffer is allocated and filled with a preliminary <code>&q
         )) (println "FAILED! group creation, definition load"))
     )
 </PRE>
-in this block, the group nodes are created using <code>&quot;/g_new&quot;</code>. using <code>&quot;/n_run&quot;</code>, the master node is halted. therefore, when we create the synthesizer nodes, they are initially paused until we run the master group in the <code>play</code> function. you can also see how the pathname to the synth definition files is calculated and supercollider is told to load these definitions.
+<p>
+In this block, the group nodes are created using <code>&quot;/g_new&quot;</code>. using
+<code>&quot;/n_run&quot;</code>, the main
+node is halted. therefore, when we create the synthesizer nodes, they are initially paused until we run the main
+group in the <code>play</code> function. you can also see how the pathname to the synth definition files is
+calculated and SuperCollider is told to load these definitions.
+</p>
 <PRE>
     ; init objects and create mix synths
     (setq collin (if normal colltrns collrcv))
@@ -491,7 +674,7 @@ in this block, the group nodes are created using <code>&quot;/g_new&quot;</code>
     (cycle 'inobj collin 'success
         '(progn
             (setf-gethash "INIT" inobj NIL)
-            (if (not (eql (gethash "INPROC" inobj) "slave"))                        
+            (if (not (eql (gethash "INPROC" inobj) "secondary"))
                 (setf-gethash "BUSIDX" inobj (if (gethash "AUX" inobj)
                     (1- (gethash "AUXBUS" inobj))
                 ; else
@@ -502,7 +685,14 @@ in this block, the group nodes are created using <code>&quot;/g_new&quot;</code>
     )
     (cycle 'outobj collout 'success '(setf-gethash "INIT" outobj NIL))
 </PRE>
-because transmitters and receivers can be part of more than one group, they are initially tagged with a hash entry <code>&quot;INIT&quot;</code> having the value <code>NIL</code>. for example, only one node shall be generated per input object. therefore, in the following code we can check if the object has already been used (<code>&quot;INIT&quot;</code> returning <code>T</code>) and in this case skip node allocation. we also use the iteration above to set the hash entry <code>&quot;BUSIDX&quot;</code> to the output channel of the input object which is either an internal dynamically allocated bus or a direct sound card output if the direct-out feature is checked.
+<p>
+Because transmitters and receivers can be part of more than one group, they are initially tagged with a hash
+entry <code>&quot;INIT&quot;</code> having the value <code>NIL</code>. for example, only one node shall be generated per
+input object. Therefore, in the following code we can check if the object has already been used
+(<code>&quot;INIT&quot;</code> returning <code>T</code>) and in this case skip node allocation. we also use the iteration
+above to set the hash entry <code>&quot;BUSIDX&quot;</code> to the output channel of the input object which is either an
+internal dynamically allocated bus or a direct sound card output if the direct-out feature is checked.
+</p>
 <PRE>   
     (cycle 'grp collgrp 'success
 <I CLASS="red">... begin A ...</I> '(if (zerop (logand (gethash "FLAGS" grp) 10))
@@ -515,18 +705,18 @@ because transmitters and receivers can be part of more than one group, they are 
                             (let ((proc (gethash "INPROC" inobj)))
                                 (setf-gethash "INIT" inobj T)
                                 (setf-gethash "NODEID" inobj (alloc-node))
-                                (if (eql proc "slave")
-                                    (let ((master (find-by-name collin
-                                            (gethash "MASTER" inobj))))
-                                        (if (null master)
+                                (if (eql proc "secondary")
+                                    (let ((primary (find-by-name collin
+                                            (gethash "PRIMARY" inobj))))
+                                        (if (null primary)
                                             (println (concatenate 'STRING
-                                                "ERROR! No master '" (gethash
-                                                    "MASTER" inobj)
-                                                "' for slave '" (gethash
+                                                "ERROR! No primary '" (gethash
+                                                    "PRIMARY" inobj)
+                                                "' for secondary '" (gethash
                                                     "NAME" inobj) "'."))
                                         ; else
                                             (setf-gethash "BUSIDX" inobj
-                                                (gethash "BUSIDX" master))
+                                                (gethash "BUSIDX" primary))
                                         )
                                     )
                                 ; else
@@ -625,19 +815,37 @@ because transmitters and receivers can be part of more than one group, they are 
     success
 ))
 </PRE>
-this is the by far most complicated part of the preparation function. the outmost block is an iteration over all groups of the session. each group is processed only (block A) if it is not muted or not solo'ed while other groups are solo'ed (seen from the <code>&quot;FLAGS&quot;</code> hash entry). the same is true for the input objects of each group which form the second outmost block. depending on normal or inverse mode, transmitters or receivers are treated as input objects. block B is only executed if the particular input object is not muted.
-</P>
-<P>
-for each processed input object, we check first if it was initialized before. if not, block C is executed. a node is dynamically allocated, for slave control objects the master's output bus index is duplicated, for soundfile playback objects a <code>&quot;/b_alloc&quot;</code> OSC message is created. note that the message is appended to a bundle which is cleared in each input object iteration. the bundle is only send once at the end of each input object iteration (after the end of block D) which improves the speed of execution, especially when we wait for the replying <code>&quot;/synced&quot;</code> message!
-</P>
-<P>
-when the optional initialization block of the input object has been executed, the inner most block iterates over all output objects of the group. again, the actual processing (block D) is only made if the object is not muted. for each output object a node and a buffer index is dynamically assigned, the utility function <code>request-sense</code> is invoked (it was decribed above) which will create the appropriate <code>source-request</code> call by looking up the global indices of the particular transmitter and receiver.
-</P>
-<P>
-depending on the process chosen for the output object, different synthesizers are created (an OSC message is appended to the variable <code>bundle</code> which is send at the end of each input iteration).
-</P>
-<P>
-now let us examine the remaining plug-in functions <code>play</code>, <code>stop</code> and <code>position</code> which are necessary for realtime plug-ins but are also used in bounce mode as seen above. they deligate much of the work to the custom function <code>seekpos</code>:
+<p>
+This is the by far most complicated part of the preparation function. the outmost block is an iteration over all
+groups of the session. each group is processed only (block A) if it is not muted or not solo'ed while other groups
+are solo'ed (seen from the <code>&quot;FLAGS&quot;</code> hash entry). the same is true for the input objects of each group
+which form the second outmost block. depending on normal or inverse mode, transmitters or receivers are treated as
+input objects. block B is only executed if the particular input object is not muted.
+</p>
+<p>
+For each processed input object, we check first if it was initialized before. if not, block C is executed. a node is
+dynamically allocated, for secondary control objects the primary's output bus index is duplicated, for sound file playback
+objects a <code>&quot;/b_alloc&quot;</code> OSC message is created. note that the message is appended to a bundle which is
+cleared in each input object iteration. the bundle is only send once at the end of each input object iteration
+(after the end of block D) which improves the speed of execution, especially when we wait for the replying
+<code>&quot;/synced&quot;</code> message!
+</p>
+<p>
+When the optional initialization block of the input object has been executed, the inner most block iterates over all
+output objects of the group. again, the actual processing (block D) is only made if the object is not muted. for
+each output object a node and a buffer index is dynamically assigned, the utility function
+<code>request-sense</code> is invoked (it was decribed above) which will create the appropriate
+<code>source-request</code> call by looking up the global indices of the particular transmitter and receiver.
+</p>
+<p>
+Depending on the process chosen for the output object, different synthesizers are created (an OSC message is
+appended to the variable <code>bundle</code> which is send at the end of each input iteration).
+</p>
+<p>
+Now let us examine the remaining plug-in functions <code>play</code>, <code>stop</code> and <code>position</code>
+which are necessary for realtime plug-ins but are also used in bounce mode as seen above. they delegate much of the
+work to the custom function <code>seekpos</code>:
+</p>
 <PRE>
 (defun seekpos (time-off) (progn
     (setq frame-off (* audio-rate time-off))
@@ -654,7 +862,7 @@ now let us examine the remaining plug-in functions <code>play</code>, <code>stop
             (let ((proc (gethash "INPROC" inobj))
                   (busidx (gethash "BUSIDX" inobj))
                   (nodeid (gethash "NODEID" inobj))
-                  (amp (* master-amp (db-to-lin (gethash "GAIN" inobj)))))
+                  (amp (* main-amp (db-to-lin (gethash "GAIN" inobj)))))
 
                 (if (eql proc "diskin")
                     (let ((bufidx (gethash "BUFIDX" inobj)))
@@ -687,7 +895,7 @@ now let us examine the remaining plug-in functions <code>play</code>, <code>stop
                             "i_gain"        amp
                         )
                     )))
-                ; slave : do nothing
+                ; secondary : do nothing
                 )))
             )
         )
@@ -699,21 +907,34 @@ now let us examine the remaining plug-in functions <code>play</code>, <code>stop
     success
 ))
 </PRE>
-the function starts by freeing all synthesizers in the input-group and re-creating the phasor node which is the motor of the whole synthesis. re-creating the phasor ensures it starts from a zero phase. next, all input nodes have to be re-created. this is done by an iteration over all input objects. only those objects which have been initialized are processed. this automatically excludes muted objects which have not been initialized. depending on the objects <code>&quot;INPROC&quot;</code> setting, different synthesizers are generated. note that the variable <code>frame-off</code> -- which is the sample frame offset in audio files -- is set using <code>setq</code> and not inside a <code>let</code> block, because the quoted commands which form the iteration bodies would have no access to such a local variable.
-</P>
-<P>
-the effort of pausing or resuming the master group is handled by a separate function <code>playstop</code>:
+<p>
+The function starts by freeing all synthesizers in the input-group and re-creating the phasor node which is the
+motor of the whole synthesis. re-creating the phasor ensures it starts from a zero phase. next, all input nodes
+have to be re-created. this is done by an iteration over all input objects. only those objects which have been
+initialized are processed. this automatically excludes muted objects which have not been initialized. depending on
+the objects <code>&quot;INPROC&quot;</code> setting, different synthesizers are generated. note that the variable
+<code>frame-off</code> -- which is the sample frame offset in audio files -- is set using <code>setq</code> and
+not inside a <code>let</code> block, because the quoted commands which form the iteration bodies would have no
+access to such a local variable.
+</p>
+<p>
+The effort of pausing or resuming the main group is handled by a separate function <code>playstop</code>:
+</p>
 <PRE>
 (defun playstop (toggle)
     (if (not (setq success (my-bundle-send 0.0 (list
-                    (list "/n_run" master-group toggle)
+                    (list "/n_run" main-group toggle)
                     (list "/sync" 5)))))
         (println "FAILED! playstop"))
 
     success
 )
 </PRE>
-where the parameter <code>toggle</code> defined whether the master group should be paused or resumed. <code>playstop</code> and <code>seekpos</code> are called from the realtime plug-in standard functions <code>play</code>, <code>stop</code> and <code>position</code>:
+<p>
+where the parameter <code>toggle</code> defined whether the main group should be paused or resumed.
+<code>playstop</code> and <code>seekpos</code> are called from the realtime plug-in standard functions
+<code>play</code>, <code>stop</code> and <code>position</code>:
+</p>
 <PRE>
 (defun play (time-off)
     (if (seekpos time-off) (playstop 1) NIL)
@@ -736,14 +957,17 @@ where the parameter <code>toggle</code> defined whether the master group should 
     (if (stop time-off) (play time-off) NIL)
 )
 </PRE>
-note that the <code>stop</code> function sends clear commands for all supercollider buffers to minimize loud clicks when the meloncillo transport jumps back in loop playback.
-</P>
-<P>
-finally, we will look at the GUI generation function <code>create-gui</code>:
+<p>
+Note that the <code>stop</code> function sends clear commands for all SuperCollider buffers to minimize loud clicks
+when the Meloncillo transport jumps back in loop playback.
+</p>
+<p>
+Finally, we will look at the GUI generation function <code>create-gui</code>:
+</p>
 <PRE>
 (defun create-gui NIL (progn
-    (gadget-make NIL "LABEL" '(1 4 2 1) "Master Gain")
-    (gadget-make master-gain "NUMBER" '(3 4) 0.0 '("dB"))
+    (gadget-make NIL "LABEL" '(1 4 2 1) "Main Gain")
+    (gadget-make main-gain "NUMBER" '(3 4) 0.0 '("dB"))
     ; -------------------------------- realtime -------------------------------
     (if realtime (progn
         (gadget-make NIL "LABEL" '(4 4) "  Dump OSC")
@@ -769,12 +993,12 @@ finally, we will look at the GUI generation function <code>create-gui</code>:
     
         (session-property-add inkey "Process" "INPROC" "STRING" "diskin"
             '(("diskin" . "Play Soundfile") ("livein" . "Live Input")
-              ("test" . "Test Signal") ("slave" . "Slave Control"))
+              ("test" . "Test Signal") ("secondary" . "Secondary Control"))
         )
         (session-property-add inkey "Audio In Bus" "AUDIOBUS" "INTEGER"
             1 '(1 1024 1))
         (session-property-add inkey "Audio In File" "AUDIOFILE" "FILE" "")  
-        (session-property-add inkey "Slaved to" "MASTER" "STRING" "")   
+        (session-property-add inkey "Secondary to" "PRIMARY" "STRING" "")
         (session-property-add inkey "Gain [dB]" "GAIN" "DOUBLE" 0.0
             '(-256.0 256.0 0.01))
         (session-property-add inkey "Direct Out" "AUX" "BOOLEAN" 0)
@@ -795,7 +1019,14 @@ finally, we will look at the GUI generation function <code>create-gui</code>:
     T   ; success
 ))
 </PRE>
-realtime and offline share an element which is defined in the beginning: a master gain numberfield. for the realtime mode, an additional checkbox is created that can be used for debugging OSC communication. for offline mode, the output sound file settings are controlled by a pathfield and two choices for soundfile format and resolution. the final section adds properties for transmitters and receivers. the <code>let</code> block decides which of these objects are input and which are output objects, depending on the variable <code>normal</code>. <code>normal</code> is set to <code>NIL</code> in the inverse mode plug-in (<code>&quot;scrt-iamplitudematrix.lisp&quot;</code> and <code>&quot;scol-iamplitudematrix.lisp&quot;</code>).
-</P>
+<p>
+Realtime and offline share an element which is defined in the beginning: a main gain number-field. For the realtime
+mode, an additional checkbox is created that can be used for debugging OSC communication. for offline mode, the
+output sound file settings are controlled by a path-field and two choices for sound file format and resolution. The
+final section adds properties for transmitters and receivers. the <code>let</code> block decides which of these
+objects are input and which are output objects, depending on the variable <code>normal</code>. <code>normal</code>
+is set to <code>NIL</code> in the inverse mode plug-in (<code>&quot;scrt-iamplitudematrix.lisp&quot;</code> and
+<code>&quot;scol-iamplitudematrix.lisp&quot;</code>).
+</p>
 </body>
 </html>

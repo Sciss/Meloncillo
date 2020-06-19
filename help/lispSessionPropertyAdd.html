@@ -11,33 +11,49 @@
     [<var>&lt;default-value&gt;</var> [<var>&lt;options&gt;</var>]])
 </pre>
 <P>
-this function allows you to create custom attributes for session objects (transmitters, receivers, groups) which are displayed and edited in the <A HREF="ObserverPalette.html">observer palette</A>. it is only available in the special function <code>create-gui</code>, as explained in the <A HREF="lispPlugInConcept.html">plug-in concept document</A>.
+This function allows you to create custom attributes for session objects (transmitters, receivers, groups) which are
+displayed and edited in the <A HREF="ObserverPalette.html">observer palette</A>. it is only available in the special
+function <code>create-gui</code>, as explained in the <A HREF="lispPlugInConcept.html">plug-in concept document</A>.
 </P>
 <P>
-<code>object-group</code> is one of the following strings: <code>&quot;RECEIVERS&quot;</code>, <code>&quot;TRANSMITTERS&quot;</code>, <code>&quot;GROUPS&quot;</code>. <code>label</code> is a string that will be displayed next to the attribute in the palette. <code>key</code> is a string that can be used to query the property value from the session-object's hashtable. <code>type</code> can be one of the following <code>&quot;INTEGER&quot;</code>, <code>&quot;LONG&quot;</code>, <code>&quot;FLOAT&quot;</code>, <code>&quot;DOUBLE&quot;</code>, <code>&quot;BOOLEAN&quot;</code>, <code>&quot;STRING&quot;</code>, <code>&quot;FILE&quot;</code>. <code>options</code> specifies constraints for value display, depending on the <code>type</code>:
+<code>object-group</code> is one of the following strings: <code>&quot;RECEIVERS&quot;</code>, <code>&quot;TRANSMITTERS&quot;</code>,
+<code>&quot;GROUPS&quot;</code>. <code>label</code> is a string that will be displayed next to the attribute in the palette.
+<code>key</code> is a string that can be used to query the property value from the session-object's hashtable.
+<code>type</code> can be one of the following <code>&quot;INTEGER&quot;</code>, <code>&quot;LONG&quot;</code>, <code>&quot;FLOAT&quot;</code>,
+<code>&quot;DOUBLE&quot;</code>, <code>&quot;BOOLEAN&quot;</code>, <code>&quot;STRING&quot;</code>, <code>&quot;FILE&quot;</code>. <code>options</code>
+specifies constraints for value display, depending on the <code>type</code>:
 </P>
 <UL>
-<LI>numeric types (<code>&quot;INTEGER&quot;</code>, <code>&quot;FLOAT&quot;</code> etc.) : a list of three elements specifying the number space <I>(min max quantization)</I> of the attribute. a quantization of <code>0.0</code> will allow any decimal, a quantization of <code>1.0</code> will allow only integers, a value of </code>4.0</code> allows only integer multiples of four etc.</LI>
-<LI><code>&quot;STRING&quot;</code> : a list of cons cells each of which represents a key / value pair. the key is the value stored in the object's hashtable, the value is the text presented to the user in a choice combo box. using <code>&quot;STRING&quot;</code> attributes without this <code>options</code> parameter results in a normal unconstrained textfield display.</LI>
-<LI><code>&quot;FILE&quot;</code> : a list of string flags that define the type of pathfield : <code>&quot;INPUT&quot;</code>, <code>&quot;OUTPUT&quot;</code>, <code>&quot;FOLDER&quot;</code></LI>
+<LI>numeric types (<code>&quot;INTEGER&quot;</code>, <code>&quot;FLOAT&quot;</code> etc.) : a list of three elements specifying the
+    number space <I>(min max quantization)</I> of the attribute. a quantization of <code>0.0</code> will allow any
+    decimal, a quantization of <code>1.0</code> will allow only integers, a value of <code>4.0</code> allows only
+    integer multiples of four etc.</LI>
+<LI><code>&quot;STRING&quot;</code> : a list of cons cells each of which represents a key / value pair. the key is the value
+    stored in the object's hashtable, the value is the text presented to the user in a choice combo box. using
+    <code>&quot;STRING&quot;</code> attributes without this <code>options</code> parameter results in a normal unconstrained
+    text-field display.</LI>
+<LI><code>&quot;FILE&quot;</code> : a list of string flags that define the type of path-field : <code>&quot;INPUT&quot;</code>,
+    <code>&quot;OUTPUT&quot;</code>, <code>&quot;FOLDER&quot;</code></LI>
 </UL>
-<P>it is <strong>highly recommended</strong> to provide a <code>default-value</code>. <strong>due to a bug</strong>, objects created after the plug-in has been loaded are not automatically equipped with the new attributes unless the user presses the plug-in frame's &quot;Reload&quot; button.</P>
+<P>it is <strong>highly recommended</strong> to provide a <code>default-value</code>. <strong>due to a bug</strong>,
+    objects created after the plug-in has been loaded are not automatically equipped with the new attributes unless
+    the user presses the plug-in frame's &quot;Reload&quot; button.</P>
 <P>example</P>
 <PRE>
     (defun create-gui NIL 
         (let ((inkey "TRANSMITTERS"))
             (session-property-add inkey "Process" "INPROC" "STRING"
                 "diskin"
-                '(("diskin" . "Play Soundfile")
-                  ("livein" . "Live Input")
-                  ("test"   . "Test Signal")
-                  ("slave"  . "Slave Control"))
+                '(("diskin"    . "Play Soundfile")
+                  ("livein"    . "Live Input")
+                  ("test"      . "Test Signal")
+                  ("secondary" . "Secondary Control"))
             )
             (session-property-add inkey "Audio In Bus" "AUDIOBUS"
                 "INTEGER" 1 '(1 1024 1))
             (session-property-add inkey "Audio In File" "AUDIOFILE"
                 "FILE" '("INPUT"))
-            (session-property-add inkey "Slaved to" "MASTER"
+            (session-property-add inkey "Secondary to" "PRIMARY"
                 "STRING" "")   
             (session-property-add inkey "Gain [dB]" "GAIN"
                 "DOUBLE" 0.0 '(-256.0 256.0 0.01))
@@ -49,7 +65,11 @@ this function allows you to create custom attributes for session objects (transm
     ))
 </PRE>
 <P>
-the <code>INPROC</code> attribute for example is of type <code>&quot;STRING&quot;</code> and is displayed -- other as the unconstrained <code>MASTER</code> -- as a combo box with a fixed number of predefined choices (<code>&quot;Play Soundfile&quot;</code>, <code>&quot;Live Input&quot;</code> etc.). also note that the <code>&quot;BOOLEAN&quot;</code> type is encoded as an integer value of <code>0</code> or <code>1</code>. it is displayed as a checkbox.
+The <code>INPROC</code> attribute for example is of type <code>&quot;STRING&quot;</code> and is displayed -- other
+as the unconstrained <code>PRIMARY</code> -- as a combo box with a fixed number of predefined choices
+(<code>&quot;Play Soundfile&quot;</code>, <code>&quot;Live Input&quot;</code> etc.). also note that the
+<code>&quot;BOOLEAN&quot;</code> type is encoded as an integer value of <code>0</code> or <code>1</code>. it is
+displayed as a checkbox.
 </P>
 </body>
 </html>

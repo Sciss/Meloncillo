@@ -7,18 +7,47 @@
 <body>
 <h1>SuperCollider</h1>
 <p>
-SuperCollider (SC) is a realtime sound synthesis software that is -- at the moment -- used by all of the realtime plug-ins for Meloncillo. SC was developed by James McCartney for MacOS 9 -- SC 2 -- and ported to MacOS X -- SC 3. The plug-ins use one part of SC 3, the synthesis server (scsynth). SC is now in the public domain and developed by many people for different platforms. The server is available for MacOS X, Linux and Windows at the moment. While a future version of Meloncillo will include a launcher utility, for now scsynth has to be started separately by you, if you wish to use realtime plug-ins based on SC. To do so:
-</P>
+SuperCollider (SC) is a realtime sound synthesis software that is -- at the moment -- used by all of the realtime
+plug-ins for Meloncillo. SC was developed by James McCartney for MacOS 9 -- SC 2 -- and ported to MacOS X -- SC 3.
+The plug-ins use one part of SC 3, the synthesis server (scsynth). SC is now in the public domain and developed by
+many people for different platforms. The server is available for MacOS X, Linux and Windows at the moment. While a
+future version of Meloncillo will include a launcher utility, for now scsynth has to be started separately by you,
+if you wish to use realtime plug-ins based on SC. To do so:
+</p>
 <UL>
-<LI>Download and install SC. It is hosted by SourceForge, the website is <A HREF="http://sourceforge.net/projects/supercollider" CLASS="ext">sourceforge.net/projects/supercollider</A>.</LI>
-<LI>Start the server, an executable file called <code>scsynth</code>. On Windows, you'll have a separate launcher utility called <code>ScSpawn</code>(?) which allows you to select runtime options in a window before the server is started. On Mac OS, open a terminal window. The terminal application is located in <code>/Applications/Utilities</code> (this folder is localized, e.g. on a german computer it's called <code>/Programme/Dienstprogramme</code>). A window with a socalled prompt will be opened. Change into SC's folder, which for a typical installation is <code>/Applications/SuperCollider_f</code>. Then run <code>scsynth</code>, as depicted in the graphic below:
+<LI>Download and install SC. It is hosted by SourceForge, the website is
+   <A HREF="http://sourceforge.net/projects/supercollider" CLASS="ext">sourceforge.net/projects/supercollider</A>.</LI>
+<LI>Start the server, an executable file called <code>scsynth</code>. On Windows, you'll have a separate launcher
+   utility called <code>ScSpawn</code>(?) which allows you to select runtime options in a window before the server is
+   started. On Mac OS, open a terminal window. The terminal application is located in
+   <code>/Applications/Utilities</code> (this folder is localized, e.g. on a german computer it's called
+   <code>/Programme/Dienstprogramme</code>). A window with a so-called prompt will be opened. Change into SC's
+   folder, which for a typical installation is <code>/Applications/SuperCollider_f</code>. Then run
+   <code>scsynth</code>, as depicted in the graphic below:
 </UL>
 <IMG SRC="SuperCollider.png" ALT="">
 <UL>
-<LI>As you see, <code>cd &lt;path-name&gt;</code> will jump into the given folder. <code>./scsynth</code> runs the programme, were <code>./</code> means, the terminal should look in the current folder.</LI>
-<LI>You have to specify a few runtime options. Each option is written as a hyphen followed by an alphanumeric character, for some options followed a space character and a parameter. The communication port specified by <code>-u &lt;port-number&gt;</code> is essential. Usually you will use <code>-u 57110</code>. Only be sure to match this number with the setting <A HREF="prefsSuperColliderOSC.html">&quot;SuperCollider OSC Socket&quot;</A> in the plug-in tab of meloncillo's preferences! This port is used by meloncillo to send control data to the SC server. A nice sideeffect of this network communication is that the server can run on a machine different from the one that is used by meloncillo. For this to work, change the IP address in the preference field mentioned above. <A HREF="#network" CLASS="anchor">Scroll down</A> this help document to find a checklist for running scsynth on a different computer.</LI>
-<LI>The <code>-o &lt;output-number&gt;</code> and <code>-i &lt;input-number&gt;</code> specify the number of channels of your audio card. The input-number is only important if you use a plug-in with live input instead of soundfile input. The channel numbers needn't match the number of channels your audio card offers. Increasing the number does not make sense, but if you have an eight-channel card and you are working with a stereo-patch, you can well tell scsynth to use only two audio output channels as shown in the graphic above.</LI>
-<LI>If your computer has more than one soundcard, you can use <code>-H &lt;hardware-device-name&gt;</code> to specify the name of the soundcard to use (you have to use a recent version of SC because this option is rather new). Use double-quotes if your card name contains space characters, e.g. <code>-H &quot;Built-in Audio&quot;</code>. To find out the name of your soundcard, start scsynth without the <code>-H</code> option, and you will get a list of known devices such as:</LI>
+<LI>As you see, <code>cd &lt;path-name&gt;</code> will jump into the given folder. <code>./scsynth</code> runs the
+   programme, were <code>./</code> means, the terminal should look in the current folder.</LI>
+<LI>You have to specify a few runtime options. Each option is written as a hyphen followed by an alphanumeric
+   character, for some options followed a space character and a parameter. The communication port specified by
+   <code>-u &lt;port-number&gt;</code> is essential. Usually you will use <code>-u 57110</code>. Only be sure to match
+   this number with the setting <A HREF="prefsSuperColliderOSC.html">&quot;SuperCollider OSC Socket&quot;</A> in the plug-in
+   tab of meloncillo's preferences! This port is used by meloncillo to send control data to the SC server. A nice
+   side effect of this network communication is that the server can run on a machine different from the one that
+   is used by meloncillo. For this to work, change the IP address in the preference field mentioned above.
+   <A HREF="#network" CLASS="anchor">Scroll down</A> this help document to find a checklist for running scsynth on
+   a different computer.</LI>
+<LI>The <code>-o &lt;output-number&gt;</code> and <code>-i &lt;input-number&gt;</code> specify the number of channels of your
+   audio card. The input-number is only important if you use a plug-in with live input instead of sound file input.
+   The channel numbers needn't match the number of channels your audio card offers. Increasing the number does not
+   make sense, but if you have an eight-channel card and you are working with a stereo-patch, you can well tell
+   scsynth to use only two audio output channels as shown in the graphic above.</LI>
+<LI>If your computer has more than one sound card, you can use <code>-H &lt;hardware-device-name&gt;</code> to specify the
+   name of the sound card to use (you have to use a recent version of SC because this option is rather new). Use
+   double-quotes if your card name contains space characters, e.g. <code>-H &quot;Built-in Audio&quot;</code>. To find out
+   the name of your sound card, start scsynth without the <code>-H</code> option, and you will get a list of known
+   devices such as:</LI>
 </UL>
 <pre>
 Number of Devices: 2
@@ -26,18 +55,44 @@ Number of Devices: 2
    1 : "DIGI96 PAD"
 </pre>
 <UL>
-<LI>The option <code>-S &lt;hardware-sample-rate&gt;</code> is used to explicitely set (or change) the sound card's sample rate. Not all cards may support this, e.g. on Mac OS, the built-in card cannot operate on frequencies other than 44100 Hz. The sample rate should correspond to the rate used by your sound files.</LI>
-<LI>The other options are for fine tuning, you will rarely need them. Refer to the file <code>&quot;Server-Architecture.rtf&quot;</code> in the SC folder for an explanation of the command-line options.</LI>
+<LI>The option <code>-S &lt;hardware-sample-rate&gt;</code> is used to explicitly set (or change) the sound card's sample
+   rate. Not all cards may support this, e.g. on Mac OS, the built-in card cannot operate on frequencies other than
+   44100 Hz. The sample rate should correspond to the rate used by your sound files.</LI>
+<LI>The other options are for fine tuning, you will rarely need them. Refer to the file
+   <code>&quot;Server-Architecture.rtf&quot;</code> in the SC folder for an explanation of the command-line options.</LI>
 </UL>
 <H3><A NAME="network"></A>Running SC on a separate machine</H3>
 <P>
-The realtime plug-ins communicate with SuperCollider through a protocol called OSC, acronym for Open-Sound-Control, which was developed by Matt Wright and others at the <A HREF="http://www.cnmat.berkeley.edu/OpenSoundControl" CLASS="ext">CNMAT in Berkeley</A>. This protocol is transport-independant but in our case will use the UDP protocol. This is a common network protocol which allows SC to run on any other machine in a network. For the communication to work, you have to specify the IP address of the machine that runs SC and the port used by scsynth. This is done in the <A HREF="prefsSuperColliderOSC.html">&quot;SuperCollider OSC Socket&quot;</A> preferences field in Meloncillo. Open your computer's network preference to find out your machine's IP address. When running SC on the same computer as Meloncillo, use the special IP address &quot;127.0.0.1&quot;, the socalled localhost. If the communication is not working, check your computer's firewall settings.
+The realtime plug-ins communicate with SuperCollider through a protocol called OSC, acronym for Open-Sound-Control,
+which was developed by Matt Wright and others at the
+<A HREF="http://www.cnmat.berkeley.edu/OpenSoundControl" CLASS="ext">CNMAT in Berkeley</A>. This protocol is
+transport-independent but in our case will use the UDP protocol. This is a common network protocol which allows SC
+to run on any other machine in a network. For the communication to work, you have to specify the IP address of the
+machine that runs SC and the port used by scsynth. This is done in the
+<A HREF="prefsSuperColliderOSC.html">&quot;SuperCollider OSC Socket&quot;</A> preferences field in Meloncillo. Open your
+computer's network preference to find out your machine's IP address. When running SC on the same computer as
+Meloncillo, use the special IP address &quot;127.0.0.1&quot;, the so-called localhost. If the communication is not working,
+check your computer's firewall settings.
 </P>
 <P>
-Different computers have different clocks, therefore they need to be <STRONG>synchronized</STRONG> in a realtime application. At the moment there is no way to sync Meloncillo and SC in terms of a &quot;master&quot; and &quot;slave&quot; clock. However, experience shows that this lack of sync is not a big deal in most applications. Meloncillo sends control data when it receives trigger messages from scsynth, so they are &quot;in a way&quot; synchronized. Only, the playback speed could divorce after some time. In experiments, this didn't happen even when playing back for half an hour or so without interruption, having Meloncillo on a Mac and SC on a PC, so the system clocks are quite accurate when dealing with a resolution of several milliseconds.
+Different computers have different clocks, therefore they need to be <STRONG>synchronized</STRONG> in a realtime
+application. At the moment there is no way to sync Meloncillo and SC in terms of a &quot;primary&quot; and
+&quot;secondary&quot; clock. However, experience shows that this lack of sync is not a big deal in most applications.
+Meloncillo sends control data when it receives trigger messages from scsynth, so they are &quot;in a way&quot;
+synchronized. Only, the playback speed could divorce after some time. In experiments, this didn't happen even when
+playing back for half an hour or so without interruption, having Meloncillo on a Mac and SC on a PC, so the system
+clocks are quite accurate when dealing with a resolution of several milliseconds.
 </P>
 <P>
-One issue arises with <STRONG>soundfile locations</STRONG>. The patches that come with Meloncillo assume that you are <STRONG>not</STRONG> synthesizing over a network. Therefore, the object properties of transmitters for example offer to you to browse your harddisk to select the associated soundfile. When scsynth runs on a different machine, however, it cannot access the soundfile on the Meloncillo machine, of course. To circumvent this problem, type the remote path name of the soundfile directly into the textfield! Example: You are running Meloncillo on a Mac and scsynth on a PC, connected through a local network. Your soundfiles are located on the PC, one of which has the path <code>C:\MySounds\MySound1.WAV</code>. When you select a transmitter in Meloncillo (on the Mac), in the <A HREF="ObserverTransmitter.html">Observer's Trns tab</A>, instead of clicking the folder icon next to the &quot;Audio File&quot; field, click inside the textfield and type this pathname directly.
+One issue arises with <STRONG>sound file locations</STRONG>. The patches that come with Meloncillo assume that you
+are <STRONG>not</STRONG> synthesizing over a network. Therefore, the object properties of transmitters for example
+offer to you to browse your hard-disk to select the associated sound file. When scsynth runs on a different machine,
+however, it cannot access the sound file on the Meloncillo machine, of course. To circumvent this problem, type the
+remote path name of the sound file directly into the text-field! Example: You are running Meloncillo on a Mac and
+scsynth on a PC, connected through a local network. Your sound files are located on the PC, one of which has the
+path <code>C:\MySounds\MySound1.WAV</code>. When you select a transmitter in Meloncillo (on the Mac), in the
+<A HREF="ObserverTransmitter.html">Observer's Trns tab</A>, instead of clicking the folder icon next to the
+&quot;Audio File&quot; field, click inside the text-field and type this pathname directly.
 </P>
 </body>
 </html>

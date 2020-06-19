@@ -572,13 +572,13 @@ implements AbstractWindow
 				try {
 					active = true;
 					if( wh.usesInternalFrames() && ownMenuBar ) {
-						wh.getMasterFrame().setJMenuBar( bar );
+						wh.getMainFrame().setJMenuBar( bar );
 					} else if( borrowMenuBar && (barBorrower != null) ) {
 						barBorrower.setJMenuBar( null );
 						if( jf != null ) {
 							jf.setJMenuBar( bar );
 						} else if( jif != null ) {
-							wh.getMasterFrame().setJMenuBar( bar );
+							wh.getMainFrame().setJMenuBar( bar );
 						} else {
 							throw new IllegalStateException();
 						}
@@ -616,7 +616,7 @@ tempFloatingTimer.restart();
 				try {
 					active = false;
 					if( wh.usesInternalFrames() && ownMenuBar ) {
-						if( wh.getMasterFrame().getJMenuBar() == bar ) wh.getMasterFrame().setJMenuBar( null );
+						if( wh.getMainFrame().getJMenuBar() == bar ) wh.getMainFrame().setJMenuBar( null );
 					} else if( borrowMenuBar && (barBorrower != null) ) {
 						if( jf != null ) {
 							jf.setJMenuBar( null );
@@ -1014,7 +1014,7 @@ EventQueue.invokeLater( new Runnable() {
 				jf.setJMenuBar( m );
 			} else if( jif != null ) {
 				bar = m;
-				if( active && ownMenuBar ) wh.getMasterFrame().setJMenuBar( bar );
+				if( active && ownMenuBar ) wh.getMainFrame().setJMenuBar( bar );
 	//			jif.setJMenuBar( m );
 			} else {
 				throw new IllegalStateException();
@@ -1053,7 +1053,7 @@ EventQueue.invokeLater( new Runnable() {
 				if( jf != null ) {
 					jf.setJMenuBar( bar );
 				} else if( jif != null ) {
-					wh.getMasterFrame().setJMenuBar( bar );
+					wh.getMainFrame().setJMenuBar( bar );
 				} else {
 					throw new IllegalStateException();
 				}
@@ -1111,7 +1111,7 @@ EventQueue.invokeLater( new Runnable() {
 				if( jif == null ) {
 					p = GraphicsEnvironment.getLocalGraphicsEnvironment().getCenterPoint();
 				} else {
-					comp = wh.getMasterFrame().getWindow();
+					comp = wh.getMainFrame().getWindow();
 					p = new Point( comp.getWidth() >> 1, comp.getHeight() >> 1 );
 				}
  			} else {

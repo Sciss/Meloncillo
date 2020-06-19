@@ -1,45 +1,34 @@
-import AssemblyKeys._
+lazy val commonSettings = Seq(
+  name             := "Meloncillo",
+  version          := "1.0.0-SNAPSHOT",
+  organization     := "de.sciss",
+  description      := "An application to compose spatial sound",
+  homepage         := Some(url(s"https://github.com/Sciss/${name.value}")),
+  licenses         := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt")),
+  scalaVersion     := "2.12.11",
+  crossPaths       := false,  // this is just a Java project right now!
+  autoScalaLibrary := false,
+  mainClass        := Some("de.sciss.meloncillo.Main"),
+)
 
-name := "Meloncillo"
+lazy val root = project.in(file("."))
+  .settings(commonSettings)
+  .settings(publishSettings)
 
-version := "1.0.0-SNAPSHOT"
-
-organization := "de.sciss"
-
-description := "An application to compose spatial sound"
-
-homepage := Some( url( "https://github.com/Sciss/Meloncillo" ))
-
-licenses := Seq( "GPL v2+" -> url( "http://www.gnu.org/licenses/gpl-2.0.txt" ))
-
-scalaVersion := "2.9.2"
-
-crossPaths := false  // this is just a Java project right now!
-
-retrieveManaged := true
-
-mainClass := Some( "de.sciss.meloncillo.Main" )
-
-// ---- publishing ----
-
-publishMavenStyle := true
-
-publishTo <<= version { (v: String) =>
-   Some( if( v.endsWith( "-SNAPSHOT" ))
+lazy val publishSettings = Seq(
+  publishMavenStyle := true,
+  publishTo := Some(
+    if (isSnapshot.value)
       "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-   else
+    else
       "Sonatype Releases"  at "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-   )
-}
-
-publishArtifact in Test := false
-
-pomIncludeRepository := { _ => false }
-
-pomExtra :=
+  ),
+  publishArtifact in Test := false,
+  pomIncludeRepository := { _ => false },
+  pomExtra := { val n = name.value
 <scm>
-  <url>git@github.com:Sciss/Meloncillo.git</url>
-  <connection>scm:git:git@github.com:Sciss/Meloncillo.git</connection>
+  <url>git@github.com:Sciss/{n}.git</url>
+  <connection>scm:git:git@github.com:Sciss/{n}.git</connection>
 </scm>
 <developers>
    <developer>
@@ -48,19 +37,6 @@ pomExtra :=
       <url>http://www.sciss.de</url>
    </developer>
 </developers>
-
-// ---- packaging ----
-
-seq( assemblySettings: _* )
-
-test in assembly := {}
-
-seq( appbundle.settings: _* )
-
-appbundle.icon := Some( file( "src/main/resources/application.icns" ))
-
-appbundle.javaOptions ++= Seq( "-ea", "-Xmx2048m" )
-
-appbundle.target <<= baseDirectory
-
+}
+)
 
